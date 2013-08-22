@@ -1,0 +1,17 @@
+;You can add any section here to output your specific logs.
+;[Section] is a module name, which will be used to distinguish yours logs and others;
+;"Enabled = 1" means you want to output logs for your module; "Enabled =0" means not;
+;"Output = File, Console" means you want to output your logs in both console and a file. If you 
+[DKReader] 
+Enabled=1
+Output=File
+Filepath=	abcdef.log
+[SQM]
+Enabled=0
+Output=File,Console
+[PowerManager]
+Enabled = 1;
+xyz=2;
+[WangYiJin]
+Enabled  = 1
+Output = File

@@ -1,0 +1,50 @@
+APPNAME=iwlist
+TARGETTYPE=PROGRAM
+
+ifeq ("$(TARGETTYPE)", "LIBRARY")
+PREFIX_PATH=_private_$(PUBLIC_PLATFORM)
+endif
+
+DKREADER_PATH=../../../DkReader
+
+CC=$(CROSS)gcc
+CFLAGS=-Os -W -Wall -Wstrict-prototypes -Wmissing-prototypes -Wshadow \
+	-Wpointer-arith -Wcast-qual -Winline -I. -MMD
+
+SOURCES :=											\
+													iwlist.c \
+													iwlib.c \
+	
+
+PWD := $(shell pwd)
+
+#CFLAGS+=-E
+	
+KERNEL_INC=../Laddish/KindleApp/Kernel/include
+#	$(KERNEL_INC)/CommonLibs/IOBase							\
+#	$(KERNEL_INC)/CommonLibs/KernelBase						\
+	
+TARGETINC :=Common												\
+	Inc															\
+	BookInfoManager												\
+	TextRender													\
+	SmartHandler												\
+	ImageHandler												\
+	HtmlRender													\
+	PDFRender													\
+	EpubRender													\
+	MobiRender													\
+	../Laddish/KindleApp/inc									\
+	../Laddish/KindleApp/ImageHandler							\
+	$(PUBLIC_INC)												\
+	$(PUBLIC_INC)/libxml2										\
+	$(PUBLIC_INC)/libcssInc										\
+	$(PUBLIC_INC)/freetype2										\
+	$(PUBLIC_INC)/glib-2.0										\
+	$(PUBLIC_LIB)/glib-2.0/include								\
+	$(KERNEL_INC)/CommonLibs/IOBase										\
+	$(KERNEL_INC)/CommonLibs/KernelBase									\
+	$(KERNEL_INC)/PDFKit/PDFLib									\
+	$(KERNEL_INC)/CommonLibs/Filter										\
+	$(KERNEL_INC)/CommonLibs/Render										\
+	$(PUBLIC_INC)/opencv										\		

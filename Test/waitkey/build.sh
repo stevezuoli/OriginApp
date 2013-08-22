@@ -1,0 +1,1 @@
+/usr/arm-2006q3/bin/arm-none-linux-gnueabi-g++  -fPIC -pipe  -fstack-check  -D_LINUX -Wall -g  -I/usr/arm-2006q3/include   -D_DEBUG=1  main.cpp -o waitkey -lpthread

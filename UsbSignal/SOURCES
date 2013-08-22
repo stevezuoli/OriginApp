@@ -1,0 +1,26 @@
+APPNAME=UsbSignal.bin
+TARGETTYPE=PROGRAM
+
+DKREADER_PATH=../../../DkReader
+
+PREFIX_PATH=..
+
+SOURCES :=        \
+    UsbSignal.cpp \
+
+    
+OPTIONAL_SOURCES := \
+
+LDFLAGS+=
+
+TARGETLIBS := \
+    pthread   \
+
+LDLIB+= \
+
+TARGETINC := \
+    ../inc   \
+
+POST_BUILD_SCRIPTS := \
+
+

@@ -1,0 +1,90 @@
+APPNAME=KindleAppTest
+TARGETTYPE=PROGRAM
+
+DKREADER_PATH=../../../DkReader
+KERNEL_PATH=../Kernel
+KERNEL_INC=../Kernel/include
+ifeq ("$(PLATFORM)", "Linux-x86")
+KERNEL_RTMLIB=../Kernel/Linux-x86/chk
+else
+KERNEL_RTMLIB=../Kernel/lib/rtm
+endif
+KINDLEAPP_PATH=..
+
+
+SOURCES := \
+        main.cpp \
+        TC_BookReader.cpp  \
+        ../FontManager/dk_chst2cp.cpp \
+        ../FontManager/DKTTFInfo.cpp \
+        ../FontManager/DKFont.cpp \
+        ../FontManager/DKFontManager.cpp \
+        ../BMPProcessor/BMPProcessor.cpp \
+        ../BookReader/EpubReader/EpubBookReader.cpp \
+        ../BookReader/MobiReader/MobiBookReader.cpp \
+        ../Utility/ThreadHelper.cpp \
+        PDFReaderTest.cpp \
+        ../BookReader/PdfReader/PdfKernelHandleImp.cpp  \
+        ../BookReader/PdfReader/PdfBookReader.cpp \
+        ../BookReader/PdfReader/SegmentImpl.cpp \
+        ../BookReader/TextReader/TextBookReader.cpp \
+        ../BookReader/TocInfo.cpp \
+        ../AppUI/CursorControler.cpp \
+        ../DKXManager/BaseType/CT_RefPos.cpp \
+        ../DKXManager/BaseType/TxtTocItem.cpp \
+        ../DKXManager/BookInfo/DK_BookInfo.cpp \
+        ../DKXManager/DKX/DKXBlock.cpp \
+        ../DKXManager/DKX/DKXManager.cpp \
+        ../DKXManager/DKX/DKXReadingDataItemFactory.cpp \
+        ../DKXManager/ReadingInfo/CT_ReadingData.cpp \
+        ../DKXManager/Serializable/DK_Serializable.cpp \
+        ../DKXManager/SettingInfo/DK_BookSettingInfo.cpp \
+        ../DKXManager/ReadingInfo/CT_ReadingDataItemImpl.cpp \
+        ../../../DkReader/Common/interface.c \
+        ../../../DkReader/Common/DKLoggerCWrapper.cpp \
+        ../../../DkReader/Common/DKLogger.cpp \
+        ../../../DkReader/Common/ModuleCfg.cpp \
+        ../../../DkReader/Common/IniFile.cpp    \
+        ../Framework/KernelGear.cpp
+
+LDFLAGS+=-L$(PUBLIC_LIB)  -L$(KERNEL_RTMLIB)
+CFLAGS+= -D__LINUX_X86__ -DPLATFORM_LINUX
+
+TARGETLIBS := \
+        epublib \
+        txtlib \
+        pdflib \
+        pthread \
+
+LDLIB+=	\
+
+#	$(DKREADER_PATH)/_private_$(DUOKAN_ARCH)/_lib/$(PLATFORM)/$(CONFIGURATION)/libDkReader.a \
+
+TARGETINC := \
+	$(KINDLEAPP_PATH)/inc 	\
+	$(DKREADER_PATH)/Inc							\
+	$(DKREADER_PATH)/Common 						\
+	$(DKREADER_PATH)/SmartHandler 					\
+	$(DKREADER_PATH)/ArchiveParser 					\
+	$(DKREADER_PATH)/BookInfoManager				\
+	$(PUBLIC_INC)									\
+	$(PUBLIC_INC)/freetype2							\
+	$(PUBLIC_INC)/pango-1.0	 						\
+	$(PUBLIC_INC)/glib-2.0  						\
+	$(PUBLIC_LIB)/glib-2.0/include					\
+	$(PUBLIC_INC)/libxml2 							\
+	$(PUBLIC_INC)/opencv							\
+	$(KERNEL_INC)/CommonLibs/KernelBase             \
+	$(KERNEL_INC)/CommonLibs/IOBase                 \
+	$(KERNEL_INC)/CommonLibs/Container              \
+	$(KERNEL_INC)/CommonLibs/CharsetDetect          \
+	$(KERNEL_INC)/CommonLibs/Filter                 \
+	$(KERNEL_INC)/CommonLibs/Render              	\
+	$(KERNEL_INC)/CommonLibs/XMLBase              	\
+	$(KERNEL_INC)/ePubKit/ePubLib                   \
+	$(KERNEL_INC)/PDFKit/PDFLib						\
+	$(KERNEL_INC)/TxtKit/TxtLib						\
+	$(KERNEL_INC)/TypographyKit/Titan				\
+
+#POST_BUILD_SCRIPTS+= \
+#    lftp -u root,"" sftp://192.168.2.2 -e "cd /mnt/us/pengf/KindleAppTest; put _bin/Kindle/$(CONFIGURATION)/$(APPNAME);exit";

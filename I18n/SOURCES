@@ -1,0 +1,28 @@
+APPNAME=libStringManager.a
+TARGETTYPE=LIBRARY
+
+DKREADER_PATH=../../../DkReader
+
+PREFIX_PATH=..
+
+SOURCES :=									\
+	StringManager.cpp							\
+
+	
+OPTIONAL_SOURCES :=							\
+
+LDFLAGS+=
+
+TARGETLIBS :=								\
+
+LDLIB+=										\
+
+TARGETINC :=								\
+	../inc									\
+	$(DKREADER_PATH)/Inc							\
+	$(DKREADER_PATH)/Common 						\
+
+
+POST_BUILD_SCRIPTS :=						\
+
+

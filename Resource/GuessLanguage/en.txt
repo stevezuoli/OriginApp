@@ -1,0 +1,301 @@
+﻿;Please keep below items ordered because MERC will use binary search.
+ ''	35
+ a 	19
+ ab	147
+ al	135
+ an	9
+ ar	204
+ as	171
+ at	197
+ ba	248
+ be	46
+ bo	286
+ bu	198
+ by	231
+ ca	84
+ ch	128
+ co	15
+ de	129
+ di	110
+ do	166
+ el	176
+ fa	294
+ fo	57
+ fr	172
+ gr	238
+ ha	30
+ he	21
+ hi	61
+ ho	190
+ in	5
+ is	212
+ it	108
+ la	199
+ le	287
+ li	164
+ ma	55
+ me	191
+ mi	225
+ mo	62
+ ne	177
+ no	88
+ of	11
+ on	79
+ or	261
+ pa	213
+ po	262
+ pr	64
+ re	25
+ sa	28
+ se	63
+ sh	214
+ so	120
+ st	29
+ su	178
+ te	148
+ th	0
+ to	4
+ tr	173
+ un	221
+ vo	249
+ wa	50
+ we	105
+ wh	37
+ wi	74
+ wo	149
+ ye	185
+'' 	100
+'s 	58
+'t 	179
+abo	254
+ad 	115
+aid	167
+al 	54
+ali	288
+all	87
+amp	263
+an 	59
+and	12
+ant	255
+ar 	239
+are	136
+ars	289
+as 	42
+at 	16
+ate	66
+ati	85
+ave	111
+ay 	180
+ays	215
+be 	192
+bou	250
+but	186
+by 	226
+cal	193
+can	264
+ce 	109
+ch 	137
+chi	143
+com	216
+con	92
+cou	113
+cti	122
+d a	73
+d b	200
+d h	112
+d i	227
+d o	187
+d s	118
+d t	20
+der	265
+ds 	256
+e a	48
+e b	154
+e c	76
+e d	228
+e e	194
+e f	205
+e h	155
+e i	56
+e l	266
+e m	119
+e n	229
+e o	93
+e p	159
+e r	232
+e s	38
+e t	22
+e w	96
+ear	94
+ect	77
+ed 	3
+ele	160
+en 	36
+end	174
+ent	39
+er 	6
+era	281
+ere	69
+eri	233
+ers	91
+es 	24
+ess	295
+est	60
+eve	125
+ey 	82
+f t	95
+for	43
+g t	126
+ght	206
+had	195
+hat	27
+hav	130
+he 	2
+her	31
+hey	168
+hil	207
+hin	161
+his	89
+hou	181
+ial	257
+ica	273
+id 	106
+ie 	296
+igh	208
+ild	274
+ill	121
+in 	18
+ine	258
+ing	7
+int	209
+ion	23
+ir 	275
+is 	44
+ist	297
+it 	127
+ith	145
+ity	240
+ive	182
+lat	298
+ld 	47
+le 	165
+lec	183
+les	267
+ll 	53
+ly 	80
+man	259
+me 	138
+men	260
+mpl	241
+n a	102
+n c	222
+n s	217
+n t	40
+n't	184
+nce	156
+nd 	10
+nde	276
+ne 	169
+ng 	8
+not	210
+ns 	78
+nt 	71
+nte	163
+ny 	268
+o t	188
+of 	14
+old	234
+oll	116
+om 	223
+ome	235
+on 	17
+one	243
+ons	98
+or 	34
+ore	290
+ose	277
+ot 	269
+oth	146
+oul	131
+oun	242
+ous	278
+out	139
+ove	140
+ow 	244
+per	282
+ple	196
+pre	279
+pro	114
+r a	218
+r o	283
+r s	245
+r t	83
+re 	26
+rec	270
+red	284
+ren	211
+res	151
+ric	291
+rie	285
+rin	219
+rs 	49
+ry 	117
+s a	41
+s f	246
+s h	201
+s i	162
+s m	292
+s o	90
+s s	150
+s t	65
+s w	170
+sai	175
+sam	251
+say	202
+se 	75
+st 	67
+sta	99
+ste	280
+sti	101
+sto	103
+str	293
+t a	144
+t h	104
+t i	203
+t o	230
+t s	157
+t t	45
+t w	152
+tat	247
+te 	123
+ted	70
+ter	68
+tes	271
+th 	107
+tha	32
+the	1
+thi	224
+tho	272
+tim	252
+tin	153
+tio	33
+to 	13
+tol	81
+tor	124
+ts 	86
+ty 	132
+uld	133
+uri	299
+use	134
+ut 	51
+ve 	52
+ver	72
+vot	253
+was	97
+whe	236
+wit	141
+y a	220
+y o	189
+y t	158
+yea	237
+ys 	142
