@@ -17,6 +17,8 @@ bool TopicInfo::Init(const JsonObject* jsonObj)
     jsonObj->GetStringValue("cover", &m_coverUrl);
     jsonObj->GetIntValue("weight", &m_weight);
     jsonObj->GetStringValue("updated", &m_updateTime);
+    jsonObj->GetIntValue("book_count", &m_bookCount);
+    jsonObj->GetStringValue("banner", &m_banner);
     return true;
 }
 

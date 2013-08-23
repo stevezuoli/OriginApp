@@ -1,5 +1,4 @@
 #include "BookStore/BookInfo.h"
-#include "Utility/JsonObject.h"
 #include "Common/LockObject.h"
 #include "Utility/StringUtil.h"
 #include "Utility/EncodeUtil.h"
@@ -12,10 +11,25 @@ using namespace dk::utility;
 
 namespace dk
 {
+
 namespace bookstore
 {
+
 namespace model
 {
+
+bool BookCategory::Init(JsonObjectSPtr jsonObject)
+{
+    if (jsonObject == 0)
+    {
+        return false;
+    }
+
+    jsonObject->GetStringValue("category_id", &id_);
+    jsonObject->GetStringValue("label", &label_);
+    jsonObject->GetIntValue("sid", &sid_);
+    return true;
+}
 
 BookInfo::BookInfo()
     : m_subType(OT_BOOK)
@@ -34,8 +48,47 @@ BookInfo::BookInfo()
 {
 }
 
+model::BookInfoSPtr BookInfo::ParseBookInfo(const char* jsonString)
+{
+    JsonObjectSPtr jsonObj = JsonObject::CreateFromString(jsonString);
+    if (!jsonObj)
+    {
+        return model::BookInfoSPtr();
+    }
+    int result;
+    if (!jsonObj->GetIntValue("result", &result) || result != 0) 
+    {
+        return model::BookInfoSPtr();
+    }
+
+    JsonObjectSPtr bookObj = jsonObj->GetSubObject("book");
+    if (bookObj)
+    {
+        model::BookInfoSPtr bookInfo(model::BookInfo::CreateBookInfo(bookObj.get()));
+        return bookInfo;
+    }
+    else
+    {
+        return model::BookInfoSPtr();
+    }
+}
+
+std::vector<std::string> ParseStringList(const JsonObject* jsonObj,
+                                         const std::string& key_word,
+                                         const std::string& seperator)
+{
+    std::vector<std::string> results;
+    std::string raw_string;
+    if (jsonObj->GetStringValue(key_word.c_str(), &raw_string) && !raw_string.empty())
+    {
+        results = StringUtil::Split(raw_string.c_str(), seperator.c_str());
+    }
+    return results;
+}
+
 bool BookInfo::Init(const JsonObject* jsonObj)
 {
+    m_platforms = ParseStringList(jsonObj, "platforms", "\n");
 	jsonObj->GetIntValue("time", &m_PurchasedUTCtime);
     jsonObj->GetStringValue("updated", &m_updateTime);
     jsonObj->GetStringValue("issued", &m_issuedTime);
@@ -88,6 +141,7 @@ bool BookInfo::Init(const JsonObject* jsonObj)
     jsonObj->GetIntValue("score_count", &m_scoreCount);
     jsonObj->GetBooleanValue("has_change_log", &m_hasChangeLog);
     jsonObj->GetStringValue("kernel", &m_lowestKernelVersion);
+    jsonObj->GetStringValue("afs", &m_afs);
 
     double expireTime;
     if (jsonObj->GetDoubleValue("expire", &expireTime))
@@ -99,13 +153,7 @@ bool BookInfo::Init(const JsonObject* jsonObj)
         }
     }
 
-    std::string tag;
-    m_tagList.clear();
-    if (jsonObj->GetStringValue("tags", &tag) && !tag.empty())
-    {
-        string seperate("\n");
-        m_tagList = StringUtil::Split(tag.c_str(), seperate.c_str());
-    }
+    m_tagList = ParseStringList(jsonObj, "tags", "\n");
 
     std::string catalogue;
     if (jsonObj->GetStringValue("toc", &catalogue) && !catalogue.empty())
@@ -115,7 +163,8 @@ bool BookInfo::Init(const JsonObject* jsonObj)
         string space(" ");
         char preview('-');
         size_t startIndex = 0;
-        while(true){
+        while(true)
+        {
             size_t found = catalogue.find(para.c_str(), startIndex);
             if (string::npos == found)
             {
@@ -147,6 +196,41 @@ bool BookInfo::Init(const JsonObject* jsonObj)
         }
     }
 
+    JsonObjectSPtr categories = jsonObj->GetSubObject("categories");
+    if (categories != 0)
+    {
+        int cat_size = categories->GetArrayLength();
+        for (int i = 0; i < cat_size; ++i)
+        {
+            JsonObjectSPtr book_category = categories->GetElementByIndex(i);
+            if (book_category != 0)
+            {
+                BookCategory book_cat_instance;
+                if (book_cat_instance.Init(book_category))
+                {
+                    m_bookCategories[book_cat_instance.id_] = book_cat_instance;
+                }
+            }
+        }
+    }
+
+    JsonObjectSPtr related = jsonObj->GetSubObject("related");
+    if (related)
+    {
+        int relatedSize = related->GetArrayLength();
+        for (int i = 0; i < relatedSize; ++i)
+        {
+            JsonObjectSPtr relatedBookJson = related->GetElementByIndex(i);
+            if (relatedBookJson)
+            {
+                model::BookInfo* relatedBook = CreateBookInfo(relatedBookJson.get());
+                if (NULL != relatedBook)
+                {
+                    AddRelatedBook(model::BookInfoSPtr(relatedBook));
+                }
+            }
+        }
+    }
     return true;
 }
 
@@ -175,6 +259,18 @@ BookInfo* BookInfo::CreateBookInfo(const JsonObject* jsonObject, ObjectType subT
         delete bookInfo;
     }
     return NULL;
+}
+
+bool BookInfo::IsReadable() const
+{
+    for (int i = 0; i < m_platforms.size(); i++)
+    {
+        if (m_platforms[i].compare("Kindle") == 0)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 BookInfoList BookInfo::FromBasicObjectList(const BasicObjectList& basicObjectList)

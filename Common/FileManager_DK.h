@@ -136,8 +136,8 @@ public:
     bool IsInSearch() const;
     std::vector<std::string> GetDuoKanBookIds() const;
 
-    int RenameFile(CDKFile* file, const char* newName);
-    int RenameFile(CDKFile* file, const std::string& newName)
+    int RenameFile(PCDKFile file, const char* newName);
+    int RenameFile(PCDKFile file, const std::string& newName)
     {
         return RenameFile(file, newName.c_str());
     }

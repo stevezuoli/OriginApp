@@ -111,7 +111,7 @@ public:
     virtual void SetLayoutSettings(const DK_LAYOUTSETTING& layoutSetting);
     virtual bool IsPositionInCurrentPage(const DK_FLOWPOSITION& pos);
     virtual bool SetTextGrayScaleLevel(double gamma);
-    virtual bool SetFontSmoothType(DK_FONT_SMOOTH_TYPE fontSmoothType);
+    virtual bool SetFontSmoothType(DK_FONT_SMOOTH_TYPE fontSmoothType){m_eFontSmoothType = fontSmoothType; return true; };
     virtual DK_FONT_SMOOTH_TYPE GetFontSmoothType() { return m_eFontSmoothType;}
     virtual bool SetGraphicsGrayScaleLevel(double gamma) { m_graphicGamma = gamma; return true; };
     virtual BookTextController* GetBookTextControlerOfCurPage();

@@ -143,7 +143,7 @@ public:
     virtual IBMPProcessor::TYPE GetType () { return IBMPProcessor::DK_BMPPROCESSOR_GRAYSCALE; }
     
 private:
-    unsigned char ConvertRGBToGray(unsigned char blue, unsigned char green, unsigned char red);
+    unsigned char ConvertRGBToGray(int x, int y, unsigned char blue, unsigned char green, unsigned char red);
     bool RGBToGray(DK_IMAGE* pImage);
     
     static IBMPProcessor* m_pInstance;

@@ -1,0 +1,596 @@
+APPNAME=KindleApp
+TARGETTYPE=PROGRAM
+
+DKREADER_PATH=../../DkReader
+KERNEL_PATH=Kernel
+KERNEL_INC=Kernel/include
+KERNEL_RTMLIB=Kernel/lib/$(DUOKAN_ARCH)/$(CONFIGURATION)
+
+
+
+
+SOURCES := \
+    ArchiveParser/ArchiveFactory.cpp \
+    ArchiveParser/CRarHandler.cpp \
+    ArchiveParser/CZipHandler.cpp \
+    ArchiveParser/DkRarStream.cpp \
+    ArchiveParser/DkZipStream.cpp \
+    ArchiveParser/RarStream.cpp \
+    ArchiveParser/ZipStream.cpp \
+    AudioPlayer/AudioPlayer.cpp \
+    BMPProcessor/BMPProcessor.cpp \
+    BookReader/EpubReader/EpubBookReader.cpp \
+    BookReader/IBookReader.cpp \
+    BookReader/MobiReader/MobiBookReader.cpp \
+    BookReader/PageTable.cpp \
+    BookReader/PdfReader/PDFTextElement.cpp \
+    BookReader/PdfReader/PDFTextIterator.cpp \
+    BookReader/PdfReader/PdfBookReader.cpp \
+    BookReader/PdfReader/PdfKernelHandleImp.cpp \
+    BookReader/PdfReader/SegmentImpl.cpp \
+    BookReader/TextReader/TextBookReader.cpp \
+    BookReader/TocInfo.cpp \
+    BookStore/AdInfo.cpp \
+    BookStore/BasicObject.cpp \
+    BookStore/BookChangeLog.cpp \
+    BookStore/BookComment.cpp \
+    BookStore/BookInfo.cpp \
+    BookStore/BookScore.cpp \
+	BookStore/OfflineBookStoreManager.cpp \
+    BookStore/BookStoreInfoManager.cpp \
+	BookStore/BookStoreOrderManager.cpp \
+    BookStore/CatalogueInfo.cpp \
+    BookStore/CategoryInfo.cpp \
+    BookStore/CommentReply.cpp \
+    BookStore/ConstStrings.cpp \
+    BookStore/CreateOrderResult.cpp \
+    BookStore/DownloadTaskBuilder.cpp \
+    BookStore/ListDataFetcher.cpp \
+    BookStore/LocalCategoryManager.cpp \
+    BookStore/PushedMessagesInfo.cpp \
+    BookStore/ReadingBookInfo.cpp \
+    BookStore/TopicInfo.cpp \
+	BookStore/SpecialEvent.cpp \
+	BookStore/XiaomiUserCard.cpp \
+	BookStore/XiaomiListDataFetcher.cpp \
+    BookStore/BookNoteSummary.cpp \
+    BookStore/BoxMessagesCommentReply.cpp \
+	BookStore/AccountMapping.cpp \
+	BookStore/BookDownloadController.cpp \
+    BookStoreUI/UIBookCoverView.cpp \
+    BookStoreUI/UIBookDetailedInfoPage.cpp \
+    BookStoreUI/UIBookStoreAddCommentPage.cpp \
+    BookStoreUI/UIBookStoreBookAbstractPage.cpp \
+    BookStoreUI/UIBookStoreBookCatalogueItem.cpp \
+    BookStoreUI/UIBookStoreBookChangeLogItem.cpp \
+    BookStoreUI/UIBookStoreBookChangeLogPage.cpp \
+    BookStoreUI/UIBookStoreBookComment.cpp \
+    BookStoreUI/UIBookStoreBookCommentDetailedPage.cpp \
+    BookStoreUI/UIBookStoreBookCommentItem.cpp \
+    BookStoreUI/UIBookStoreBookCommentReplyItem.cpp \
+    BookStoreUI/UIBookStoreBookCommentReplyPage.cpp \
+    BookStoreUI/UIBookStoreBookInfo.cpp \
+    BookStoreUI/UIBookStoreBookInfoRelatedList.cpp \
+    BookStoreUI/UIBookStoreBookItem.cpp \
+	BookStoreUI/UIBookStoreBookInCartItem.cpp \
+	BookStoreUI/UIBookStorePostAddCartPage.cpp \
+	BookStoreUI/UIBookStoreCartPage.cpp \
+    BookStoreUI/UIBookStoreCategoryItem.cpp \
+    BookStoreUI/UIBookStoreCategoryPage.cpp \
+    BookStoreUI/UIBookStoreChartsPage.cpp \
+    BookStoreUI/UIBookStoreChartsPageItem.cpp \
+    BookStoreUI/UIBookStoreChartsListBoxPage.cpp \
+    BookStoreUI/UIBookStoreClassifyPage.cpp \
+    BookStoreUI/UIBookStoreCommentReplyDetailedPage.cpp \
+    BookStoreUI/UIBookStoreDiscountPage.cpp \
+    BookStoreUI/UIBookStoreDuokanRecommendPage.cpp \
+    BookStoreUI/UIBookStoreFetchInfo.cpp \
+    BookStoreUI/UIBookStoreIndexPageItem.cpp \
+    BookStoreUI/UIBookStoreKeyPage.cpp \
+    BookStoreUI/UIBookStoreLatestPage.cpp \
+    BookStoreUI/UIBookStoreListBoxPage.cpp \
+    BookStoreUI/UIBookStoreListBoxPanel.cpp \
+    BookStoreUI/UIBookStoreListBoxWithBtn.cpp \
+    BookStoreUI/UIBookStoreListBoxWithPageNum.cpp \
+    BookStoreUI/UIBookStoreNavigation.cpp \
+    BookStoreUI/UIBookStoreNavigationWithFling.cpp \
+    BookStoreUI/UIBookStorePayDlg.cpp \
+    BookStoreUI/UIBookStorePayInfoDlg.cpp \
+    BookStoreUI/UIBookStorePersonCenteredPage.cpp \
+    BookStoreUI/UIBookStorePriceButtonController.cpp \
+    BookStoreUI/UIBookStorePublishBooksPage.cpp \
+    BookStoreUI/UIBookStorePublishPage.cpp \
+    BookStoreUI/UIBookStorePublishingItem.cpp \
+    BookStoreUI/UIBookStoreSearchPage.cpp \
+    BookStoreUI/UIBookStoreTablePage.cpp \
+    BookStoreUI/UIBookStoreTopicPage.cpp \
+    BookStoreUI/UIDKBookStoreIndexPage.cpp \
+    BookStoreUI/UIBookStoreBookNoteDetailPage.cpp \
+    BookStoreUI/UIBookStoreTagListPage.cpp \
+    BookStoreUI/UIBookStoreBookRightsInfo.cpp \
+    Common/BookCoverLoader.cpp \
+    Common/CAccountManager.cpp \
+    Common/CFileChapterInfo.cpp \
+    Common/ConfigInfo.cpp \
+    Common/DebugConsole.cpp \
+    Common/Defs.cpp \
+    Common/DuoKanServer.cpp \
+    Common/FileContentsFactory.cpp \
+    Common/FileManager_DK.cpp \
+    Common/FileSorts_DK.cpp \
+    Common/File_DK.cpp \
+    Common/LaddishChar.cpp \
+    Common/LaddishCommon.cpp \
+    Common/ReadingHistoryStat.cpp \
+    Common/SystemOperation.cpp \
+    Common/SystemSetting_DK.cpp \
+    Common/UserInfo.cpp \
+    Common/WindowMetrics.cpp \
+    CommonUI/CPageNavigator.cpp \
+    CommonUI/UIAddCategoryDlg.cpp \
+    CommonUI/UIBookCorrectionDlg.cpp \
+    CommonUI/UIBookListProgressBar.cpp \
+    CommonUI/UICoverViewItem.cpp \
+    CommonUI/UIIMEManager.cpp \
+    CommonUI/UIIPAddressTextBox.cpp \
+    CommonUI/UIInteractiveImageDetailPage.cpp \
+    CommonUI/UISoftKeyboardIME.cpp \
+    CommonUI/UITableBarController.cpp \
+    CommonUI/UITablePanel.cpp \
+    CommonUI/UITitleBar.cpp \
+    CommonUI/UIUtility.cpp \
+    CommonUI/UIIME.cpp \
+    CommonUI/UIAccountLoginDialog.cpp \
+    CommonUI/UIForgetPasswordDlg.cpp \
+    CommonUI/UIModifyAccountInfoDlg.cpp \
+    CommonUI/UIFootNoteDialog.cpp \
+    CommonUI/UIWeiboBindDlg.cpp \
+    CommonUI/UIWeiboSharePage.cpp \
+    CommonUI/UICommentEditDialog.cpp \
+    CommonUI/UINumInputIME.cpp \
+    CommonUI/BookTextController.cpp \
+    CommonUI/UIBookReaderSelected.cpp \
+	CommonUI/UIAccountMigrateDlg.cpp \
+    CommonUI/UIAccountRegisterDialog.cpp \
+    CommonUI/UIWifiPasswordDlg.cpp \
+    DK91Search/Curl_Post.cpp \
+    DK91Search/DK_XmlPrase.cpp \
+    DKXManager/BaseType/CT_RefPos.cpp \
+    DKXManager/BaseType/TxtTocItem.cpp \
+    DKXManager/BookInfo/DK_BookInfo.cpp \
+    DKXManager/DKX/DKXBlock.cpp \
+    DKXManager/DKX/DKXManager.cpp \
+    DKXManager/DKX/DKXReadingDataItemFactory.cpp \
+    DKXManager/ReadingInfo/CT_ReadingData.cpp \
+    DKXManager/ReadingInfo/CT_ReadingDataItemImpl.cpp \
+    DKXManager/Serializable/DK_Serializable.cpp \
+    DKXManager/SettingInfo/DK_BookSettingInfo.cpp \
+    DownloadManager/DlManagerSerialization.cpp \
+    DownloadManager/DownloadBookTaskImpl.cpp \
+    DownloadManager/DownloadEngineImpl.cpp \
+    DownloadManager/DownloadManager.cpp \
+    DownloadManager/DownloaderImpl.cpp \
+    DownloadManager/DownloadReleaseTaskImpl.cpp \
+    DownloadManager/DownloadScreenSaverTaskImpl.cpp \
+    DownloadManager/DownloadTask.cpp \
+    DownloadManager/DownloadTaskFactory.cpp \
+    DownloadManager/IDownloadTask.cpp \
+    DownloadManager/curlDownload.cpp \
+    FontManager/DKFont.cpp \
+    FontManager/DKFontManager.cpp \
+    FontManager/DKTTFInfo.cpp \
+    FontManager/dk_chst2cp.cpp \
+    Framework/BackgroundLoader.cpp \
+    Framework/CDisplay.cpp \
+    Framework/CHourglass.cpp \
+    Framework/CMessageHandler.cpp \
+    Framework/CNativeMessageQueue.cpp \
+    Framework/CNativeThread.cpp \
+    Framework/CRunnableDepot.cpp \
+    Framework/INativeDisplay.cpp \
+    Framework/KernelGear.cpp \
+    Framework/TPDef.cpp \
+    FtpService/FtpService.cpp \
+    GUI/BoundSlot.cpp \
+	GUI/dkImage.cpp \
+	GUI/TextFont.cpp \
+    GUI/CTpFont.cpp \
+    GUI/CTpGraphics.cpp \
+    GUI/CTpImage.cpp \
+    GUI/Event.cpp \
+    GUI/EventListener.cpp \
+    GUI/EventSet.cpp \
+    GUI/FontManager.cpp \
+    GUI/GUIConfiguration.cpp \
+    GUI/GUIHelper.cpp \
+    GUI/GUISystem.cpp \
+    GUI/GestureDetector.cpp \
+    GUI/GlobalEventListener.cpp \
+    GUI/MenuItem.cpp \
+    GUI/MessageEventArgs.cpp \
+    GUI/PrintScreenGestureDetector.cpp \
+    GUI/ScaleGestureDetector.cpp \
+    GUI/TextDrawer.cpp \
+    GUI/TextEditController.cpp \
+    GUI/UIAbstractText.cpp \
+    GUI/UIAbstractTextEdit.cpp \
+    GUI/UIBookReaderProgressBar.cpp \
+    GUI/UIButton.cpp \
+    GUI/UIButtonGroup.cpp \
+    GUI/UICheckButton.cpp \
+    GUI/UIComplexButton.cpp \
+    GUI/UICompoundListBox.cpp \
+    GUI/UIContainer.cpp \
+    GUI/UIDialog.cpp \
+    GUI/UIEvent.cpp \
+    GUI/UIImage.cpp \
+    GUI/UIImageTransparent.cpp \
+    GUI/UILayout.cpp \
+    GUI/UIListItemBase.cpp \
+    GUI/UIMenu.cpp \
+    GUI/UIMessageBox.cpp \
+    GUI/UIModalDialog.cpp \
+    GUI/UIPage.cpp \
+    GUI/UIPlainTextEdit.cpp \
+    GUI/UIProgressBar.cpp \
+    GUI/UIRadioButtonGroup.cpp \
+    GUI/UISeperator.cpp \
+    GUI/UISizer.cpp \
+    GUI/UIStars.cpp \
+    GUI/UITabBar.cpp \
+    GUI/UIText.cpp \
+    GUI/UITextBox.cpp \
+    GUI/UITextBoxOnlyDlg.cpp \
+    GUI/UITextSingleLine.cpp \
+    GUI/UITimerTask.cpp \
+    GUI/UITouchButton.cpp \
+    GUI/UITouchCommonListBox.cpp \
+    GUI/UITouchComplexButton.cpp \
+    GUI/UIWindow.cpp \
+    GUI/ImageFullRepaintCalculation.cpp \
+    GUI/UIPopNum.cpp \
+    GUI/UIDotProgress.cpp \
+    I18n/StringManager.cpp \
+    IME/Fcitx/AutoEng.c \
+    IME/Fcitx/InputWindow.c \
+    IME/Fcitx/KeyList.c \
+    IME/Fcitx/MainWindow.c \
+    IME/Fcitx/PYFA.c \
+    IME/Fcitx/PYmain.c \
+    IME/Fcitx/QuickPhrase.c \
+    IME/Fcitx/StdAfx.c \
+    IME/Fcitx/ime.c \
+    IME/Fcitx/internalVersion.c \
+    IME/Fcitx/punc.c \
+    IME/Fcitx/py.c \
+    IME/Fcitx/pyMapTable.c \
+    IME/Fcitx/pyParser.c \
+    IME/Fcitx/qw.c \
+    IME/Fcitx/sp.c \
+    IME/Fcitx/table.c \
+    IME/Fcitx/tools.c \
+    IME/Fcitx/ui.c \
+    IME/Fcitx/vk.c \
+    IME/Fcitx/xim.c \
+    IME/IMECangjie.cpp \
+    IME/IMEFanti.cpp \
+    IME/IMEFcitx.cpp \
+    IME/IMELatin.cpp \
+    IME/IMEManager.cpp \
+    IME/IMENumber.cpp \
+    IME/IMEPinyin.cpp \
+    IME/IMEWubi.cpp \
+    ImageHandler/DkImageHandler.cpp \
+    ImageHandler/DkImageHelper.cpp \
+    Model/ArchiveFileContentsImpl.cpp \
+    Model/BookmarkItemModelImpl.cpp \
+    Model/DirectoryItemModelImpl.cpp \
+    Model/DownloadItemModelImpl.cpp \
+    Model/UpgradeModelImpl.cpp \
+    Model/WifiItemModelImpl.cpp \
+    Net/MailService.cpp \
+    PersonalUI/PushedMessagesManager.cpp \
+    PersonalUI/UIDistributionChart.cpp \
+    PersonalUI/UIPersonalCommentsItem.cpp \
+    PersonalUI/UIPersonalCommentsPage.cpp \
+    PersonalUI/UIPersonalExperienceLabel.cpp \
+    PersonalUI/UIPersonalExperiencePage.cpp \
+    PersonalUI/UIPersonalPage.cpp \
+    PersonalUI/UIPersonalPushedMessagesItem.cpp \
+    PersonalUI/UIBoxMessagesCommentReplyItem.cpp \
+    PersonalUI/UIPersonalFavouritesPage.cpp \
+    PersonalUI/UIPersonalMessagesPage.cpp \
+    PersonalUI/UIPersonalPushedTextPage.cpp \
+    PersonalUI/UIPersonalNotesSummaryPage.cpp \
+    PersonalUI/UIPersonalNotesSummaryItem.cpp \
+    PersonalUI/UIPersonalBookNotesPage.cpp \
+    PersonalUI/UIPersonalBookNoteItem.cpp \
+    PersonalUI/UISingleLine.cpp \
+    PersonalUI/UIBookStoreListBoxOfMessages.cpp \
+    PersonalUI/UIPersonalSystemMessageItem.cpp \
+    PowerManager/PowerManager.cpp \
+    SQMUploader/SQMUploader.cpp \
+    ScreenSaverUpdate/ScreenSaverItem.cpp \
+    ScreenSaverUpdate/ScreenSaverUpdateInfo.cpp \
+    TouchAppUI/BookMarkItem.cpp \
+    TouchAppUI/BookOpenManager.cpp \
+    TouchAppUI/DkReaderPage.cpp \
+    TouchAppUI/DownloadItem.cpp \
+    TouchAppUI/LayoutHelper.cpp \
+    TouchAppUI/LayoutReader.cpp \
+    TouchAppUI/SelectedControler.cpp \
+    TouchAppUI/StartProgress.cpp \
+    TouchAppUI/UIAddBookToCategoryPage.cpp \
+    TouchAppUI/UIAudioPlayerDialog.cpp \
+    TouchAppUI/UIAutoPageDownDlg.cpp \
+    TouchAppUI/UIBasicListBox.cpp \
+    TouchAppUI/UIBasicListItem.cpp \
+    TouchAppUI/UIBookContentSearchDlg.cpp \
+    TouchAppUI/UIBookContentSearchListBox.cpp \
+    TouchAppUI/UIBookContentSearchListItem.cpp \
+    TouchAppUI/UIBookMenuDlg.cpp \
+    TouchAppUI/UIBookReaderContainer.cpp \
+    TouchAppUI/UIBookmarkListBox.cpp \
+    TouchAppUI/UIBookmarkListItem.cpp \
+    TouchAppUI/UIBottomBar.cpp \
+    TouchAppUI/UIButtonDlg.cpp \
+    TouchAppUI/UICommentExportDlg.cpp \
+    TouchAppUI/UICommentOrSummarySelectDlg.cpp \
+    TouchAppUI/UIComplexDialog.cpp \
+    TouchAppUI/UICustomLayoutSettingDlg.cpp \
+    TouchAppUI/UIDKLowPowerAlarmPage.cpp \
+    TouchAppUI/UIDateSettingDlg.cpp \
+    TouchAppUI/UIDeleteCategoryConfirmDlg.cpp \
+    TouchAppUI/UIDictionaryDialog.cpp \
+    TouchAppUI/UIDictionarySetDialog.cpp \
+    TouchAppUI/UIDirectoryListBox.cpp \
+    TouchAppUI/UIDirectoryListItem.cpp \
+    TouchAppUI/UIDownloadPage.cpp \
+    TouchAppUI/UIFrontLightManager.cpp \
+    TouchAppUI/UIHomePage.cpp \
+    TouchAppUI/UIHyperLinksButton.cpp \
+    TouchAppUI/UIImageReaderContainer.cpp \
+    TouchAppUI/UIImageSettingsDlg.cpp \
+    TouchAppUI/UILanguageMenu.cpp \
+    TouchAppUI/UILayoutTestPage.cpp \
+    TouchAppUI/UINavigateToDlg.cpp \
+    TouchAppUI/UINumInput.cpp \
+    TouchAppUI/UIPdfTrimColumnedDlg.cpp \
+    TouchAppUI/UIPersonalSettingPanel.cpp \
+    TouchAppUI/UIPersonalSettingPanel1.cpp \
+    TouchAppUI/UIPersonalSettingPanel1Login.cpp \
+    TouchAppUI/UIPersonalSettingPanel1Logout.cpp \
+	TouchAppUI/UIPersonalSettingPanel2.cpp \
+    TouchAppUI/UIReaderSettingDlg.cpp \
+    TouchAppUI/UIReadingSettingPanel.cpp \
+    TouchAppUI/UIReadingSettingPanel1.cpp \
+    TouchAppUI/UIReadingSettingPanel2.cpp \
+    TouchAppUI/UISettingPanel.cpp \
+    TouchAppUI/UIShareAccountSettingPanel.cpp \
+    TouchAppUI/UIShortCutPage.cpp \
+    TouchAppUI/UIShortcutBar.cpp \
+    TouchAppUI/UISingleTextInputDialog.cpp \
+    TouchAppUI/UISystemSettingPageNew.cpp \
+    TouchAppUI/UISystemSettingPanel.cpp \
+    TouchAppUI/UISystemSettingPanel1.cpp \
+    TouchAppUI/UISystemSettingPanel2.cpp \
+    TouchAppUI/UISystemSettingPanel3.cpp \
+    TouchAppUI/UISystemUpdateDlg.cpp \
+    TouchAppUI/UITabBarView.cpp \
+    TouchAppUI/UITablePage.cpp \
+    TouchAppUI/UITocDlg.cpp \
+    TouchAppUI/UITouchMenu.cpp \
+    TouchAppUI/UIUnlockDlg.cpp \
+    TouchAppUI/UIWifiDialog.cpp \
+    TouchAppUI/UIWifiListBox.cpp \
+    TouchAppUI/UIWifiListItem.cpp \
+    TouchAppUI/UIWifiSSIDPasswordDialog.cpp \
+    Utility/CImageLoader.cpp \
+    Utility/CString.cpp \
+    Utility/ColorManager.cpp \
+    Utility/ConfigFile.cpp \
+    Utility/Dictionary.cpp \
+    Utility/EncodeUtil.cpp \
+    Utility/FileSystem.cpp \
+    Utility/HttpUtil.cpp \
+    Utility/ImageManager.cpp \
+    Utility/JsonObject.cpp \
+    Utility/MD5Checker.cpp \
+    Utility/Misc.cpp \
+    Utility/PathManager.cpp \
+    Utility/Profiler.cpp                           \
+    Utility/RSAGenerator.cpp \
+    Utility/RenderUtil.cpp \
+    Utility/StringUtil.cpp \
+    Utility/SystemUtil.cpp \
+    Utility/ThreadHelper.cpp \
+    Utility/Timer.cpp \
+    Utility/TimerList.cpp \
+    Utility/TimerThread.cpp \
+    Utility/XmlUtil.cpp \
+	Utility/ReaderUtil.cpp \
+	Utility/WebBrowserUtil.cpp \
+    Weibo/ParsingDataStruct.cpp \
+    Weibo/SinaWeiboManager.cpp \
+    Weibo/SinaWeiboMethodImpl.cpp \
+    Weibo/SinaWeiboResultParser.cpp \
+    Weibo/SinaWeiboTaskBuilder.cpp \
+	Thirdparties/EvernoteManager.cpp \
+	Thirdparties/MiMigrationManager.cpp \
+    Wifi/WiFiQueue.cpp \
+    Wifi/WifiBaseImpl.cpp \
+    Wifi/WifiCfg.cpp \
+    Wifi/WifiManager.cpp \
+    drivers/CFbBitDc.cpp \
+    drivers/DeviceInfo.cpp \
+    drivers/FrontLight.cpp \
+    drivers/TouchDrivers.cpp \
+    drivers/Usb.cpp \
+    TTS/TTS.cpp \
+    main.cpp \
+
+
+ifeq "$(PLATFORM)" "Kindle"
+SOURCES += \
+    TTS/cpcm.cpp \
+    TTS/jtTTS.cpp \
+
+endif
+
+OPTIONAL_SOURCES := \
+    Utility/CStringW.cpp \
+
+
+LDFLAGS+=-L$(PUBLIC_LIB) \
+    -L$(KERNEL_RTMLIB) \
+
+
+TARGETLIBS := \
+    z \
+    pthread \
+    freetype \
+    xml2 \
+    iconv \
+    curl \
+    zip \
+    unrar \
+    cares \
+    dkkernel \
+    json \
+
+
+LDLIB+= \
+    $(DKREADER_PATH)/_private_$(PUBLIC_PLATFORM)/_lib/$(PLATFORM)/$(CONFIGURATION)/libDkReader.a \
+
+ifeq "$(PLATFORM)" "Kindle"
+LDLIB+= \
+    $(DKREADER_PATH)/lib/libtts.a \
+    $(DKREADER_PATH)/lib/libasound.so \
+
+endif
+
+TARGETINC := \
+    inc \
+    $(DKREADER_PATH)/Inc \
+    $(DKREADER_PATH)/Common \
+    $(DKREADER_PATH)/SmartHandler \
+    $(DKREADER_PATH)/BookInfoManager \
+    $(PUBLIC_INC) \
+    $(PUBLIC_INC)/freetype2 \
+    $(PUBLIC_INC)/libxml2 \
+    $(PUBLIC_INC)/json \
+    $(PUBLIC_INC)/unrar \
+    $(PUBLIC_LIB)/libzip/include \
+    $(KERNEL_INC)/CommonLibs/KernelBase \
+    $(KERNEL_INC)/CommonLibs/IOBase \
+    $(KERNEL_INC)/CommonLibs/Container \
+    $(KERNEL_INC)/CommonLibs/CharsetDetect \
+    $(KERNEL_INC)/CommonLibs/Filter \
+    $(KERNEL_INC)/CommonLibs/Render \
+    $(KERNEL_INC)/CommonLibs/XMLBase \
+    $(KERNEL_INC)/ePubKit/ePubLib \
+    $(KERNEL_INC)/PDFKit/PDFLib \
+    $(KERNEL_INC)/TxtKit/TxtLib \
+    $(KERNEL_INC)/MobiKit/MobiLib \
+    $(KERNEL_INC)/TypographyKit/Titan \
+
+
+POST_BUILD_SCRIPTS := \
+    mkdir -p $(BIN_PREFIX)alsa; \
+    cp -u ./alsa/* $(BIN_PREFIX)alsa; \
+    mkdir -p $(BIN_PREFIX)res; \
+    cp -u ./res/*.* $(BIN_PREFIX)res; \
+    mkdir -p $(BIN_PREFIX)res/touch; \
+    cp -u ./res/touch/* $(BIN_PREFIX)res/touch; \
+    mkdir -p $(BIN_PREFIX)res/touch/2013; \
+    cp -u ./res/touch/2013/* $(BIN_PREFIX)res/touch/2013; \
+    mkdir -p $(BIN_PREFIX)res/py; \
+    cp -u ./res/py/* $(BIN_PREFIX)res/py; \
+    mkdir -p $(BIN_PREFIX)res/tts; \
+    cp -u ./res/tts/* $(BIN_PREFIX)res/tts; \
+    mkdir -p $(BIN_PREFIX)res/sysfonts; \
+    cp -u ./res/sysfonts/* $(BIN_PREFIX)res/sysfonts; \
+    mkdir -p $(BIN_PREFIX)res/ScreenSaver; \
+    cp -u ./res/ScreenSaver/* $(BIN_PREFIX)res/ScreenSaver; \
+    mkdir -p $(BIN_PREFIX)res/CssAliases; \
+    cp -u ./res/CssAliases/Aliases $(BIN_PREFIX)res/CssAliases; \
+    mkdir -p $(BIN_PREFIX)res/language; \
+    cp -u ./res/language/* $(BIN_PREFIX)res/language; \
+    mkdir -p $(BIN_PREFIX)res/userfonts; \
+    cp -u ./res/userfonts/* $(BIN_PREFIX)res/userfonts; \
+    mkdir -p $(BIN_PREFIX)res/sharedicon; \
+    cp -u ./res/sharedicon/* $(BIN_PREFIX)res/sharedicon; \
+    mkdir -p $(BIN_PREFIX)res/dict; \
+    cp -u ./res/dict/* $(BIN_PREFIX)res/dict; \
+    mkdir -p $(BIN_PREFIX)Resource; \
+    cp -u ./Resource/* $(BIN_PREFIX)Resource; \
+    mkdir -p $(BIN_PREFIX)Resource/WordSeg; \
+    cp -u ./Resource/WordSeg/* $(BIN_PREFIX)Resource/WordSeg; \
+    mkdir -p $(BIN_PREFIX)Resource/CIDToUnicode; \
+    cp -u ./Resource/CIDToUnicode/* $(BIN_PREFIX)Resource/CIDToUnicode; \
+    mkdir -p $(BIN_PREFIX)Resource/CMap; \
+    cp -u ./Resource/CMap/* $(BIN_PREFIX)Resource/CMap; \
+    mkdir -p $(BIN_PREFIX)Resource/CodeConvert; \
+    cp -u ./Resource/CodeConvert/* $(BIN_PREFIX)Resource/CodeConvert; \
+    mkdir -p $(BIN_PREFIX)Resource/GuessLanguage; \
+    cp -u ./Resource/GuessLanguage/* $(BIN_PREFIX)Resource/GuessLanguage; \
+    mkdir -p $(BIN_PREFIX)Resource/Hyphen; \
+    cp -u ./Resource/Hyphen/* $(BIN_PREFIX)Resource/Hyphen; \
+    mkdir -p $(BIN_PREFIX)lib; \
+    cp -u $(PUBLIC_LIB)/libcharset.so.1.0.0 \
+        $(BIN_PREFIX)lib; \
+    cp -u $(PUBLIC_LIB)/libcurl.so.4.2.0 \
+        $(BIN_PREFIX)lib; \
+    cp -u $(PUBLIC_LIB)/libiconv.so.2.5.0 \
+        $(BIN_PREFIX)lib; \
+    cp -u $(PUBLIC_LIB)/libxml2.so.2.7.4 \
+        $(BIN_PREFIX)lib; \
+    cp -u $(PUBLIC_LIB)/libz.so.1.2.5 \
+        $(BIN_PREFIX)lib; \
+    cp -u $(PUBLIC_LIB)/libfreetype.so.6.5.0 \
+        $(BIN_PREFIX)lib; \
+    cp -u $(PUBLIC_LIB)/libzip.so.2.1.0 \
+        $(BIN_PREFIX)lib; \
+    cp -u $(PUBLIC_LIB)/libunrar.so \
+        $(BIN_PREFIX)lib; \
+    cp -u $(PUBLIC_LIB)/libcares.so.2 \
+        $(BIN_PREFIX)lib; \
+    cp -u $(DKREADER_PATH)/lib/libasound.so \
+        $(BIN_PREFIX)lib; \
+    cp -u $(PUBLIC_BIN)/ntpdate \
+        $(BIN_PREFIX); \
+    cp -u $(PUBLIC_SBIN)/miniftpd \
+        $(BIN_PREFIX); \
+    cp -fu $(KERNEL_RTMLIB)/libdkkernel.so \
+        $(BIN_PREFIX)lib; \
+    cp -fu $(PUBLIC_LIB)/libjson.so.0 \
+        $(BIN_PREFIX)lib; \
+
+ifeq "$(DUOKAN_ARCH)" "Linux-Kindle"
+POST_BUILD_SCRIPTS += \
+    chmod +x scripts/deploy.sh ; \
+	scripts/deploy.sh $(CONFIGURATION)
+endif
+
+ifeq "$(DUOKAN_ARCH)" "Linux-x86"
+POST_BUILD_SCRIPTS += \
+	rm -rf $(BIN_PREFIX)/lib/libasound.*;\
+	cp -rf $(BIN_PREFIX)/* /DuoKan; \
+    cp -rf res/* /mnt/us/DK_System/xKindle/res; \
+
+endif
+
+ifeq "$(CONFIGURATION)" "rtm"
+POST_BUILD_SCRIPTS +=\
+	chmod +w $(BIN_PREFIX)/lib/*.so*; \
+	$(STRIP) $(BIN_PREFIX)/lib/*.so*; \
+	$(STRIP) $(BIN_PREFIX)/$(APPNAME); \
+
+
+endif
+
+
+
+ifeq "$(CONFIGURATION)" "rtm"
+POST_BUILD_SCRIPTS+=$(CROSS)strip $(BIN_PREFIX)lib/*.so*;
+endif

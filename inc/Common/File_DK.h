@@ -22,13 +22,15 @@
 #include <string.h>
 #include <linux/limits.h>
 #include <vector>
-using namespace std;
 
 #include "dkBaseType.h"
 #include <string>
+#include <tr1/memory>
 
-#define         INVALIDCHAPTER  -2
+using namespace std;
+using namespace std::tr1;
 
+#define INVALIDCHAPTER  -2
 
 //TODO:PATH_MAX too long how to deal with?
 #define FILEPATHMAXLEN      PATH_MAX            // 允许最长文件全路径
@@ -172,8 +174,6 @@ const DKFILE_WORK_INFO g_rgFileWorkList[] =
 
 #define FILE_SCANDIR_SIZE (sizeof(g_rgFileWorkList)/sizeof(DKFILE_WORK_INFO))
 
-
-
 // 定义系统文件来源
 typedef enum FileSource
 {
@@ -182,7 +182,6 @@ typedef enum FileSource
     WEBSERVER,          //网络
     DUOKAN_BOOKSTORE    // 多看书城
 } DK_FileSource;
-
 
 
 // 扫描磁盘后得到的文件信息
@@ -211,14 +210,12 @@ struct BookFileList
     unsigned int uLength;
     int iBookId;
 
-
     BookFileList()
     {
         pFileList = NULL;
         uLength = 0;
         iBookId = -1;
     }
-
 
     virtual ~BookFileList()
     {
@@ -234,28 +231,6 @@ struct BookFileList
 // 文件基本信息
 class CDKFile
 {
-private:
-    int m_id; //文件唯一ID
-    int m_size; //文件大小
-    int m_playProgress; //书籍、音视频播放进度
-    long int m_lastReadTime; //最后阅读时间
-    long m_readingOrder; // 书籍阅读次序
-    long m_addOrder; // 书籍添加次序
-    char m_path[FILEPATHMAXLEN]; //文件全路径
-    char m_name[FILENAMEMAXLEN]; //文件名
-    char m_artist[FILEARTISTMAXLEN]; //作者名、艺术家
-    char m_password[FILEPASSWORDMAXLEN]; //密码
-    DkFormatCategory m_category; //文件类型
-    DkFileFormat m_format; //文件格式
-    DK_FileSource m_source; //文件来源
-    PCHAR m_image; //封面数据
-    PCHAR m_abstract; //简介
-    bool m_bSync; //文件与dkx时候同步
-    bool m_bCrash; //该文件打开后是否会死机
-    string m_bookID;
-    std::string m_gbkName;
-    mutable int m_pageCount;
-
 public:
     CDKFile();
     virtual ~CDKFile();
@@ -306,46 +281,64 @@ public:
     int GetPageCount() const;
     void SetPageCount(int pageCount);
 
-
     // 书籍特有
     virtual void SetIsTrialBook(bool isTrailBook);
 
     virtual bool GetIsTrialBook();
-    virtual std::string GetBookRevision()
-    {
-        return "";
-    }
-    void SetBookRevision(const char* bookRevision)
-    {
-    }
+    virtual std::string GetBookRevision() { return m_revision; }
+    void SetBookRevision(const char* bookRevision) { m_revision = bookRevision; }
+
+private:
+    int m_id;
+    int m_size;
+    int m_playProgress;
+    mutable int m_pageCount;
+    long int m_lastReadTime;
+    long m_readingOrder;
+    long m_addOrder;
+    DkFormatCategory m_category;
+    DkFileFormat m_format;
+    DK_FileSource m_source;
+
+    bool m_bSync;
+    bool m_bCrash;
+
+    string m_bookID;
+    string m_gbkName;
+    string m_path;
+    string m_name;
+    string m_artist;
+    string m_password;
+    string m_revision;
+
+    PCHAR m_image;
+    PCHAR m_abstract;
 };
 
-typedef CDKFile * PCDKFile;
-
+typedef shared_ptr<CDKFile> PCDKFile;
 
 //书籍信息
-class CDKBook:public CDKFile
+class CDKBook : public CDKFile
 {
-private:
-    int                    m_CurChapterNum;                        //下载的章节数
-    int                    m_TotalChapterNum;                        //总的章节数
-    bool                m_isTrialBook;
-    std::string m_bookRevision;
-
 public:
     CDKBook();
     ~CDKBook();
 
-    void                 SetTotalChapterNum(int num);
-    int                 GetTotalChapterNum();
+    void SetTotalChapterNum(int num);
+    int  GetTotalChapterNum();
 
-    void                   SetIsTrialBook(bool isTrailBook);
-    bool                   GetIsTrialBook();
+    void SetIsTrialBook(bool isTrailBook);
+    bool GetIsTrialBook();
 
     std::string GetBookRevision();
     void SetBookRevision(const char* bookRevision);
+
+private:
+    int  m_CurChapterNum;    //下载的章节数
+    int  m_TotalChapterNum;  //总的章节数
+    bool m_isTrialBook;
+    std::string m_bookRevision;
 };
-typedef CDKBook * PCDKBook;
 
 class FileMatcher
 {
@@ -463,7 +456,7 @@ private:
     CompareType m_type;
 };
 
-typedef std::vector<CDKFile*> DKFileList;
+typedef std::vector<PCDKFile> DKFileList;
 
 //媒体信息
 class CDKMedia:public CDKFile
@@ -504,5 +497,5 @@ const char *GetExtNameByFormat(DkFileFormat eFormat);
 DkFormatCategory GetFileCategory(const char* filename);
 bool IsFileWorkDir(const char* dirPath);
 const char* GetFileCommonPath(const char* pFileAllPath);
-#endif /*_DK_FILELIST_H_*/
 
+#endif /*_DK_FILELIST_H_*/

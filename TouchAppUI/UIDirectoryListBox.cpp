@@ -8,40 +8,45 @@
 
 #include "TouchAppUI/UIDirectoryListBox.h"
 #include "TouchAppUI/UIButtonDlg.h"
-#include "CommonUI/UIWeiboSharePage.h"
 #include "TouchAppUI/UIDeleteCategoryConfirmDlg.h"
+#include "TouchAppUI/BookOpenManager.h"
+#include "TouchAppUI/UIBookMenuDlg.h"
+#include "TouchAppUI/UIAddBookToCategoryPage.h"
+
+#include "CommonUI/UIWeiboSharePage.h"
 #include "CommonUI/CPageNavigator.h"
-#include "Model/DirectoryItemModelImpl.h"
+#include "CommonUI/UIAddCategoryDlg.h"
+#include "CommonUI/UIUtility.h"
+
+//#include "Model/DirectoryItemModelImpl.h"
 #include "Framework/CDisplay.h"
 #include "Framework/CNativeThread.h"
-#include "SQM.h"
-#include "TouchAppUI/BookOpenManager.h"
-#include "Common/File_DK.h"
-#include "../Common/FileManager_DK.h"
-#include "Utility/FileSystem.h"
-#include "I18n/StringManager.h"
-#include "TouchAppUI/UIBookMenuDlg.h"
-#include "GUI/UISizer.h"
-#include "CommonUI/UIUtility.h"
-#include "GUI/UIMessageBox.h"
-#include "Utility/SystemUtil.h"
-#include "Utility/PathManager.h"
-#include <tr1/functional>
+
 #include "Common/WindowsMetrics.h"
 #include "Common/BookCoverLoader.h"
-#include "BookStore/LocalCategoryManager.h"
-#include <iostream>
+#include "Common/File_DK.h"
+#include "Common/FileManager_DK.h"
+#include "Utility/FileSystem.h"
+#include "Utility/SystemUtil.h"
+#include "Utility/PathManager.h"
 #include "Utility/StringUtil.h"
 #include "Utility/CharUtil.h"
-#include "TouchAppUI/UIAddBookToCategoryPage.h"
+
+#include "I18n/StringManager.h"
+
+#include "GUI/UISizer.h"
+#include "GUI/UIMessageBox.h"
+#include <tr1/functional>
+#include "BookStore/LocalCategoryManager.h"
+#include <iostream>
+
 #include "drivers/DeviceInfo.h"
-#include "CommonUI/UIAddCategoryDlg.h"
+#include "SQM.h"
 
 using namespace dk::utility;
 using namespace dk::bookstore;
 using namespace WindowsMetrics;
 using namespace std;
-
 
 static const size_t ICON_ROWS = 2;
 static const size_t ICON_COLS = 3;
@@ -65,19 +70,21 @@ void InitCoverMetrics()
     COVER_VERTICAL_DELTA = GetWindowMetrics(UIHomePageCoverViewVertIntervalIndex);
 }
 
-UIDirectoryListBox::UIDirectoryListBox(BookListUsage usage)
-    : UICompoundListBox(NULL,IDSTATIC)
+UIDirectoryListBox::UIDirectoryListBox(BookListUsage usage, ModelTree & model_tree)
+    : UICompoundListBox(NULL, IDSTATIC)
     , m_bIsDisposed(false)
     , m_totalPage(0)
     , m_curPage(0)
     , m_itemNum(0)
     , m_itemNumPerPage(0)
-    , m_curPath(PathManager::GetRootPath())
+    //, m_curPath(PathManager::GetRootPath())
     , m_bookListMode(BLM_LIST)
     , m_usage(usage)
+    , model_tree_(model_tree)
 {
     InitCoverMetrics();
     BookCoverLoader::GetInstance()->SetMinimumCoverSize(COVER_IMAGE_WIDTH, COVER_IMAGE_HEIGHT);
+
     m_iconSizer = new UIBoxSizer(dkVERTICAL);
     m_iconSizer->SetName("IconSizer");
     m_listSizer = new UIBoxSizer(dkVERTICAL);
@@ -110,25 +117,25 @@ UIDirectoryListBox::~UIDirectoryListBox()
         // delete windowSizer before delete obj in m_btns
         // otherwise windowSizer will use wild pointer to obj in m_btns
         delete m_windowSizer;
-        m_windowSizer = NULL;
+        m_windowSizer = 0;
     }
     ClearObjectInVector(m_directoryList);
     ClearListItem();
 }
 
-IDirectoryItemModel *UIDirectoryListBox::GetSelectedItemModel()
-{
-    return GetSelectedItemModel(m_iSelectedItem);
-}
-
-IDirectoryItemModel *UIDirectoryListBox::GetSelectedItemModel(int selectedItem)
-{
-    if (selectedItem < 0 || selectedItem >= m_iVisibleItemNum)
-	{
-		return NULL;
-	}
-    return m_itemList[m_curPage * m_itemNumPerPage+ selectedItem];
-}
+//IDirectoryItemModel *UIDirectoryListBox::GetSelectedItemModel()
+//{
+//    return GetSelectedItemModel(m_iSelectedItem);
+//}
+//
+//IDirectoryItemModel *UIDirectoryListBox::GetSelectedItemModel(int selectedItem)
+//{
+//    if (selectedItem < 0 || selectedItem >= m_iVisibleItemNum)
+//	{
+//		return NULL;
+//	}
+//    return m_itemList[m_curPage * m_itemNumPerPage+ selectedItem];
+//}
 
 UIDirectoryListItem* UIDirectoryListBox::GetSelectedUIItem()
 {
@@ -144,26 +151,26 @@ BOOL UIDirectoryListBox::OnKeyPress(INT32 iKeyCode)
     return UICompoundListBox::OnKeyPress(iKeyCode);
 }
 
-bool UIDirectoryListBox::SetCurrentPath(const char* path, const char* category)
-{
-    if (StringUtil::IsNullOrEmpty(path))
-    {
-        m_curPath.clear();
-        m_category.clear();
-    }
-    else if (StringUtil::IsNullOrEmpty(category))
-    {
-        m_curPath = path;
-        m_category.clear();
-    }
-    else
-    {
-        m_curPath = path;
-        m_category = category;
-    }
-    m_curPage = 0;
-    return true;
-}
+//bool UIDirectoryListBox::SetCurrentPath(const char* path, const char* category)
+//{
+//    if (StringUtil::IsNullOrEmpty(path))
+//    {
+//        m_curPath.clear();
+//        m_category.clear();
+//    }
+//    else if (StringUtil::IsNullOrEmpty(category))
+//    {
+//        m_curPath = path;
+//        m_category.clear();
+//    }
+//    else
+//    {
+//        m_curPath = path;
+//        m_category = category;
+//    }
+//    m_curPage = 0;
+//    return true;
+//}
 
 bool UIDirectoryListBox::OnItemClick(INT32 iSelectedItem)
 {

@@ -42,7 +42,7 @@ public:
     void    SortsFile();
 
 public:
-    void SetFileListAndNum(const std::vector<CDKFile*>& files);
+    void SetFileListAndNum(const DKFileList& files);
     void SetFileSorts(DK_FileSorts Sort);
     void SetFileCategory(DkFormatCategory category);
     const DKFileList& GetFileSortResult() const

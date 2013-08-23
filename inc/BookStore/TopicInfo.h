@@ -17,47 +17,23 @@ typedef std::vector<TopicInfoSPtr> TopicInfoList;
 class TopicInfo: public BasicObject
 {
 public:
-    ObjectType GetObjectType() const
-    {
-        return OT_TOPIC;
-    }
+    ObjectType GetObjectType() const { return OT_TOPIC; }
+    int GetTopicId() const { return m_listId; }
+    std::string GetLabel() const { return m_label; }
+    std::string GetDescription() const { return m_description; }
 
-    int GetTopicId() const
-    {
-        return m_listId;
-    }
+    std::string GetCoverUrl() const { return m_coverUrl; }
+    std::string GetUpdateTime() const { return m_updateTime; }
+    std::string GetBannerUrl() const { return m_banner; }
 
-    std::string GetLabel() const
-    {
-        return m_label;
-    }
-
-    std::string GetDescription() const
-    {
-        return m_description;
-    }
-
-    std::string GetCoverUrl() const
-    {
-        return m_coverUrl; 
-    }
-
-    std::string GetUpdateTime() const
-    {
-        return m_updateTime;
-    }
     static TopicInfo* CreateTopicInfo(const JsonObject* jsonObj);
     static TopicInfoList FromBasicObjectList(const BasicObjectList& basicObjectList);
 
-    virtual BasicObject* Clone() const
-    {
-        return new TopicInfo(*this);
-    }
+    virtual BasicObject* Clone() const { return new TopicInfo(*this); }
+    int GetWeight() const { return m_weight; }
 
-    int GetWeight() const
-    {
-        return m_weight;
-    }
+    int GetBookCount() const { return m_bookCount; }
+
 private:
     bool Init(const JsonObject* jsonObj);
     int m_listId;
@@ -65,7 +41,9 @@ private:
     std::string m_description;
     std::string m_updateTime;
     std::string m_coverUrl;
+    std::string m_banner;
     int m_weight;
+    int m_bookCount;
 };
 
 

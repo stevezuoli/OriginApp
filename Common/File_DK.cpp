@@ -148,7 +148,7 @@ long CDKFile::GetFileReadingOrder() const
 
 const char*  CDKFile::GetFilePath() const
 {
-    return m_path;
+    return m_path.c_str();
 }
 
 const char* CDKFile::GetGbkName() const
@@ -158,19 +158,18 @@ const char* CDKFile::GetGbkName() const
 
 const char*  CDKFile::GetFileName() const
 {
-    return m_name;
+    return m_name.c_str();
 }
 
 const char*  CDKFile::GetFileArtist() const
 {
-    return m_artist;
+    return m_artist.c_str();
 }
 
 const char*  CDKFile::GetFilePassword() const
 {
-    return m_password;
+    return m_password.c_str();
 }
-
 
 const char*  CDKFile::GetFileImage() const
 {

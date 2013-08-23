@@ -100,33 +100,19 @@ public:
         SetObjectType(model::OT_BOOK);
     }
 
-    DownloadTaskSPtr BuildDownloadTask(int start, int length)
-    {
+    DownloadTaskSPtr BuildDownloadTask(int start, int length) {
         return DownloadTaskBuilder::BuildTopicBookListTask(m_topicId, start, length);
     }
 
-    int GetTopicId() const
-    {
-        return m_topicId;
-    }
+    int GetTopicId() const { return m_topicId;}
+    const char* GetLabel() const { return m_label.c_str(); }
+    const char* GetDescription() const { return m_description.c_str(); }
+    const char* GetBannerUrl() const { return m_bannerUrl.c_str(); }
+    std::string GetCoverUrl() const { return m_coverUrl; }
+    std::string GetUpdatedTime() const { return m_updatedTime; }
+    int GetWeight() const { return m_weight; }
 
-    const char* GetLabel() const
-    {
-        return m_label.c_str();
-    }
-
-    const char* GetDescription() const
-    {
-        return m_description.c_str();
-    }
-
-    const char* GetBannerUrl() const
-    {
-        return m_bannerUrl.c_str();
-    }
-
-    void SetTopicId(int topicId)
-    {
+    void SetTopicId(int topicId){
         AutoLock lock(&m_lock);
         if (topicId != m_topicId)
         {
@@ -145,6 +131,9 @@ protected:
         jsonObject->GetStringValue("description", &m_description);
         jsonObject->GetStringValue("banner", &m_bannerUrl);
         jsonObject->GetStringValue("label", &m_label);
+        jsonObject->GetStringValue("cover", &m_coverUrl);
+        jsonObject->GetIntValue("weight", &m_weight);
+        jsonObject->GetStringValue("updated", &m_updatedTime);
         return true;
     }
 private:
@@ -152,6 +141,9 @@ private:
     std::string m_label;
     std::string m_description;
     std::string m_bannerUrl;
+    std::string m_coverUrl;
+    std::string m_updatedTime;
+    int m_weight;
 };
 
 class BookCommentListFetcher: public ListDataFetcher
@@ -449,7 +441,6 @@ class BookChangeLogListFetcher: public ListDataFetcher
 public:
     BookChangeLogListFetcher()
         : ListDataFetcher()
-
     {
         SetObjectType(model::OT_CHANGELOG);
     }
@@ -464,8 +455,7 @@ public:
         return m_bookId;
     }
 
-    void SetBookId(const char* bookId)
-    {
+    void SetBookId(const char* bookId){
         AutoLock lock(&m_lock);
         if (m_bookId != bookId)
         {
@@ -767,9 +757,6 @@ private:
 
     //tag
     bool OnTagListUpdate(const EventArgs& args);
-    
-    //bool OnLoginUpdate(const EventArgs& args);
-    model::BookInfoSPtr ParseBookInfo(const char* jsonString);
 
 private:
     ListDataFetcher m_recommendFetcher;
@@ -1209,52 +1196,6 @@ FetchDataResult BookStoreInfoManagerImpl::ExchangeDuokanKey(const char* key)
     return BeginExchangeDuokanKey(key);
 }
 
-model::BookInfoSPtr BookStoreInfoManagerImpl::ParseBookInfo(const char* jsonString)
-{
-    JsonObjectSPtr jsonObj = JsonObject::CreateFromString(jsonString);
-    if (!jsonObj)
-    {
-        return model::BookInfoSPtr();
-    }
-    int result;
-    if (!jsonObj->GetIntValue("result", &result) || result != 0) 
-    {
-        return model::BookInfoSPtr();
-    }
-
-    JsonObjectSPtr bookObj = jsonObj->GetSubObject("book");
-    if (bookObj)
-    {
-        model::BookInfoSPtr bookInfo(model::BookInfo::CreateBookInfo(bookObj.get()));
-
-        if (bookInfo)
-        {
-            JsonObjectSPtr related = jsonObj->GetSubObject("related");
-            if (related)
-            {
-                int relatedSize = related->GetArrayLength();
-                for (int i = 0; i < relatedSize; ++i)
-                {
-                    JsonObjectSPtr relatedBookJson = related->GetElementByIndex(i);
-                    if (relatedBookJson)
-                    {
-                        model::BookInfo* relatedBook = model::BookInfo::CreateBookInfo(relatedBookJson.get());
-                        if (NULL != relatedBook)
-                        {
-                            bookInfo->AddRelatedBook(model::BookInfoSPtr(relatedBook));
-                        }
-                    }
-                }
-            }
-        }
-        return bookInfo;
-    }
-    else
-    {
-        return model::BookInfoSPtr();
-    }
-}
-
 bool BookStoreInfoManagerImpl::OnCoverImageDownloadFinished(const EventArgs& args)
 {
     CoverImageUpdateArgs coverImageUpdateArgs;
@@ -1291,21 +1232,18 @@ FetchDataResult BookStoreInfoManagerImpl::FetchCoverImage(
 
 bool BookStoreInfoManagerImpl::OnBookInfoDownloadFinished(const EventArgs& args)
 {
-
     BookInfoUpdateArgs bookInfoUpdateArgs;
-
+    const DownloadTaskFinishArgs& downloadTaskFinishedArgs = (const DownloadTaskFinishArgs&)args;
+    std::string url = PathManager::GetBaseUrl(downloadTaskFinishedArgs.downloadTask->GetUrl());
+    bookInfoUpdateArgs.bookId = PathManager::GetFileName(url.c_str());
+    if (downloadTaskFinishedArgs.succeeded)
     {
-        const DownloadTaskFinishArgs& downloadTaskFinishedArgs = (const DownloadTaskFinishArgs&)args;
-        std::string url = PathManager::GetBaseUrl(downloadTaskFinishedArgs.downloadTask->GetUrl());
-        bookInfoUpdateArgs.bookId = PathManager::GetFileName(url.c_str());
-        if (downloadTaskFinishedArgs.succeeded)
+        model::BookInfoSPtr bookInfo = model::BookInfo::ParseBookInfo(
+            downloadTaskFinishedArgs.downloadTask->GetString().c_str());
+        if (bookInfo)
         {
-            model::BookInfoSPtr bookInfo = ParseBookInfo(downloadTaskFinishedArgs.downloadTask->GetString().c_str());
-            if (bookInfo)
-            {
-                bookInfoUpdateArgs.succeeded = true;
-                bookInfoUpdateArgs.bookInfo = bookInfo;
-            }
+            bookInfoUpdateArgs.succeeded = true;
+            bookInfoUpdateArgs.bookInfo = bookInfo;
         }
     }
 
@@ -1327,7 +1265,7 @@ bool BookStoreInfoManagerImpl::OnBookKeySendFinished(const EventArgs& args)
             jsonObj->GetIntValue("result", &bookKeyUpdateArgs.errorCode);
         }
 
-        model::BookInfoSPtr bookInfo = ParseBookInfo(downloadString.c_str());
+        model::BookInfoSPtr bookInfo = model::BookInfo::ParseBookInfo(downloadString.c_str());
         if (bookInfo)
         {
             bookKeyUpdateArgs.succeeded = true;
@@ -2742,11 +2680,7 @@ bool BookStoreInfoManagerImpl::OnCommentReplyUpdate(const EventArgs& args)
         model::BookComment* commentReply = model::BookComment::CreateBookComment(jsonObj.get(), model::OT_MYCOMMENTS);
         if (NULL != commentReply)
         {
-            if (jsonObj->GetIntValue("result", &commentReplyArgs.errorCode) 
-                && 0 == commentReplyArgs.errorCode)
-            {
-                commentReplyArgs.succeeded = true; 
-            }
+            commentReplyArgs.succeeded = true;
             commentReplyArgs.commentInfo = model::BookCommentSPtr(commentReply);
         }
     }

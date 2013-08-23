@@ -9,10 +9,14 @@
 #ifndef __UIDIRECTORYLISTBOX_H__
 #define __UIDIRECTORYLISTBOX_H__
 
-#include "GUI/UICompoundListBox.h"
-#include "Model/IDirectoryItemModel.h"
-#include "TouchAppUI/UIDirectoryListItem.h"
 #include <vector>
+
+#include "GUI/UICompoundListBox.h"
+//#include "Model/IDirectoryItemModel.h"
+#include "TouchAppUI/UIDirectoryListItem.h"
+#include "Model/model_tree.h"
+
+using namespace dk::document_model;
 
 class ChildSelectChangedArgs: public EventArgs
 {
@@ -33,7 +37,9 @@ class UIDirectoryListBox : public UICompoundListBox
 {
 public:
     static const char* EventChildSelectChanged;
-    UIDirectoryListBox(BookListUsage usage);
+
+public:
+    UIDirectoryListBox(BookListUsage usage, ModelTree & model);
     virtual ~UIDirectoryListBox();
     virtual LPCSTR GetClassName() const
     {
@@ -78,8 +84,6 @@ public:
         return m_itemNum;
     }
 
-
-
     const std::string& GetCurrentPath() const 
     { 
         return m_curPath;
@@ -107,8 +111,8 @@ private:
     void InitListItemFromBookStoreDirectoryWithCategory();
     void InitListItemFromSortedFiles();
     UIDirectoryListItem* GetSelectedUIItem();
-    IDirectoryItemModel *GetSelectedItemModel();
-    IDirectoryItemModel *GetSelectedItemModel(int selectedItem);
+    //IDirectoryItemModel *GetSelectedItemModel();
+    //IDirectoryItemModel *GetSelectedItemModel(int selectedItem);
 
 
 protected:
@@ -116,32 +120,40 @@ protected:
     void InitListItemFromRootDirectory();
 
 private:
-    bool OnItemClickEvent(const EventArgs& args);
-    BOOL m_bIsDisposed;
-    std::vector< IDirectoryItemModel *> m_itemList;
-	std::vector<UIDirectoryListItem*> m_directoryList;
-    static int GetItemPerPageByBookListMode(BookListMode mode);
-
-    int m_totalPage;
-    int m_curPage;
-    size_t m_itemNum;
-    size_t m_itemNumPerPage;
-    std::string m_curPath;
-    BookListMode m_bookListMode;
     bool UpdateListItemForList();
     bool UpdateListItemForIcon();
-    std::vector<UISizer*> m_rowSizers;
-    std::string m_category;
+    bool OnItemClickEvent(const EventArgs& args);
     void OnDelete();
     void OnDeleteCategory();
     void OnRenameCategory();
     void OnRenameFolder();
+    bool ShouldShowContextMenuForItem(IDirectoryItemModel* item) const;
+
+    static int GetItemPerPageByBookListMode(BookListMode mode);
+
+private:
+    BOOL m_bIsDisposed;
+	std::vector<UIDirectoryListItem*> m_directoryList;
+    
+    int m_totalPage;
+    int m_curPage;
+    size_t m_itemNum;
+    size_t m_itemNumPerPage;
+    //std::string m_curPath;
+    BookListMode m_bookListMode;
+    BookListUsage m_usage;
+
+    std::vector<UISizer*> m_rowSizers;
+    //std::string m_category;
+
     UISizer* m_iconSizer;
     UISizer* m_listSizer;
 
-    bool ShouldShowContextMenuForItem(IDirectoryItemModel* item) const;
-    BookListUsage m_usage;
-    std::vector<int> m_curPageStack;
+    //std::vector<int> m_curPageStack;
+
+    // model
+    //std::vector<IDirectoryItemModel *> m_itemList;
+    ModelTree & model_tree_;
 };
 
 #endif

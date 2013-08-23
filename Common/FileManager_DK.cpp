@@ -164,7 +164,7 @@ int CDKFileManager::AddFile(PCDKFile pNewFile)
         return -1;
     }
 
-    const char*   pszFilePath = pNewFile->GetFilePath();
+    const char* pszFilePath = pNewFile->GetFilePath();
     DkFormatCategory FileCategory = GetFileCategory(pszFilePath);
 
     switch (FileCategory)
@@ -214,7 +214,7 @@ int CDKFileManager::AddFile(PCDKFile pNewFile)
 
 int CDKFileManager::AddDownloadBookFile(PCCH path, PCCH author, DK_FileSource internetSource, PCCH abstract, PCCH password, int filesize)
 {
-    PCDKFile pBookFile = new CDKBook();
+    PCDKFile pBookFile(new CDKBook());
     if(pBookFile)
     {
         pBookFile->SetFilePath(path);
@@ -928,7 +928,6 @@ bool CDKFileManager::RemoveFileNode(PCDKFile pRemoveNode)
     {
         return false;
     }
-    delete *pos;
     m_files.erase(pos);
     return true;
 }
@@ -1009,27 +1008,27 @@ int CDKFileManager::LoadFileToFileManger(const char* strScanPath)
     //加载书籍信息
     while(pTemp)
     {
-        CDKFile* p = NULL;
+        PCDKFile p;
         switch(pTemp->FileCategory)
         {
         case DFC_Book:
         case DFC_Picture:
-            p = new CDKBook();
+            p.reset(new CDKBook());
             break;
         case DFC_Music:
         case DFC_Video:
-            p = new CDKMedia();
+            p.reset(new CDKMedia());
             break;
         case DFC_Unknown:
         case DFC_Other:
         case DFC_Package:
         default:
-            p = NULL;
+            p = PCDKFile();
             break;
         }
-        if(p == NULL)
+        if(p == 0)
         {
-            pTemp=pTemp->next;
+            pTemp = pTemp->next;
             continue;
         }
 
@@ -1064,16 +1063,16 @@ int CDKFileManager::LoadFileToFileManger(const char* strScanPath)
         {
             if(FileDkpProxy(p,GETFILEINFO) != S_OK)
             {
-                delete p;
-                p = NULL;
-                pTemp=pTemp->next;
+                p = PCDKFile();
+                pTemp = pTemp->next;
                 continue;
             }
         }
         m_files.push_back(p);
-        pTemp=pTemp->next;
+        pTemp = pTemp->next;
         filecount++;
     }
+
     //释放扫盘链表
     pTemp = DirList;
     int scannedFileCount = 0;
@@ -1084,7 +1083,7 @@ int CDKFileManager::LoadFileToFileManger(const char* strScanPath)
         free(DirList);
         DirList=pTemp;
     }
-    DebugPrintf(DLC_DIAGNOSTIC, "scanned %s found files %d", strScanPath, scannedFileCount);
+    DebugPrintf(DLC_CDKFILEMANAGER, "scanned %s found files %d", strScanPath, scannedFileCount);
     m_iMaxFileId = filecount;
     
     DK_FileSorts eCurFileSort = GetBookSort();
@@ -1747,10 +1746,6 @@ void CDKFileManager::ReadingOrderPlus()
 
 void CDKFileManager::UnloadAllFile()
 {
-    for (DK_AUTO(cur, m_files.begin()); cur != m_files.end(); ++cur)
-    {
-        delete *cur;
-    }
     m_files.clear();
     m_sortedFiles.clear();
     m_sortedMediaFiles.clear();
@@ -1792,7 +1787,7 @@ void CDKFileManager::SetMetaData(bool isOpen)
     DKXManager* _pclsDKXManager = DKXManager::GetInstance();
     for (DK_AUTO(cur, m_files.begin()); cur != m_files.end(); ++cur)
     {
-        CDKFile* tempFile = *cur;
+        PCDKFile tempFile = *cur;
         //非EPUB MOBI文件不处理
         if(DFF_ElectronicPublishing == tempFile->GetFileFormat() || DFF_MobiPocket == tempFile->GetFileFormat())
         {
@@ -1863,8 +1858,8 @@ int CDKFileManager::GetAllBookNumsUnderDir(const char* path) const
     for (size_t i = 0; i < m_files.size(); ++i)
     {
         const char* filePath = m_files[i]->GetFilePath();
-        if (strncmp(path, filePath, pathLen) == 0
-                && (endWithSlash || filePath[pathLen] == '/'))
+        if (strncmp(path, filePath, pathLen) == 0 &&
+            (endWithSlash || filePath[pathLen] == '/'))
         {
             ++result;
         }
@@ -1891,7 +1886,7 @@ std::vector<std::string> CDKFileManager::GetDuoKanBookIds() const
 }
 
 // return new file id
-int    CDKFileManager::RenameFile(PCDKFile pFile, const char* newName)
+int CDKFileManager::RenameFile(PCDKFile pFile, const char* newName)
 {
     if(!pFile || !pFile->GetFilePath() || StringUtil::IsNullOrEmpty(newName))
     {

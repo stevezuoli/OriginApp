@@ -375,6 +375,8 @@ using namespace std;
 	MACRO_NAME(TOUCH_BOOKSETTING_REARRANGE,             "智能重排")\
     MACRO_NAME(TOUCH_BOOKSETTING_CLOSEREARRANGE,        "关闭重排")\
 	MACRO_NAME(TOUCH_BOOKSETTING_READERSETTING,			"阅读设置")\
+    MACRO_NAME(TOUCH_BOOKSETTING_MAINTEXT_FONTSETTING,	"正文字体设置")\
+    MACRO_NAME(TOUCH_BOOKSETTING_OTHER_FONTSETTING,     "其他字体设置")\
 	MACRO_NAME(TOUCH_BOOKSETTING_TAP_LEFT,			"轻点屏幕左侧")\
 	MACRO_NAME(TOUCH_BOOKSETTING_TAP_RIGHT,			"轻点屏幕右侧")\
 	MACRO_NAME(TOUCH_BOOKSETTING_TURN_DOWN,				"下翻页")\
@@ -858,7 +860,6 @@ using namespace std;
     MACRO_NAME(LOGIN_ERROR_57, "该请求被拒绝")\
     MACRO_NAME(LOGIN_ERROR_58, "非期望结果出现")\
 	MACRO_NAME(LOGIN_ERROR_65, "-该帐号已迁移，请用小米帐号登录")\
-    MACRO_NAME(ERROR_GET_COMMENT_REPLY_40002, "该评论未通过人工审核")\
     MACRO_NAME(GOTO_MESSAGES_COMMENTDETAILINFO, "查看评论详情")\
     MACRO_NAME(GOTO_MESSAGES_USERDETAILINFO, "查看 %s")\
     MACRO_NAME(BOXMESSAGES_MORE, "正在载入更多未读消息...")\
@@ -924,7 +925,6 @@ public:
     static const std::string &GetDemoString();
 
     static const char* GetLoginErrorMessage(int errorCode, const char* msg);
-    static const char* GetCommentReplyErrorMessage(int errorCode, const char* msg = NULL);
 private:
     static StringManager* s_pStringManager;
 

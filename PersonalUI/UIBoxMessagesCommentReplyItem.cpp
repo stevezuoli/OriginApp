@@ -237,7 +237,7 @@ bool UIBoxMessagesCommentReplyItem::OnMessageCommentDetailedInfoUpdate(const Eve
         else
         {
             CDisplay::CacheDisabler cache;
-            UIUtility::SetScreenTips(StringManager::GetCommentReplyErrorMessage(msgArgs.errorCode));
+            UIUtility::SetScreenTips(StringManager::GetPCSTRById(BOOKSTORE_GETCOMMENTINFO_FAIL));
         }
     }
     SetEnable(true);

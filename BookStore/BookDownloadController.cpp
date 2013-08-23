@@ -273,7 +273,7 @@ bool BookDownloadController::OnDownloadStatusUpdated(const EventArgs& args)
     string url_id = download_args.taskId;
     int current_progress = download_args.percentage;
     int state = download_args.state;
-    if (!AllowDownload())
+    if (state & IDownloadTask::FAILED && !AllowDownload())
     {
         UIUtility::SetScreenTips(StringManager::GetStringById(DOWNLOAD_NOT_ENOUGH_SPACE));
         StopAll();

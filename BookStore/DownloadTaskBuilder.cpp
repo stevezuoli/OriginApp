@@ -35,22 +35,22 @@ static std::string s_xiaomiHost = XiaomiServer::GetAccountHost();
 
 #define DUOKAN_DEVICE "kindle"
 
-static std::string s_recommendUrl = "/store/v0/"DUOKAN_DEVICE"/recommend?start=%d&page_length=%d";
-static std::string s_hotFreeUrl = "/store/v0/"DUOKAN_DEVICE"/hot_free?start=%d&page_length=%d";
-static std::string s_hotPayUrl = "/store/v0/"DUOKAN_DEVICE"/hot_pay?start=%d&page_length=%d";
-static std::string s_hotMonthlyUrl = "/store/v0/"DUOKAN_DEVICE"/rank/monthly_pay?start=%d&page_length=%d";
-static std::string s_hotFavorUrl = "/store/v0/"DUOKAN_DEVICE"/rank/favour_pay?start=%d&page_length=%d";
-static std::string s_chartsUrl = "/store/v0/"DUOKAN_DEVICE"/rank?rt=%d&start=%d&page_length=%d";
-static std::string s_freshUrl = "/store/v0/"DUOKAN_DEVICE"/fresh?start=%d&page_length=%d";
-static std::string s_discountUrl = "/store/v0/"DUOKAN_DEVICE"/discount?start=%d&page_length=%d";
-static std::string s_freeUrl = "/store/v0/"DUOKAN_DEVICE"/free?start=%d&page_length=%d";
-static std::string s_topicListUrl = "/store/v0/"DUOKAN_DEVICE"/list/all?start=%d&page_length=%d";
-static std::string s_topicBookListUrl = "/store/v0/"DUOKAN_DEVICE"/list/%d?start=%d&page_length=%d";
+static std::string s_recommendUrl = "/store/v0/"DUOKAN_DEVICE"/recommend?start=%d&count=%d";
+static std::string s_hotFreeUrl = "/store/v0/"DUOKAN_DEVICE"/hot_free?start=%d&count=%d";
+static std::string s_hotPayUrl = "/store/v0/"DUOKAN_DEVICE"/hot_pay?start=%d&count=%d";
+static std::string s_hotMonthlyUrl = "/store/v0/"DUOKAN_DEVICE"/rank/monthly_pay?start=%d&count=%d";
+static std::string s_hotFavorUrl = "/store/v0/"DUOKAN_DEVICE"/rank/favour_pay?start=%d&count=%d";
+static std::string s_chartsUrl = "/store/v0/"DUOKAN_DEVICE"/rank?rt=%d&start=%d&count=%d";
+static std::string s_freshUrl = "/store/v0/"DUOKAN_DEVICE"/fresh?start=%d&count=%d";
+static std::string s_discountUrl = "/store/v0/"DUOKAN_DEVICE"/discount?start=%d&count=%d";
+static std::string s_freeUrl = "/store/v0/"DUOKAN_DEVICE"/free?start=%d&count=%d";
+static std::string s_topicListUrl = "/store/v0/"DUOKAN_DEVICE"/list/all?start=%d&count=%d";
+static std::string s_topicBookListUrl = "/store/v0/"DUOKAN_DEVICE"/list/%d?start=%d&count=%d";
 static std::string s_categoryListUrl = "/store/v0/"DUOKAN_DEVICE"/category/all";
 static std::string s_categoryTreeUrl = "/store/v0/"DUOKAN_DEVICE"/category/tree";
 static std::string s_categoryBookListUrl = "/store/v0/"DUOKAN_DEVICE"/category/%s?start=%d&page_length=%d";
 static std::string s_bookInfoUrl = "/store/v0/"DUOKAN_DEVICE"/book/%s";
-static std::string s_searchBookUrl = "/store/v0/"DUOKAN_DEVICE"/search?start=%d&page_length=%d&s=%s";
+
 static std::string s_purchasedListUrl = "/store/v0/payment/book/list";
 static std::string s_createOrderUrl = "/store/v0/order/create";
 static std::string s_drmCertUrl = "/drm/v0/certificate";
@@ -81,14 +81,24 @@ static std::string s_boxMessagesLstUrl = "/message/v0/box/remind?user_id=%s&toke
 static std::string s_fetchBookListWithTagUrl = "/store/v0/"DUOKAN_DEVICE"/book/tag_list?tag_name=%s&start=%d&count=%d";
 //tag end
 
+//Publish
+static std::string s_publishBookListUrl = "/store/v0/"DUOKAN_DEVICE"/rights/%s?start=%d&count=%d";
+
+// Book Details
+static std::string s_bookChangeLogListUrl = "/store/v0/"DUOKAN_DEVICE"/book/%s/change_log?start=%d&count=%d";
+static std::string s_getBookPreviewsUrl = "/store/v0/"DUOKAN_DEVICE"/book/%s/preview"; // TODO
+static std::string s_searchBookUrl = "/store/v0/"DUOKAN_DEVICE"/search?start=%d&count=%d&s=%s";
+static std::string s_getBooksByIds = "/store/v0/"DUOKAN_DEVICE"/book/id_list?ids=%s"; // TODO
+static std::string s_getSearchHots = "/store/v0/"DUOKAN_DEVICE"/search/hot"; //TODO
+static std::string s_getBooksByAuthor = "/store/v0/"DUOKAN_DEVICE"/author/%s?start=%d&count=%d"; //TODO
+
 static std::string s_pushedMessagesUrl = "/message/v0/get_own_message?device_id=%s&user_id=%s&received_message_id=%s&build_number=%s&app_id=%s";
-static std::string s_publishBookListUrl = "/store/v0/"DUOKAN_DEVICE"/rights/%s?start=%d&page_length=%d";
 static std::string s_bookScoreUrl = "/comment/v0/get_book_summary?device_id=%s&user_id=%s&book_id=%s";
 static std::string s_addBookScoreUrl = "/comment/v0/add_book_score";
 static std::string s_addBookCommentUrl = "/comment/v0/add_book_comment";
 static std::string s_addBookCommentReplyUrl = "/comment/v0/add_comment_reply";
 static std::string s_voteBookCommentUrl = "/comment/v0/vote_comment";
-static std::string s_bookChangeLogListUrl = "/store/v0/"DUOKAN_DEVICE"/book/%s/change_log?start=%d&page_length=%d";
+
 static std::string s_bookKeySendUrl = "/store/v0/redeem/single/status/%s";
 static std::string s_exchangeDuokanKeyUrl = "/store/v0/redeem/single/consume/%s";
 static std::string s_postReportBookBugUrl = "/sync/report_bug/book";

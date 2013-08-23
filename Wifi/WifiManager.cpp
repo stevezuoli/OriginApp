@@ -10,11 +10,13 @@
 #include "drivers/DeviceInfo.h"
 #include "GUI/EventSet.h"
 #include "PersonalUI/PushedMessagesManager.h"
+#include "Utility/SystemUtil.h"
 
 #include <iostream>
 #include <fstream>
 
 using namespace std;
+using dk::utility::SystemUtil;
 
 class CJoinAPAsyncParam
 {
@@ -223,8 +225,13 @@ int WifiManager::QualityToLevel(int iQuality)
 }
 void* WifiManager::AutoJoin(void *Func)
 {
+    pthread_detach(pthread_self());
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, 0);
+    pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, 0);
+
     if(WifiManager::GetInstance()->IsConnected())
     {
+        m_pThreadAutoJoin = 0;
         ThreadHelper::ThreadExit(0);
         return NULL;
     }
@@ -232,8 +239,8 @@ void* WifiManager::AutoJoin(void *Func)
 	int err = pthread_mutex_trylock(&mutex_wifi_join);
 
 	if ( err != 0) 
-	{	
-		DebugPrintf(DLC_DIAGNOSTIC, "WifiManager::AutoJoin(), LOCK Err(%d)", err);	
+	{	      
+        m_pThreadAutoJoin = 0;
         ThreadHelper::ThreadExit(0);
         return NULL;
 	}
@@ -258,7 +265,7 @@ void* WifiManager::AutoJoin(void *Func)
     UINT uLen= 0;
 
     // GetBestWifis() scanning and sorting the active ssids, based on signal-strength
-    for(int i = 0; i < 3; i++)
+    for(int i = 0; i < 2; i++)
     {
         bestWifis = DKWifiCfgManager::GetInstance()->GetBestWifis();
         if(bestWifis.size() != 0)
@@ -272,18 +279,18 @@ void* WifiManager::AutoJoin(void *Func)
     // if GetBestWifis() get no active ssid,  then connect the ssid(s) in history list
     if(!uLen)
     {
-        DebugPrintf(DLC_LIUJT, "WifiManager::AutoJoin will connect to unavailable WiFi");
         bestWifis = DKWifiCfgManager::GetInstance()->GetBestUnavailableWifis();
         uLen = bestWifis.size();
         DebugPrintf(DLC_DIAGNOSTIC, "WifiManager::AutoJoin(), GetBestUnavailableWifis(%d)", uLen);
     }
-	
+
     if(uLen)
     {
         DebugPrintf(DLC_LIUJT, "WifiManager::AutoJoin begin to connect following %d wifis", uLen);
         for(UINT32 i =0 ; i < uLen; i++)
         {
             WifiAccess* wifi = bestWifis[i];
+
             if(!wifi || wifi->GetSSID().empty())
             {
                 SafeDeletePointerEx(wifi);
@@ -303,6 +310,12 @@ void* WifiManager::AutoJoin(void *Func)
                 continue;
 			}
 
+            if (WifiManager::GetInstance()->IsManualJoinAP())
+            {
+                SafeDeletePointerEx(wifi);
+                continue ;
+            }
+
 			WifiManager::GetInstance()->SetConnectedStatus(false);
 
 			m_wifi_status = (int) CONNECT_WIFI_JOINAP;
@@ -315,6 +328,12 @@ void* WifiManager::AutoJoin(void *Func)
                 wifi->GetMask(), 
                 wifi->GetGateway(), 
                 wifi->GetDNS());
+
+            if (WifiManager::GetInstance()->IsManualJoinAP())
+            {
+                SafeDeletePointerEx(wifi);
+                continue;
+            }
 
 			// 自动连接过程中，不发DHCP消息。分配IP成功时，不需要跳到WiFi管理界面
 			if( S_OK == result)
@@ -372,6 +391,12 @@ void* WifiManager::AutoJoin(void *Func)
 				}
 				
 			}
+            
+            if (WifiManager::GetInstance()->IsManualJoinAP())
+            {
+                SafeDeletePointerEx(wifi);
+                continue;
+            }
 
             if(S_OK == result)
             {
@@ -402,27 +427,14 @@ void* WifiManager::AutoJoin(void *Func)
                     wa->SetLastAccess(1);
                     DKWifiCfgManager::GetInstance()->SaveWifiConfig(wa);
                 }
+                
                 pConnectedWifi = wifi;
-
                 DebugPrintf(DLC_LIUJT, "WifiManager::AutoJoin successfully connect ssid: %s with password: %s", wifi->GetSSID().c_str(), wifi->GetPassword().c_str());
 
             }
             else
             {
                 DebugPrintf(DLC_LIUJT, "WifiManager::AutoJoin failed to connect ssid: %s with password: %s", wifi->GetSSID().c_str(), wifi->GetPassword().c_str());
-                //暂不考虑Wifi网络类型变化的因素:如果有一天我们的wifi能知道连接失败的原因是网络类型不对，请加上这段代码
-/*              WifiAccess* wa = new WifiAccess(wifi->GetSSID(), wifi->GetPassword());
-                if(wa)
-                {
-                    DKWifiCfgManager::GetInstance()->RemoveWifiConfig(wa);
-                    AccessPoint * ap = new AccessPoint(wifi->GetSSID(),!(wifi->GetPassword().empty()));
-                    if(ap)
-                    {
-                        DKWifiCfgManager::GetInstance()->AddUserAPToFile(ap);
-                    }
-                }*/
-
-                //release the memory taken by it
                 SafeDeletePointerEx(wifi);
             }
 
@@ -458,8 +470,7 @@ void* WifiManager::AutoJoin(void *Func)
 
 	m_eWorking = Nothing;
 	pthread_mutex_unlock(&mutex_wifi_join);
-	
-	//DebugPrintf(DLC_DIAGNOSTIC, "WifiManager::AutoJoin() End");	
+    m_pThreadAutoJoin = 0;
     ThreadHelper::ThreadExit(0);
     return NULL;
 }
@@ -483,12 +494,14 @@ HRESULT WifiManager::StartAutoJoin(FuncPointer between, FPWifiConnection after)
 HRESULT WifiManager::EndAutoJoin()
 {
     //DebugPrintf(DLC_DIAGNOSTIC, "WifiManager::EndAutoJoin ");
+    SystemUtil::ExecuteCommand("killall -9 wpa_supplicant;killall -9 udhcpc");
     if(m_pThreadAutoJoin)
     {
         ThreadHelper::CancelThread(m_pThreadAutoJoin);
     }
 	m_pThreadAutoJoin = 0;
 	m_eWorking = Nothing;
+    WifiManager::GetInstance()->SetConnectedStatus(false);
     return S_OK;
 }
 
@@ -719,13 +732,16 @@ void* WifiManager::JoinApAsync(void* AsynCallback)
         return NULL;
     }
 
+#if 0
 	int err = pthread_mutex_trylock(&mutex_wifi_join);
 	if ( err != 0) 
 	{	
 		DebugPrintf(DLC_DIAGNOSTIC, "WifiManager::JoinApAsync(), LOCK Err(%d)", err);	
+        m_pThreadJoinAP = 0;
         ThreadHelper::ThreadExit(0);
         return NULL;
 	}
+#endif
 
     pthread_detach(pthread_self());
     pthread_setcancelstate(PTHREAD_CANCEL_ENABLE,NULL);
@@ -743,7 +759,7 @@ void* WifiManager::JoinApAsync(void* AsynCallback)
     }
 	
 	// JoinAP ，包括连接SSID和分配IP， 耗时最长可达10秒以上
-
+        
 	m_wifi_status = (int) CONNECT_WIFI_JOINAP;
     HRESULT result = CWifiBaseImpl::GetInstance()->JoinAP(
                                     pParam->m_strSSID,
@@ -755,6 +771,7 @@ void* WifiManager::JoinApAsync(void* AsynCallback)
                                     pParam->m_strGate,
                                     pParam->m_strDNS);
 
+    pthread_testcancel();
 	if(result == S_OK)
 	{
 		m_wifi_status = (int) CONNECT_WIFI_DHCP;
@@ -770,6 +787,7 @@ void* WifiManager::JoinApAsync(void* AsynCallback)
                                     pParam->m_strGate,
                                     pParam->m_strDNS);
 
+        pthread_testcancel();
 		switch(IPstatus)
 		{
 		case DHCP_STAITC_IP:
@@ -819,9 +837,10 @@ void* WifiManager::JoinApAsync(void* AsynCallback)
 	m_eWorking = Nothing;
 		
 	//DebugPrintf(DLC_DIAGNOSTIC, "WifiManager::JoinApAsync  after posting, m_eWorking=%d", m_eWorking);
+    
+    pthread_testcancel();
 
-    SQM::GetInstance()->IncCounter(SQM_ACTION_WIFI_CONNECT_END);    
-
+    SQM::GetInstance()->IncCounter(SQM_ACTION_WIFI_CONNECT_END);
 
     if(pParam->AfterFunc)
     {
@@ -876,11 +895,13 @@ void* WifiManager::JoinApAsync(void* AsynCallback)
 
     delete pParam;
     pParam = NULL;
-    
+  
+#if 0
 	pthread_mutex_unlock(&mutex_wifi_join);
+#endif
 
 	//DebugPrintf(DLC_DIAGNOSTIC, "WifiManager::JoinApAsync(), end");	
-
+    m_pThreadJoinAP = 0;
     ThreadHelper::ThreadExit(0);
     return NULL;
 }
@@ -902,9 +923,9 @@ HRESULT WifiManager::StartJoinAPAsync(FuncPointer between, FPWifiConnection afte
         return S_OK;
     }
 
-    if ( !WifiManager::GetInstance()->IsPowerOn() )
+    if (!WifiManager::GetInstance()->IsPowerOn() )
     {
-        return E_FAIL;
+        WifiManager::GetInstance()->PowerOn();
     }        
 
     SQM::GetInstance()->IncCounter(SQM_ACTION_WIFI_CONNECT_START);      
@@ -925,6 +946,9 @@ HRESULT WifiManager::StartJoinAPAsync(FuncPointer between, FPWifiConnection afte
     pParam->m_strMask = strMask;
     pParam->m_iSecurityTypes = securityTypes;
 
+    EndAutoJoin();
+    EndJoinAP();
+    usleep(500000);
     ThreadHelper::CreateThread(&m_pThreadJoinAP, JoinApAsync,(void*)pParam, "WifiManager @ JoinApAsync", true, 51200);
     return S_OK;
 }
@@ -933,12 +957,14 @@ HRESULT WifiManager::StartJoinAPAsync(FuncPointer between, FPWifiConnection afte
 HRESULT WifiManager::EndJoinAP()
 {
     //DebugPrintf(DLC_DIAGNOSTIC,"WifiManager::EndJoinAP() ");
+    SystemUtil::ExecuteCommand("killall -9 wpa_supplicant;killall -9 udhcpc");
     if(m_pThreadJoinAP)
     {
         ThreadHelper::CancelThread(m_pThreadJoinAP);
     }
 	m_pThreadJoinAP = 0;
 	m_eWorking= Nothing;
+    WifiManager::GetInstance()->SetConnectedStatus(false);
     return S_OK;
 }
 
@@ -1053,8 +1079,8 @@ void* WifiManager::UpdateStatusThread(void * pParam)
 			pthread_testcancel();
 
 			count++;
-			if(count < 2)
-				sleep(10);
+			if(count < 5)
+				sleep(5);
 			else
 				sleep(30);
         }
@@ -1251,4 +1277,8 @@ void  WifiManager::SetConnectedStatus(bool bStatus)
 	m_bCurConnectedStatus = bStatus;    
 }
 
+bool WifiManager::IsManualJoinAP()
+{
+    return (m_pThreadJoinAP != 0);
+}
 

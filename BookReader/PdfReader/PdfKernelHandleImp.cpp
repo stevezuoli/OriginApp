@@ -701,27 +701,6 @@ DK_IMAGE* PdfKernelHandle::GetPage(bool needPreRendering)
     return pRetImage;
 }
 
-bool PdfKernelHandle::SetFontSmoothType(DK_FONT_SMOOTH_TYPE fontSmoothType)
-{
-    if (m_eFontSmoothType != fontSmoothType)
-    {
-        m_eFontSmoothType = fontSmoothType;
-        IBMPProcessor* pProcessor = BMPProcessFactory::CreateInstance(IBMPProcessor::DK_BMPPROCESSOR_SHARPEN);
-        if (NULL != pProcessor)
-        {
-            if ((m_eFontSmoothType == DK_FONT_SMOOTH_SHARP) && (PDF_RM_Rearrange != m_stModeController.m_eReadingMode))
-            {
-                AddBMPProcessor(pProcessor);
-            }
-            else
-            {
-                RemoveBMPProcessor(pProcessor);
-            }
-        }
-    }
-    return true;
-}
-
 DK_IMAGE* PdfKernelHandle::GetPage(unsigned int pageNum,
                                    unsigned int* pCacheIndex/* = NULL*/,
                                    bool needPreRendering)
@@ -986,15 +965,14 @@ void PdfKernelHandle::StopThread()
     if(E_THREAD_EXIT != m_eThreadStatus)
     {
         m_bCancelThread = true;
-        int waiting_count = 0; // wait 10s
-        while(E_THREAD_EXIT != m_eThreadStatus && waiting_count < 100000)
+        while(E_THREAD_EXIT != m_eThreadStatus)
         {
             if(E_THREAD_SLEEP == m_eThreadStatus)
             {
                 pthread_cond_signal(&m_threadSignal);
             }
+
             usleep(100);
-            waiting_count++;
         }
     }
 }
@@ -1106,11 +1084,8 @@ void *PdfKernelHandle::CacheThread(void *pHandler)
 
     while(1)
     {
-        if(pPdfHandle->m_bCancelThread)
-        {
-            break;
-        }
         pPdfHandle->m_eThreadStatus = E_THREAD_ACTIVE;
+
         if (PDF_RM_Rearrange == pPdfHandle->m_stModeController.m_eReadingMode)
         {
             if (pPdfHandle->m_bMainWaitForReflowPage)
@@ -1125,6 +1100,11 @@ void *PdfKernelHandle::CacheThread(void *pHandler)
         else
         {
             pPdfHandle->LoadCache();
+        }
+
+        if(pPdfHandle->m_bCancelThread)
+        {
+            break;
         }
 
         pPdfHandle->m_eThreadStatus = E_THREAD_SLEEP;
@@ -1491,7 +1471,6 @@ PdfKernelHandle::ReflowCacheData* PdfKernelHandle::LoadReflowCachePage(DK_FLOWPO
         {
             pthread_mutex_lock(&m_listLock);
 
-            DebugPrintf (DLC_LIUHJ, "PdfKernelHandle::LoadReflowCachePage After Lock");
             // Reference position should be updated
             if (posType == IDKPDoc::LOCATION_PAGE || posType == IDKPDoc::NEXT_PAGE)
                 pData->pReflowPage->GetPageStartPos(&currentPos);
@@ -1663,7 +1642,6 @@ DK_IMAGE* PdfKernelHandle::PdfDrawPage(unsigned int pageNum,
                                        std::vector<PDFTextElement>* pTextElementsInPage/* = NULL*/)
 {
     DebugPrintf(DLC_AUTOTEST, "PdfKernelHandle::PdfDrawPage pageNum = %d", pageNum);
-
     AutoLock lock(&m_pdfLibLock);
     IDKPPage *pPage = m_pDoc->GetPage(pageNum + 1);
     if(NULL == pPage)
@@ -2777,11 +2755,11 @@ void PdfKernelHandle::RegisterFont (const wchar_t* pFontFaceName, const wchar_t*
 
 void PdfKernelHandle::SetDefaultFont (const wchar_t* pDefaultFontFaceName, DK_CHARSET_TYPE charset)
 {
-    CloseCache();
     AutoLock lock(&m_pdfLibLock);
     if (m_pDoc)
     {
         m_pDoc->SetDefaultFontFaceName (pDefaultFontFaceName, charset);
+        CloseCache();
     }
     else
     {
@@ -2875,9 +2853,8 @@ bool PdfKernelHandle::PdfGetReflowPage(const DK_FLOWPOSITION& pos,
 {
     DebugPrintf (DLC_LIUHJ, "PdfKernelHandle::PdfGetReflowPage ENTRANCE, startPos(%d, %d, %d), type %d", 
                  pos.nChapterIndex, pos.nParaIndex, pos.nElemIndex, posType);
-
     AutoLock lock(&m_pdfLibLock);
-    DebugPrintf (DLC_LIUHJ, "PdfKernelHandle::PdfGetReflowPage After Lock" );
+
     // 重排页面上翻页时, 无法通过当前页起始位置判断是否可以上翻页.
     // 所以这里先不考虑释放当前页及光标控制对象, 只有当获取新页面成功时才释放.
     IDKPPage* pTempPage = NULL;
@@ -2913,8 +2890,8 @@ DK_IMAGE* PdfKernelHandle::PdfDrawReflowPage(IDKPPageEx *pRearrangePage,
         return 0;
     }
     DebugPrintf (DLC_LIUHJ, "PdfKernelHandle::PdfDrawReflowPage CreateImage SUCCEEDED");
-
     AutoLock lock(&m_pdfLibLock);
+
     DK_BITMAPBUFFER_DEV dev;
     dev.lHeight = (*pImage)->iHeight;
     dev.lStride = (*pImage)->iStrideWidth;
@@ -3805,7 +3782,6 @@ const DK_TOCINFO* PdfKernelHandle::GetChapterInfo(const DK_FLOWPOSITION& posPage
         return NULL;
     }
     GetTOC();
-    
     AutoLock lock(&m_pdfLibLock);
 
 	int iChapterIndex = m_vTOCList.size() - 1;
@@ -3849,10 +3825,10 @@ const DK_TOCINFO* PdfKernelHandle::GetChapterInfo(const DK_FLOWPOSITION& posPage
 			//传回是应该-1
     		posChapterStart.nChapterIndex -= 1;
 			pChapterTocInfo->SetBeginPos(posChapterStart);
-            return pChapterTocInfo;
+			return pChapterTocInfo;
 		}
 	}
-    return NULL;
+	return NULL;
 }
 
 void PdfKernelHandle::ParseSinglePage(bool parseSingle)
