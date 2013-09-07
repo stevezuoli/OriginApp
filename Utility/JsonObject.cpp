@@ -87,6 +87,18 @@ bool JsonObject::GetIntValue(const char* key, int * value) const
     return true;
 }
 
+bool JsonObject::GetInt64Value(const char* key, int64_t * value) const
+{
+    json_object* v = GetRawSubObject(key);
+    if (!v || !json_object_is_type(v, json_type_int))
+    {
+        return false;
+    }
+    *value = json_object_get_int64(v);
+    json_object_put(v);
+    return true;
+}
+
 bool JsonObject::GetIntValue(int * value) const
 {
 	if(!m_jsonObj)

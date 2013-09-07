@@ -201,6 +201,43 @@ public:
 
 //===========================================================================
 
+class IDKEPageFootnote : public IDKEPageUnit
+{
+public:
+    virtual ~IDKEPageFootnote() {}
+
+public:
+    //-------------------------------------------
+    //	Summary:
+    //		获取当前位置的Footnote（文内脚注）信息。
+    //  Parameters:
+    //		[out] pFootnoteInfo            - 当前位置Footnote信息。
+    //	Return Value:
+    //	    Null
+    //	Remarks:
+    //		调用FreeFootnoteInfo释放pFootnoteInfo hold的资源
+    //  Availability:
+    //		从ePubLib 2.6.0开始支持。
+    //-------------------------------------------
+    virtual DK_VOID GetFootnoteInfo(DKE_FOOTNOTE_INFO* pFootnoteInfo) const = 0;
+
+    //-------------------------------------------
+    //	Summary:
+    //		释放Footnote信息。
+    //  Parameters:
+    //		[in] pFootnoteInfo             - 待释放的信息。
+    //	Return Value:
+    //	    Null
+    //	Remarks:
+    //		Null
+    //  Availability:
+    //		从ePubLib 2.6.0开始支持。
+    //-------------------------------------------
+    virtual DK_VOID FreeFootnoteInfo(DKE_FOOTNOTE_INFO* pFootnoteInfo) = 0;
+};
+
+//===========================================================================
+
 class IDKEPageImage : public IDKEPageUnit
 {
 public:

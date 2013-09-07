@@ -24,7 +24,7 @@
 #include "GUI/UIMessageBox.h"
 #include "GUI/GUISystem.h"
 #include "Public/Base/TPDef.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "Wifi/WifiManager.h"
 #include "I18n/StringManager.h"
 #include "SQM.h"
@@ -40,24 +40,29 @@
 #include "Utility/StringUtil.h"
 #include "BookStore/LocalCategoryManager.h"
 #include "TouchAppUI/UIAddBookToCategoryPage.h"
+#include "PersonalUI/UIPersonalCloudUploadPage.h"
 #include "CommonUI/UIAddCategoryDlg.h"
 #include "GUI/UITextBoxOnlyDlg.h"
+
+#include "Model/model_tree.h"
 
 #define USE_COVERVIEW 1
 
 using namespace WindowsMetrics;
 using namespace dk::utility;
 using namespace dk::bookstore;
+using namespace dk::document_model;
 
 UIHomePage::UIHomePage(HomePageStyle Style)
     : UIPage()
 //    , m_btnSearch(this, ID_BTN_TOUCH_SEARCH)
     , m_btnSort(this, ID_BTN_SORT)
-    , m_lstDir(BLU_BROWSE)
+    , m_model(ModelTree::getModelTree(MODEL_LOCAL_FILESYSTEM))
+    , m_modelView(BLU_BROWSE, m_model)
     , m_btnUpperFolder(this)
     , m_bIsDisposed(FALSE)
     , m_pageStyle(Style)
-    , m_FileSorts(UnknowSort)
+    , m_sortField(BY_DIRECTORY)
     , m_topButtonSizer(NULL)
     , m_topUpLevelSizer(NULL)
     , m_titleLeftSizer(NULL)
@@ -65,11 +70,11 @@ UIHomePage::UIHomePage(HomePageStyle Style)
 {
     DebugPrintf(DLC_UIHOMEPAGE, "%s, %d, %s, %s", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
 #if USE_COVERVIEW
-    m_bookListMode = SystemSettingInfo::GetInstance()->GetBookListMode();
+    m_modelDisplayMode = SystemSettingInfo::GetInstance()->GetModelDisplayMode();
 #else
-    m_bookListMode = BLM_LIST;
+    m_modelDisplayMode = BLM_LIST;
 #endif
-    m_lstDir.SetBookListMode(m_bookListMode);
+    m_modelView.SetModelDisplayMode(m_modelDisplayMode);
     Init();
 }
 
@@ -103,26 +108,24 @@ CString UIHomePage::GetSortString()
     DebugPrintf(DLC_UIHOMEPAGE, "%s, %d, %s, %s start", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
     CString strSortText;
 
-    CDKFileManager* pFileManager = CDKFileManager::GetFileManager();
-    switch(pFileManager->GetBookSort())
+    Field sort_field = m_model->sortField();
+    switch(sort_field)
     {
-        case RecentlyAdd:            //最近加入
+        case RECENTLY_ADD:            //最近加入
             strSortText = StringManager::GetStringById(RECENT_ADDED);
             break;
-        case RecentlyReadTime:      //最近阅读
+        case LAST_ACCESS_TIME:      //最近阅读
             strSortText = StringManager::GetStringById(RECENT_READING);
             break;
-        case Name:                   //书名关键字
+        case NAME:                   //书名关键字
             strSortText = StringManager::GetStringById(BY_BOOK_TITLE);
             break;
-        case DIRECTORY:                     //目录
+        case BY_DIRECTORY:           //目录
             strSortText = StringManager::GetStringById(BY_BOOK_DIRECTORY);
             break;
-        case UnknowSort:          //获取某一类型文件 比如书（图）、音、视频
         default:
             break;
     }
-
     return strSortText;
 }
 
@@ -131,7 +134,7 @@ void UIHomePage::MoveWindow(INT32 _iLeft, INT32 _iTop, INT32 _iWidth, INT32 _iHe
     DebugPrintf(DLC_UIHOMEPAGE, "%s, %d, %s, %s", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
     UIWindow::MoveWindow(_iLeft, _iTop, _iWidth, _iHeight);
 
-    m_lstDir.SetItemWidth(m_iWidth);
+    m_modelView.SetItemWidth(m_iWidth);
 
     if (!m_windowSizer)
     {
@@ -188,7 +191,7 @@ void UIHomePage::MoveWindow(INT32 _iLeft, INT32 _iTop, INT32 _iWidth, INT32 _iHe
         mainSizer->Add(m_topUpLevelSizer, UISizerFlags().Expand());
         //mainSizer->AddSpacer(GetWindowMetrics(UIHomePageSearchBoxBottomMarginIndex));
         mainSizer->Add(&m_txtHint, UISizerFlags().Expand().Border(dkLEFT | dkRIGHT, horizonMargin).Align(dkALIGN_CENTER_VERTICAL));
-        mainSizer->Add(&m_lstDir, UISizerFlags(1).Expand());
+        mainSizer->Add(&m_modelView, UISizerFlags(1).Expand());
         mainSizer->Add(bottomSizer, UISizerFlags().Expand().Border(dkLEFT | dkRIGHT, horizonMargin));
         mainSizer->AddSpacer(GetWindowMetrics(UIHomePageSpaceOverBottomBarIndex));
         mainSizer->Add(m_pBottomBar);
@@ -198,8 +201,8 @@ void UIHomePage::MoveWindow(INT32 _iLeft, INT32 _iTop, INT32 _iWidth, INT32 _iHe
 
     if (SEARCHPAGE == m_pageStyle)
     {
-        m_lstDir.SetCurrentPath("");
-        m_lstDir.InitListItem();
+        m_modelView.setRootNodeDisplayMode(BY_SORT);
+        m_modelView.InitListItem();
     }
 }
 
@@ -248,41 +251,46 @@ HRESULT UIHomePage::Init()
     const int listItemHeight = GetWindowMetrics(UIHomePageListItemHeightIndex);
     const int listItemSpacing = GetWindowMetrics(UIHomePageListItemSpacingIndex);
     const int horizonMargin = GetWindowMetrics(UIHorizonMarginIndex);
-    m_lstDir.SetLeftMargin(horizonMargin);
-    m_lstDir.SetItemHeight(listItemHeight);
-    m_lstDir.SetItemSpacing(listItemSpacing);
+    const int btnHMargin = GetWindowMetrics(UIPixelValue19Index);
+    const int btnVMargin = GetWindowMetrics(UIPixelValue11Index);
+    m_modelView.SetLeftMargin(horizonMargin);
+    m_modelView.SetItemHeight(listItemHeight);
+    m_modelView.SetItemSpacing(listItemSpacing);
 
     SPtr<ITpImage> searchImage = ImageManager::GetImage(IMAGE_TOUCH_ICON_SEARCH);
     m_btnSearch.SetIcon(searchImage, UIButton::ICON_CENTER);
     m_btnSearch.SetFontSize(GetWindowFontSize(UIHomePageSortTypeButtonIndex));
     m_btnSearch.SetAlign(ALIGN_LEFT);
     m_btnSearch.ShowBorder(false);
-    m_btnSearch.SetLeftMargin(0);
+    m_btnSearch.SetInternalHorzSpacing(btnHMargin);
+    m_btnSearch.SetInternalVertSpacing(btnVMargin);
 
     m_btnViewMode.SetFontSize(GetWindowFontSize(UIHomePageSortTypeButtonIndex));
     m_btnViewMode.ShowBorder(false);
     m_btnViewMode.SetAlign(ALIGN_RIGHT);
-    m_btnViewMode.SetLeftMargin(0);
+    m_btnViewMode.SetInternalHorzSpacing(btnHMargin);
+    m_btnViewMode.SetInternalVertSpacing(btnVMargin);
 
-    int searchButtonWidth = GetWindowMetrics(UIHomePageSearchButtonWidthIndex);
-    int searchButtonHeight = GetWindowMetrics(UIHomePageSearchButtonHeightIndex);
+    m_btnCloud.SetIcon(ImageManager::GetImage(IMAGE_ICON_CLOUD), UIButton::ICON_CENTER);
+    m_btnCloud.ShowBorder(false);
+    m_btnCloud.SetAlign(ALIGN_RIGHT);
+    m_btnCloud.SetInternalHorzSpacing(btnHMargin);
+    m_btnCloud.SetInternalVertSpacing(btnVMargin);
 
-
-    m_btnSearch.SetMinSize(searchButtonWidth, searchButtonHeight);
-    m_btnViewMode.SetMinSize(searchButtonWidth, searchButtonHeight);
-    m_topLeftButtonGroup.SetSplitLineHeight(searchButtonHeight/2);
+    m_topLeftButtonGroup.SetSplitLineHeight(GetWindowMetrics(UIPixelValue32Index));
     m_topLeftButtonGroup.SetTopLinePixel(0);
     m_topLeftButtonGroup.SetBottomLinePixel(0);
-    m_topLeftButtonGroup.AddButton(&m_btnSearch);
-    m_topLeftButtonGroup.AddButton(&m_btnViewMode);
-    m_btnSort.SetMinHeight(searchButtonHeight);
+    m_topLeftButtonGroup.AddButton(&m_btnSearch, UISizerFlags().Expand().Center().Border());
+    m_topLeftButtonGroup.AddButton(&m_btnViewMode, UISizerFlags().Expand().Center().Border());
+    m_topLeftButtonGroup.AddButton(&m_btnCloud, UISizerFlags().Expand().Center().Border());
+    m_btnSort.SetMinHeight(GetWindowMetrics(UIPixelValue50Index));
 
     DebugPrintf(DLC_UIHOMEPAGE, "%s, %d, %s, %s AppendChild", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
     AppendChild(&m_btnSort);
     AppendChild(&m_btnNewCategory);
     AppendChild(&m_btnUpperFolder);
     AppendChild(&m_txtUpperFolder);
-    AppendChild(&m_lstDir);
+    AppendChild(&m_modelView);
     AppendChild(&m_txtTotalBook);
     AppendChild(&m_txtPageNo);
     AppendChild(m_pBottomBar);
@@ -291,11 +299,12 @@ HRESULT UIHomePage::Init()
     AppendChild(&m_searchBox);
 
 
-    CONNECT(m_lstDir, UICompoundListBox::ListItemClick, this, UIHomePage::OnListItemClick)
-    CONNECT(m_lstDir, UICompoundListBox::ListTurnPage, this, UIHomePage::OnListContentChanged)
+    CONNECT(m_modelView, UICompoundListBox::ListItemClick, this, UIHomePage::OnListItemClick)
+    CONNECT(m_modelView, UICompoundListBox::ListTurnPage, this, UIHomePage::OnListContentChanged)
+    CONNECT(m_modelView, UIModelView::EventNodesUpdated, this, UIHomePage::OnNodesUpdated)
     SubscribeMessageEvent(
-            CDKFileManager::EventFileListChanged,
-            *CDKFileManager::GetFileManager(),
+            ModelTree::EventFileSystemChanged,
+            *m_model,
             std::tr1::bind(
                 std::tr1::mem_fn(&UIHomePage::OnFileListChanged),
                 this,
@@ -317,7 +326,6 @@ BOOL UIHomePage::OnKeyPress(INT32 iKeyCode)
 
 bool UIHomePage::OnSortClick()
 {
-    CDKFileManager* pFileManager = CDKFileManager::GetFileManager();
     UITouchMenu menu(this);
     std::vector<std::string> buttonTitles;
     const char* titles[] = 
@@ -327,7 +335,7 @@ bool UIHomePage::OnSortClick()
         StringManager::GetPCSTRById(RECENT_ADDED),
         StringManager::GetPCSTRById(BY_BOOK_TITLE)
     };
-    int sortTypes[] = {RecentlyReadTime, DIRECTORY, RecentlyAdd, Name};
+    int sortTypes[] = {LAST_ACCESS_TIME, BY_DIRECTORY, RECENTLY_ADD, NAME};
     int sqmCounters[] = {
         SQM_ACTION_HOMEPAGE_SORT_READ_RECENT, 
         SQM_ACTION_HOMEPAGE_SORT_DIRECTORY, 
@@ -339,7 +347,7 @@ bool UIHomePage::OnSortClick()
     int selected = 0;
     for (size_t i = 0; i < DK_DIM(sortTypes); ++i)
     {
-        if (pFileManager->GetBookSort() == sortTypes[i])
+        if (m_model->sortField() == sortTypes[i])
         {
             selected = i;
             break;
@@ -361,13 +369,13 @@ bool UIHomePage::OnSortClick()
     menu.Layout();
     if (IDOK == menu.DoModal())
     {
-        DK_FileSorts fileSort = (DK_FileSorts)menu.GetCommandId();
-        if (fileSort != pFileManager->GetBookSort())
+        Field sort_field = (Field)menu.GetCommandId();
+        if (sort_field != m_model->sortField())
         {
             int newSelected = -1;
             for (size_t j = 0; j < DK_DIM(sqmCounters); ++j)
             {
-                if (sortTypes[j] == fileSort)
+                if (sortTypes[j] == sort_field)
                 {
                     newSelected = j;
                     break;
@@ -378,8 +386,18 @@ bool UIHomePage::OnSortClick()
                 return true;
             }
             SQM::GetInstance()->IncCounter(sqmCounters[newSelected]);
-            pFileManager->SetBookSortType(fileSort);
-            pFileManager->SortFile(DFC_Book);
+
+            m_model->setSortField(sort_field);
+            m_model->sort();
+            if (sort_field == BY_DIRECTORY)
+            {
+                m_modelView.setRootNodeDisplayMode(BY_FOLDER);
+            }
+            else
+            {
+                m_modelView.setRootNodeDisplayMode(EXPAND_ALL);
+                //m_modelView.setStatusFilter(NODE_LOCAL | NODE_NOT_ON_CLOUD | NODE_SELF_OWN);
+            }
             RefreshUI();
         }
         if(m_pageStyle == SEARCHPAGE)
@@ -398,9 +416,9 @@ bool UIHomePage::OnUpperFolderClick()
         CPageNavigator::BackToPrePage();
         return true;
     }
-    if (DIRECTORY == m_FileSorts)
+    if (BY_DIRECTORY == m_sortField)
     {
-        m_lstDir.BackToUpperFolder();
+        m_modelView.BackToUpperFolder();
         RefreshUI();
     }
     return true;
@@ -425,8 +443,7 @@ bool UIHomePage::OnSearchClick()
         std::string keyword = keywordDialog.GetTextUTF8();
         if (!keyword.empty())
         {
-            CDKFileManager* fileManager = CDKFileManager::GetFileManager();
-            fileManager->SearchBook(keyword.c_str()); 
+            m_model->search(keyword); 
             if (SEARCHPAGE != m_pageStyle)
             {
                 UIHomePage* page = new UIHomePage(SEARCHPAGE);
@@ -448,8 +465,8 @@ void UIHomePage::OnCommand(DWORD dwCmdId, UIWindow * pSender, DWORD dwParam)
         std::string keyword = m_searchBox.GetTextUTF8();
         if (!keyword.empty())
         {
-            CDKFileManager* fileManager = CDKFileManager::GetFileManager();
-            fileManager->SearchBook(keyword.c_str()); 
+            // TODO. make search asynchronous
+            m_model->search(keyword);
             RefreshUI();
             UpdateWindow();
         }
@@ -459,19 +476,12 @@ void UIHomePage::OnCommand(DWORD dwCmdId, UIWindow * pSender, DWORD dwParam)
 void UIHomePage::UpdateNavigationButton()
 {
     DebugPrintf(DLC_UIHOMEPAGE, "%s, %d, %s, %s start", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
-    CDKFileManager* pFileManager = CDKFileManager::GetFileManager();
-    if(!pFileManager)
-    {
-        DebugPrintf(DLC_UIHOMEPAGE, "%s, %d, %s, %s GetFileManager is NULL", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
-        return;
-    }
-    
     CHAR str[50] = {0};
     
     int iCurPage = 0, iTotalPage = 0;
-    iCurPage   = m_lstDir.GetCurPageIndex();
-    iTotalPage = m_lstDir.GetTotalPageCount();
-    int itemNum = m_lstDir.GetItemNum();
+    iCurPage   = m_modelView.GetCurPageIndex();
+    iTotalPage = m_modelView.GetTotalPageCount();
+    int itemNum = m_modelView.GetItemNum();
     
     if(itemNum)
         sprintf(str, "%d/%d %s", iCurPage + 1, iTotalPage,StringManager::GetPCSTRById(BOOK_PAGE));
@@ -484,27 +494,26 @@ void UIHomePage::UpdateNavigationButton()
     DebugPrintf(DLC_UIHOMEPAGE, "%s, %d, %s, %s end", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
 }
 
-std::string UIHomePage::GetDirectoryViewTitle(const std::string& path) const
+std::string UIHomePage::GetDirectoryViewTitle(const std::string& path)
 {
-    if (m_lstDir.HasCategory())
+    if (m_modelView.currentNodeType() == NODE_TYPE_CATEGORY_VIRTUAL_BOOK_STORE)
     {
-        return m_lstDir.GetCategory();
+        return m_modelView.currentNodePath();
     }
     return PathManager::GetDirectoryDisplayName(path.c_str());
 }
 
 void UIHomePage::UpdateTopBox()
 {
-    string strPath = m_lstDir.GetCurrentPath(); 
-    CDKFileManager* pFileManager = CDKFileManager::GetFileManager();
-    DK_FileSorts bookSort = pFileManager->GetBookSort();
+    string strPath = m_modelView.currentNodePath();
+    Field sort_field = m_model->sortField();
     bool showNewCategory = false;
     bool showAddBook = false;
     if (m_pageStyle != SEARCHPAGE && 
-            (DIRECTORY == bookSort && 
+            (BY_DIRECTORY == sort_field && 
              PathManager::IsBookStorePath(strPath.c_str())))
     {
-        if (m_lstDir.HasCategory())
+        if (m_modelView.currentNodeType() == NODE_TYPE_CATEGORY_VIRTUAL_BOOK_STORE)
         {
             showAddBook = true;
         }
@@ -514,8 +523,8 @@ void UIHomePage::UpdateTopBox()
         }
     }
     bool showUpLevelSizer = false;
-    if (((DIRECTORY == bookSort) && (!PathManager::IsRootPath(strPath) && !strPath.empty()))
-            || SEARCHPAGE == m_pageStyle)
+    if (((BY_DIRECTORY == sort_field) && (m_model->currentNode() != m_model->root() && !strPath.empty()))
+        || SEARCHPAGE == m_pageStyle)
     {
         m_topButtonSizer->Show(false);
         m_topUpLevelSizer->Show(true);
@@ -574,54 +583,46 @@ void UIHomePage::UpdateTopBox()
 HRESULT UIHomePage::UpdateBookList()
 {
     DebugPrintf(DLC_UIHOMEPAGE, "%s, %d, %s, %s start", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
-    CDKFileManager* pFileManager = CDKFileManager::GetFileManager();
-    if(!pFileManager)
-    {
-        DebugPrintf(DLC_UIHOMEPAGE, "%s, %d, %s, %s GetFileManager is NULL", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
-        return S_FALSE;
-    }
 
     if (SEARCHPAGE == m_pageStyle)
     {
         Layout();
-        m_lstDir.SetCurrentPath("");
-        m_lstDir.InitListItem();
-        m_lstDir.UpdateListItem();
+        m_modelView.setRootNodeDisplayMode(BY_SORT);
+        m_modelView.InitListItem();
         m_btnSort.SetText(GetSortString());
     }
-    else if (m_FileSorts != pFileManager->GetBookSort())
+    else if (m_sortField != m_model->sortField())
     {
-        m_FileSorts = pFileManager->GetBookSort();
+        m_sortField = m_model->sortField();
         DebugPrintf(DLC_UIHOMEPAGE, "%s, %d, %s, %s BookSort is changed", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
         Layout();
-        if (m_FileSorts != DIRECTORY)
+        if (m_sortField != BY_DIRECTORY)
         {
-            m_lstDir.SetCurrentPath("");
+            m_modelView.setRootNodeDisplayMode(EXPAND_ALL);
         }
         else
         {
-            m_lstDir.SetCurrentPath(PathManager::GetRootPath());
+            //m_modelView.cdPath(PathManager::GetRootPath());
+            m_modelView.cdRoot();
         }
-        m_lstDir.SetCurPageIndex(0);
-        m_lstDir.InitListItem();
-        m_lstDir.UpdateListItem();
+        m_modelView.SetCurPageIndex(0);
+        m_modelView.InitListItem();
         m_btnSort.SetText(GetSortString());
     }
     else
     {
-        m_lstDir.InitListItem();
-        m_lstDir.UpdateListItem();
+        m_modelView.InitListItem();
     }
     DebugPrintf(DLC_UIHOMEPAGE, "%s, %d, %s, %s end", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
     m_txtHint.SetVisible(false);
-    if (m_lstDir.GetItemNum() == 0)
+    if (m_modelView.GetItemNum() == 0)
     {
         if (SEARCHPAGE == m_pageStyle)
         {
             m_txtHint.SetText(StringManager::GetPCSTRById(NO_BOOK_SEARCH_RESULT));
             m_txtHint.SetVisible(true);
         }
-        else if (m_lstDir.HasCategory())
+        else if (m_modelView.currentNodeType() == NODE_TYPE_CATEGORY_VIRTUAL_BOOK_STORE)
         {
             m_txtHint.SetText(StringManager::GetPCSTRById(CATEGORY_ADD_FILE_HINT));
             m_txtHint.SetVisible(true);
@@ -635,14 +636,9 @@ void UIHomePage::OnLoad()
 {
     SetVisible(TRUE);
     UIPage::OnLoad();
-    CDKFileManager *pFileManager = CDKFileManager::GetFileManager();  
-    if(NULL == pFileManager)
-    {
-        return;
-    }
     if(m_pageStyle == SEARCHPAGE)
     {
-        pFileManager->SearchBook(m_searchKeyword.c_str());
+        m_model->search(m_searchKeyword);
     }
 
     Layout();
@@ -666,25 +662,21 @@ void UIHomePage::OnEnter()
 {
     DebugPrintf(DLC_UIHOMEPAGE, "%s, %d, %s, %s", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
     UIPage::OnEnter();
-    CDKFileManager *pFileManager = CDKFileManager::GetFileManager();
     if (m_pBottomBar)
     {
         m_pBottomBar->SetFocusedIndex(PAT_BookShelf);
     }
-    if(NULL == pFileManager)
-    {
-        return ;
-    }
+
     if(m_pageStyle == SEARCHPAGE)
     {
-        pFileManager->SearchBook(m_searchKeyword.c_str());
+        m_model->search(m_searchKeyword);
     }
     else
     {
-        if(pFileManager->GetBookSort() != m_FileSorts || RecentlyReadTime == pFileManager->GetBookSort())
+        if(m_model->sortField() != m_sortField || LAST_ACCESS_TIME == m_model->sortField())
         {
-            pFileManager->SortFile(DFC_Book);
-            m_lstDir.UpdateListItem();
+            m_model->sort();
+            m_modelView.UpdateListItem();
         }
     }
     RefreshUI();
@@ -693,11 +685,9 @@ void UIHomePage::OnEnter()
 
 void UIHomePage::OnLeave()
 {
-	CDKFileManager *fileManager = CDKFileManager::GetFileManager();
 	if(m_pageStyle == SEARCHPAGE)
     {
-		fileManager->SetBookSortType(fileManager->GetBookSort());
-        fileManager->SortFile(DFC_Book);
+        m_model->sort();
 	}
     UIPage::OnLeave();
 }
@@ -771,7 +761,7 @@ bool UIHomePage::OnListItemClick(const EventArgs& args)
     ListItemClickEvent listItemClickArgs = (const ListItemClickEvent&)(args);
     if (listItemClickArgs.IsDirectoryItem())
     {
-        if (m_bookListMode == BLM_ICON)
+        if (m_modelDisplayMode == BLM_ICON)
         {
             CDisplay::GetDisplay()->SetFullRepaint(true);
         }
@@ -784,6 +774,15 @@ bool UIHomePage::OnListItemClick(const EventArgs& args)
 bool UIHomePage::OnListContentChanged(const EventArgs& args)
 {
     UpdateNavigationButton();
+    return true;
+}
+
+bool UIHomePage::OnNodesUpdated(const EventArgs& args)
+{
+    UpdateTopBox();
+    UpdateNavigationButton();
+    Layout();
+    Repaint();
     return true;
 }
 
@@ -819,7 +818,7 @@ bool UIHomePage::OnNewCategoryClick()
                 if (dlg.DoModal() == MB_OK)
                 {
                     UIAddBookToCategoryPage* addBookPage(
-                            new UIAddBookToCategoryPage(category.c_str()));
+                        new UIAddBookToCategoryPage(category.c_str(), m_modelView.model()));
                     addBookPage->MoveWindow(0, 0, 
                             DeviceInfo::GetDisplayScreenWidth(),
                             DeviceInfo::GetDisplayScreenHeight());
@@ -834,19 +833,28 @@ bool UIHomePage::OnNewCategoryClick()
     return true;
 }
 
+bool UIHomePage::OnCloudClick()
+{
+    UIPersonalCloudUploadPage* uploadBookPage = new UIPersonalCloudUploadPage(ModelTree::getModelTree(MODEL_LOCAL_FILESYSTEM));
+    if (uploadBookPage)
+    {
+        uploadBookPage->MoveWindow(0, 0, DeviceInfo::GetDisplayScreenWidth(), DeviceInfo::GetDisplayScreenHeight());
+        CPageNavigator::Goto(uploadBookPage);
+    }
+    return true;
+}
+
 bool UIHomePage::OnViewModeClick()
 {
-    BookListMode newMode = BLM_ICON;
-    if (BLM_ICON == m_bookListMode)
+    ModelDisplayMode newMode = BLM_ICON;
+    if (BLM_ICON == m_modelDisplayMode)
     {
         newMode = BLM_LIST;
     }
-    m_bookListMode = newMode;
+    m_modelDisplayMode = newMode;
     UpdateViewModeImage();
-    SystemSettingInfo::GetInstance()->SetBookListMode(m_bookListMode);
-    m_lstDir.SetBookListMode(m_bookListMode);
-    //m_lstDir.InitListItem();
-    //m_lstDir.UpdateListItem();
+    SystemSettingInfo::GetInstance()->SetModelDisplayMode(m_modelDisplayMode);
+    m_modelView.SetModelDisplayMode(m_modelDisplayMode);
     RefreshUI();
     UpdateWindow();
     return true;
@@ -854,7 +862,7 @@ bool UIHomePage::OnViewModeClick()
 
 bool UIHomePage::OnAddBookToCategoryClick()
 {
-    UIAddBookToCategoryPage* addBookPage(new UIAddBookToCategoryPage(m_lstDir.GetCategory().c_str()));
+    UIAddBookToCategoryPage* addBookPage(new UIAddBookToCategoryPage(m_modelView.currentNodePath().c_str(), m_modelView.model()));
     addBookPage->MoveWindow(0, 0, DeviceInfo::GetDisplayScreenWidth(), DeviceInfo::GetDisplayScreenHeight());
     addBookPage->Layout();
     CPageNavigator::Goto(addBookPage);
@@ -875,9 +883,13 @@ bool UIHomePage::OnChildClick(UIWindow* child)
     {
          return OnViewModeClick();
     }
+    else if (child == &m_btnCloud)
+    {
+        return OnCloudClick();
+    }
     else if (child == &m_btnNewCategory)
     {
-        if (m_lstDir.HasCategory())
+        if (m_modelView.currentNodeType() == NODE_TYPE_CATEGORY_VIRTUAL_BOOK_STORE)
         {
             return OnAddBookToCategoryClick();
         }
@@ -898,7 +910,7 @@ bool UIHomePage::OnChildClick(UIWindow* child)
 
 void UIHomePage::UpdateViewModeImage()
 {
-    if (BLM_LIST == m_bookListMode)
+    if (BLM_LIST == m_modelDisplayMode)
     {
         m_btnViewMode.SetIcon(ImageManager::GetImage(IMAGE_ICON_BOOKLIST_COVER), UIButton::ICON_CENTER);
     }

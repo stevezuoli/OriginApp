@@ -148,6 +148,8 @@ public:
 
     virtual bool HitTestGallery(const DK_POS& point, IDKEGallery** ppGallery);
     virtual void FreeHitTestGallery(IDKEGallery* pGallery);
+    virtual bool HitTestPreBlock(const DK_POS& point, DKE_PREBLOCK_INFO* pPreBlockInfo);
+    virtual void FreeHitTestPreBlock(DKE_PREBLOCK_INFO* pPreBlockInfo);
 
     virtual IDKEHitableObjIterator* GetHitableObjIterator();
     virtual DK_VOID FreeHitableObjIterator(IDKEHitableObjIterator* pHitableObjIterator);

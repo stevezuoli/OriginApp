@@ -334,13 +334,11 @@ private:
     UITouchComplexButton m_btnLayoutStyleChoices[4];
 
     // 字体设置
-    UITextSingleLine m_textFontOtherSettingTitle;
     UITextSingleLine m_textFontSize;
     UITextSingleLine m_textFontStyle;
     UITextSingleLine m_textBolden;
 
     //设置
-    UITextSingleLine m_textReaderSettingTitle;//正文版式设置标题
     UITextSingleLine m_textTurnPageCustom;//翻页习惯
     UITouchComplexButton m_btnTurnPageCustom[2];//0-left 1-right
     UITextSingleLine m_textReadingUpDownGestureCustom;//上下翻章节手势
@@ -366,7 +364,6 @@ private:
     UINavigateToDlg *m_pNavigateToDlg;
 
     //字体（中文\英文）
-    UITextSingleLine m_textLangSettingTitle;
     UITextSingleLine m_textLangChoices[2];//0-CN, 1-EN
     UITouchComplexButton m_btnLangChoices[2];//0-CN,1-EN
     int m_iSelectedCNFontIndex;

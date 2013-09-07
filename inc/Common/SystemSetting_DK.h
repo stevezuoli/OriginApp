@@ -9,7 +9,7 @@
 #include <sys/time.h>
 #include <sys/statfs.h>
 #include "KernelType.h"
-#include "../Common/FileSorts_DK.h"
+#include "Common/FileSorts_DK.h"
 #include "Common/Defs.h"
 
 
@@ -302,8 +302,8 @@ public:
 	int GetReadingLayout() const;
     bool SetReadingLayout(int mode);
 
-    BookListMode GetBookListMode() const;
-    bool SetBookListMode(BookListMode mode);
+    ModelDisplayMode GetModelDisplayMode() const;
+    bool SetModelDisplayMode(ModelDisplayMode mode);
 
     const char* GetSinaWeiboToken() const;
     bool SetSinaWeiboToken(const char* token);

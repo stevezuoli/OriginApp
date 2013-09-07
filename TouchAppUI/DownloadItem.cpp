@@ -9,7 +9,7 @@
 #include "TouchAppUI/BookOpenManager.h"
 #include "Framework/CNativeThread.h"
 #include "Framework/CDisplay.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "GUI/UIMessageBox.h"
 #include "GUI/CTpGraphics.h"
 #include "Common/WindowsMetrics.h"

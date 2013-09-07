@@ -1245,14 +1245,14 @@ bool SystemSettingInfo::SetReadingLayout(int mode)
 	return SetConfigValueInt(CKI_ReadingLayout, mode);
 }
 
-BookListMode SystemSettingInfo::GetBookListMode() const
+ModelDisplayMode SystemSettingInfo::GetModelDisplayMode() const
 {
-    return (BookListMode)MakeInRange(GetConfigValueInt(CKI_BookListMode), BLM_MIN, BLM_MAX);
+    return (ModelDisplayMode)MakeInRange(GetConfigValueInt(CKI_ModelDisplayMode), BLM_MIN, BLM_MAX);
 }
 
-bool SystemSettingInfo::SetBookListMode(BookListMode mode)
+bool SystemSettingInfo::SetModelDisplayMode(ModelDisplayMode mode)
 {
-    return SetConfigValueInt(CKI_BookListMode, MakeInRange(mode, BLM_MIN, BLM_MAX));
+    return SetConfigValueInt(CKI_ModelDisplayMode, MakeInRange(mode, BLM_MIN, BLM_MAX));
 }
 
 void SystemSettingInfo::ResetFontSize()

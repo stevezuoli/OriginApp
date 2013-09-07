@@ -4,7 +4,10 @@
 void IDownloadTask::FireDownloadProgressUpdateEvent()
 {
     DownloadUpdateEventArgs args;
-    IDownloader::GetInstance()->FireDownloadProgressUpdateEvent(GetState(), GetPercentage(), GetOrigUrlID());
+    IDownloader::GetInstance()->FireDownloadProgressUpdateEvent(GetType(),
+                                                                GetState(),
+                                                                GetPercentage(),
+                                                                GetOrigUrlID());
 }
 
 void IDownloadTask::OnProgressUpdate(unsigned int downloadTotal, unsigned downloadNow)

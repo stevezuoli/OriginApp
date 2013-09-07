@@ -8,7 +8,7 @@
 #include "I18n/StringManager.h"
 #include "drivers/DeviceInfo.h"
 #include "Wifi/WifiBaseImpl.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "Utility/EncodeUtil.h"
 #include "TouchAppUI/LayoutHelper.h"
 #include "Wifi/WifiManager.h"

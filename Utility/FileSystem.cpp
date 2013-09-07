@@ -2,7 +2,7 @@
 #include "Utility/PathManager.h"
 #include "Utility/ReaderUtil.h"
 #include "BookStore/BookStoreInfoManager.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include <sys/stat.h>
 #include <dirent.h>
 #include <errno.h>
@@ -383,8 +383,8 @@ static std::string FilterFileName(const char* s)
 bool FileSystem::SaveLocalNoteToEvernoteFile(int bookId, std::string& bookName, std::string& author)
 {
     CDKFileManager *pFileManager = CDKFileManager::GetFileManager();
-    CDKFile *pDkFile = pFileManager->GetFileById(bookId);
-    if(NULL == pDkFile)
+    PCDKFile pDkFile = pFileManager->GetFileById(bookId);
+    if(0 == pDkFile)
     {
         return false;
     }

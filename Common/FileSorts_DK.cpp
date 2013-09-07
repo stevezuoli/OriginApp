@@ -1,4 +1,4 @@
-#include "FileSorts_DK.h"
+#include "Common/FileSorts_DK.h"
 //#include "UTF8TOGBK.h"
 #include "interface.h"
 #include "Common/ConfigInfo.h"
@@ -29,7 +29,7 @@ CDKFileSorts::CDKFileSorts()
 {
 }
 
-void CDKFileSorts::SetFileListAndNum(const std::vector<CDKFile*>& files)
+void CDKFileSorts::SetFileListAndNum(const std::vector<PCDKFile>& files)
 {
     m_files = files;
 }

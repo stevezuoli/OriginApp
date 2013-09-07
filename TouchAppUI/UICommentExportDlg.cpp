@@ -1,5 +1,5 @@
 #include "TouchAppUI/UICommentExportDlg.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "DKXManager/DKX/DKXReadingDataItemFactory.h"
 #include "CommandID.h"
 #include "I18n/StringManager.h"

@@ -143,6 +143,7 @@ class MD5Checker
     static void MD5_memcpy PROTO_LIST ((POINTER, POINTER, unsigned int));
     static void MD5_memset PROTO_LIST ((POINTER, int, unsigned int));
     */
+public:
 
     void DK_MD5Init (MD5_CTX *context);
     void DK_MD5Update(MD5_CTX *context, unsigned char *input,unsigned int inputLen);
@@ -154,9 +155,8 @@ class MD5Checker
     void DK_MD5_memcpy(POINTER, POINTER, unsigned int);
     void DK_MD5_memset(POINTER, int, unsigned int);
 
-    public:
-        char* DK_MDFile (const char *filename);
-        char* DK_MDString (const char *string);
+    char* DK_MDFile (const char *filename);
+    char* DK_MDString (const char *string);
 };
 
 #endif //_MD5Checker_H

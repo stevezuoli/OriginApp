@@ -120,6 +120,7 @@ void DownloadManager::RunTask(DownloadTaskSPtr task)
         curl_formfree(post_start);
         curl_slist_free_all(headers);
         
+        task->SetRetCode(retcode);
         task->OnFinished((res == CURLE_OK) && retcode == 200);
     }
 } 

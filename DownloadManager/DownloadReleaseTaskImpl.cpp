@@ -1,7 +1,7 @@
 #include "DownloadManager/DownloadReleaseTaskImpl.h"
 #include "DownloadManager/DownloaderImpl.h"
 #include "Framework/CNativeThread.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "interface.h"
 #include <string>
 

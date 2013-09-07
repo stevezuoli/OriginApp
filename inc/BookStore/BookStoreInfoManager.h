@@ -207,7 +207,8 @@ class CommentReplyArgs: public EventArgs
 {
 public:
     CommentReplyArgs()
-        :succeeded(false)
+        : succeeded(false)
+        , errorCode(0)
     {
     }
     virtual EventArgs* Clone() const
@@ -216,6 +217,7 @@ public:
     }
 
     bool succeeded;
+    int errorCode;
     model::BookCommentSPtr commentInfo;
 };
 

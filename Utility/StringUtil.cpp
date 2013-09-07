@@ -196,6 +196,20 @@ bool StringUtil::EndWith(const char* src, const char* pat)
     return patEnd < pat;
 }
 
+int StringUtil::CountsOfChar(const std::string& str, const std::string& pat)
+{
+    int count = 0;
+    int len = pat.size();
+    size_t pos = str.find(pat);
+    while (pos != std::string::npos)
+    {
+        count ++;
+        pos += (len + 1);
+        pos = str.find(pat, pos);
+    }
+
+    return count;
+}
 
 bool StringUtil::IsValidEmail(const char* email)
 {

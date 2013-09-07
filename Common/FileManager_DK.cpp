@@ -16,7 +16,7 @@
 */
 
 
-#include "FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "interface.h"
 #include "Utility.h"
 #include "dkWinError.h"
@@ -861,7 +861,7 @@ PCDKFile CDKFileManager::GetFileByPath(const char* path)
     int fileId = GetFileIdByPath(path);
     if (-1 == fileId)
     {
-        return NULL;
+        return PCDKFile();
     }
     return GetFileById(fileId);
 }
@@ -874,7 +874,7 @@ PCDKFile CDKFileManager::GetFileById(int id)
     {
         return (*pos);
     }
-    return NULL;
+    return PCDKFile();
 }
 
 PCDKFile CDKFileManager::GetFileByBookId(const char* bookId)
@@ -885,7 +885,7 @@ PCDKFile CDKFileManager::GetFileByBookId(const char* bookId)
     {
         return (*pos);
     }
-    return NULL;
+    return PCDKFile();
 }
 
 bool CDKFileManager::GetFileIDList(std::vector<int>* fileIDList)
@@ -901,10 +901,20 @@ bool CDKFileManager::GetFileIDList(std::vector<int>* fileIDList)
     return true;
 }
 
+PCDKFile CDKFileManager::GetFileByName(const std::string& name, int64_t size)
+{
+    FileNameMatcher matcher(name, size);
+    DK_AUTO(pos, std::find_if(m_files.begin(), m_files.end(), matcher));
+    if (pos != m_files.end())
+    {
+        return (*pos);
+    }
+    return PCDKFile();
+}
 
 bool CDKFileManager::SortReadbyRecentlyTime(PCDKFile pSource1,PCDKFile pSource2)
 {
-    if(NULL == pSource1 || NULL == pSource2)
+    if(0 == pSource1 || 0 == pSource2)
     {
         return false;
     }
@@ -948,7 +958,7 @@ bool CDKFileManager::DelFile(int fileId)
     {
         return false;
     }
-    CDKFile* file = GetFileById(fileId);
+    PCDKFile file = GetFileById(fileId);
     if (NULL == file)
     {
         return false;
@@ -988,7 +998,7 @@ bool CDKFileManager::DelFile(PCDKFile toDel)
     return true;
 }
 
-int CDKFileManager::LoadFileToFileManger(const char* strScanPath)
+int CDKFileManager::LoadFileToFileManger(const char* strScanPath, bool scanSubFolder)
 {
     //DebugPrintf(DLC_DIAGNOSTIC, "Begin load file to manager: %s", strScanPath);
     DirInfo* DirList = NULL;
@@ -998,7 +1008,7 @@ int CDKFileManager::LoadFileToFileManger(const char* strScanPath)
     {
         return 1;
     }
-    pTemp = ScanFileOnDisk(&DirList, strScanPath, GetFileFormatbyExtName, true);
+    pTemp = ScanFileOnDisk(&DirList, strScanPath, GetFileFormatbyExtName, scanSubFolder);
     if( NULL == pTemp)
     {
         DebugPrintf(DLC_DIAGNOSTIC, "No Any Book at %s ", strScanPath);
@@ -1101,7 +1111,7 @@ int CDKFileManager::LoadFileToFileManger(const char* strScanPath)
 
 
 
-int CDKFileManager::ReLoadFileToFileManger(const char* strScanPath)
+int CDKFileManager::ReLoadFileToFileManger(const char* strScanPath, bool scanSubFolder)
 {
     if(NULL == strScanPath)
     {
@@ -1109,7 +1119,7 @@ int CDKFileManager::ReLoadFileToFileManger(const char* strScanPath)
     }
     UnloadAllFile();
     DebugPrintf(DLC_LIUJT, "CDKFileManager::ReLoadFileToFileManger for foloder=%s", strScanPath);
-    LoadFileToFileManger(strScanPath);
+    LoadFileToFileManger(strScanPath, scanSubFolder);
     SortFile(DFC_Book);
     return 0;
 }
@@ -1191,7 +1201,7 @@ HRESULT CDKFileManager::SaveFileInfoToDkp(PCDKFile pCurBook,IBookInfoProxy *pFil
     return S_OK;
 }
 
-HRESULT    CDKFileManager::GetFileInfoFromDkx(PCDKFile pCurBook)
+HRESULT CDKFileManager::GetFileInfoFromDkx(PCDKFile pCurBook)
 {
     time_t tBeginTime = time(NULL);
     static long lBooknumber = 0;
@@ -1829,11 +1839,11 @@ void CDKFileManager::SetMetaData(bool isOpen)
     }
 }
 
-CDKFile* CDKFileManager::GetBookbyListIndex(int index) const
+PCDKFile CDKFileManager::GetBookbyListIndex(int index) const
 {
     if (index < 0 || index >= (int)m_sortedFiles.size())
     {
-        return NULL;
+        return PCDKFile();
     }
     return m_sortedFiles[index];
 }
@@ -1979,7 +1989,7 @@ bool CDKFileManager::RenameFolder(const char* source, const char* dest)
     
     if(PathManager::RenameFile(source, dest))
     {
-        ReLoadFileToFileManger(PathManager::GetRootPath().c_str());
+        ReLoadFileToFileManger(PathManager::GetRootPath().c_str(), true);
         return true;
     }
     return false;

@@ -42,7 +42,7 @@
 #include "DKRAPI.h"
 #include "Common/WindowsMetrics.h"
 #include "Common/BookCoverLoader.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "KernelVersion.h"
 #include <memory>
 
@@ -148,7 +148,7 @@ long CDKFile::GetFileReadingOrder() const
 
 const char*  CDKFile::GetFilePath() const
 {
-    return m_path.c_str();
+    return m_path;
 }
 
 const char* CDKFile::GetGbkName() const
@@ -158,17 +158,17 @@ const char* CDKFile::GetGbkName() const
 
 const char*  CDKFile::GetFileName() const
 {
-    return m_name.c_str();
+    return m_name;
 }
 
 const char*  CDKFile::GetFileArtist() const
 {
-    return m_artist.c_str();
+    return m_artist;
 }
 
 const char*  CDKFile::GetFilePassword() const
 {
-    return m_password.c_str();
+    return m_password;
 }
 
 const char*  CDKFile::GetFileImage() const
@@ -278,8 +278,8 @@ void CDKFile::SetFilePassword(const char* password)
     if(password)
     {
         int iLen = strlen(password);
-        int iCopyLen = ((iLen >= FILEPASSWORDMAXLEN)?FILEPASSWORDMAXLEN-1:iLen);
-        strncpy(m_password,password,iCopyLen);
+        int iCopyLen = ((iLen >= FILEPASSWORDMAXLEN) ? FILEPASSWORDMAXLEN - 1 : iLen);
+        strncpy(m_password, password, iCopyLen);
         m_password[iCopyLen] = '\0';
     }
 }
@@ -299,7 +299,10 @@ void CDKFile::SyncFile()
 	{
 		return;
 	}
-	if(DFF_ElectronicPublishing != m_format && DFF_MobiPocket != m_format)
+	if (DFF_ElectronicPublishing != m_format &&
+        DFF_MobiPocket != m_format &&
+        DFF_PortableDocumentFormat != m_format &&
+        DFF_Text != m_format)
 	{
 		return;
 	}
@@ -1059,7 +1062,7 @@ FileKeywordMatcher::FileKeywordMatcher(const char* keyword)
     }
 }
 
-bool FileKeywordMatcher::operator()(const CDKFile* file) const
+bool FileKeywordMatcher::operator()(const PCDKFile file) const
 {
     if (m_wKeyWord.empty())
     {
@@ -1137,7 +1140,7 @@ void CDKFile::SetPageCount(int pageCount)
 // class FileComparer
 //
 ///////////////////////////////////////////////////////////////////////////////
-bool FileComparer::operator()(const CDKFile* lhs, const CDKFile* rhs) const
+bool FileComparer::operator()(const PCDKFile lhs, const PCDKFile rhs) const
 {
     switch (m_type)
     {

@@ -321,6 +321,38 @@ public:
     //-------------------------------------------
     virtual DK_VOID FreeRects(DK_BOX* pRects) = 0;
 
+    //-------------------------------------------
+    //  Summary:
+    //      获取页面指定范围内的文本合并后的矩形，矩形坐标相对于页面左上角。
+    //  Parameters:
+    //      [in] startPos           - 起始坐标位置
+    //      [in] endPos             - 结束坐标位置
+    //  Return Value:
+    //      合并后的外接矩形
+    //  Remarks:
+    //      获取的是位于 [startPos, endPos) 区间内的文本合并后的外接矩形。
+    //  Availability: 
+    //      从ePubLib 2.6.1开始支持。
+    //-------------------------------------------
+    virtual DK_BOX GetTextMergedRect(const DK_FLOWPOSITION& startPos, const DK_FLOWPOSITION& endPos) = 0;
+
+    //-------------------------------------------
+    //  Summary:
+    //      渲染局部区域内指定流式坐标区间上的所有文字
+    //  Parameters:
+    //      [in] option             - 渲染选项
+    //      [in] startPos           - 区间开始位置
+    //      [in] endPos             - 区间结束位置
+    //      [in] areaBox            - 局部区域，相对于页面左上角
+    //  Return Value:
+    //      如果成功返回 DKR_OK，否则返回失败
+    //  Remarks:
+    //      Null
+    //  Availability: 
+    //      从ePubLib 2.6.1开始支持。
+    //-------------------------------------------
+    virtual DK_ReturnCode RenderAreaTextRange(const DK_FLOWRENDEROPTION& option, const DK_FLOWPOSITION& startPos, const DK_FLOWPOSITION& endPos, const DK_BOX& areaBox) = 0;
+
 public:
     //-------------------------------------------
     //  Summary:

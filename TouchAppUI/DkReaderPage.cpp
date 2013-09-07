@@ -17,7 +17,7 @@
 #include "DKXManager/DKX/DKXManager.h"
 
 #include "I18n/StringManager.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "MemoryStream.h"
 #include "TextLocatorImpl.h"
 #include "Utility/FileSystem.h"
@@ -709,7 +709,7 @@ BOOL DkReaderPage::InitCurFile()
 	}
 
 	INT iBookId = m_spFileList->iBookId;
-	CDKFile *pDkFile = pFileManager->GetFileById(iBookId);
+	PCDKFile pDkFile = pFileManager->GetFileById(iBookId);
 	if(NULL == pDkFile)
     {
         DebugPrintf(DLC_DIAGNOSTIC, "%s, %d, %s, %s NULL == pDkFile", __FILE__,  __LINE__, "DkReaderPage", __FUNCTION__);
@@ -726,7 +726,7 @@ BOOL DkReaderPage::InitCurFile()
 	PCHAR pExtension = NULL;
     IDkStream *pStream = NULL;
 	UINT uFileId = 0;
-    if (GetAchiveFileContent(pDkFile, pStream, &pExtension, &uFileId) &&
+    if (GetAchiveFileContent(pDkFile.get(), pStream, &pExtension, &uFileId) &&
         Initialize(uFileId, iBookId, pStream, pExtension, m_pPassword))
     {
         DebugPrintf(DLC_DIAGNOSTIC, "%s, %d, %s, %s end return TRUE", __FILE__,  __LINE__, "DkReaderPage", __FUNCTION__);
@@ -828,8 +828,8 @@ LPCSTR DkReaderPage::GetCurBookPath()
 		return NULL;
 	}
 
-	CDKFile *pDkFile = pFileManager->GetFileById(iBookId);
-	if(NULL == pDkFile)
+	PCDKFile pDkFile = pFileManager->GetFileById(iBookId);
+	if(0 == pDkFile)
     {
         DebugPrintf(DLC_DKREADERPAGE, "%s, %d, %s, %s NULL == pDkFile", __FILE__,  __LINE__, "DkReaderPage", __FUNCTION__);
 		return NULL;

@@ -120,7 +120,7 @@ bool GrayScaleProcessor::RGBToGray(DK_IMAGE* pImage)
             unsigned char& bBlue   = pFromData[uOffset + 0];
             unsigned char& bGreen  = pFromData[uOffset + 1];
             unsigned char& bRed    = pFromData[uOffset + 2];
-            pToData[i * lWidth + j] = ConvertRGBToGray(i, j, ~bBlue, ~bGreen, ~bRed);
+            pToData[i * lWidth + j] = ConvertRGBToGray(~bBlue, ~bGreen, ~bRed);
         }
     }
     pImage->iColorChannels = 1;
@@ -130,17 +130,9 @@ bool GrayScaleProcessor::RGBToGray(DK_IMAGE* pImage)
     return true;
 }
 
-unsigned char GrayScaleProcessor::ConvertRGBToGray(int x, int y, unsigned char blue, unsigned char green, unsigned char red)
+unsigned char GrayScaleProcessor::ConvertRGBToGray(unsigned char blue, unsigned char green, unsigned char red)
 {
-    unsigned int uBlue = (unsigned int)blue;
-    unsigned int uGreen = (unsigned int)green;
-    unsigned int uRed = (unsigned int)red;
-    if(x < 0 || y < 0 || uBlue > 256 || uGreen > 256 || uRed > 256)
-    {
-        return (unsigned char)256;
-    }
-
-    unsigned int grayValue = ((28 * uBlue + 151 * uGreen + 77 * uRed)>>8);
+    unsigned int grayValue = (28 * (unsigned int)blue + 151 * (unsigned int)green + 77 * (unsigned int)red) >> 8;
     // 不使用抖动
     return ((unsigned char)grayValue & 0xF0) | ((unsigned char)grayValue >> 4);
 }
@@ -163,7 +155,7 @@ IBMPProcessor* SharpenProcessor::GetInstance()
 }
 
 SharpenProcessor::SharpenProcessor ()
-    : m_iSharpenLevel (0)
+    : m_iSharpenLevel (1)
 {
 }
 
@@ -252,7 +244,7 @@ DK_VOID SharpenProcessor::SharpenImage3x3(unsigned char* pBuf, unsigned int uWid
     unsigned char* pDrsContent (0);
     unsigned char* pDrsRowHead (0);
     int* pIndex (0);
-    unsigned int iSum (0);
+    int iSum (0);
     unsigned int iOffset (0);
     unsigned int j (0);
 

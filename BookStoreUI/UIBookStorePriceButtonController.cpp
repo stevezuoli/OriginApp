@@ -17,7 +17,7 @@
 #endif
 #include "CommonUI/UIUtility.h"
 #include "GUI/UIMessageBox.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "Utility/PathManager.h"
 #include "Utility/SystemUtil.h"
 #include "Framework/CNativeThread.h"

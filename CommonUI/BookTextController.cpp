@@ -957,6 +957,27 @@ bool BookTextController::InitInteractiveObjects(std::vector<PageObjectInfo>& int
         }
         m_pPage->FreeGalleryIterator(pGalleryIterator);
     }
+
+    // get info of PreBlock
+    IDKEPreBlockIterator* pPreBlockIterator = m_pPage->GetPreBlockIterator();
+    if (pPreBlockIterator)
+    {
+        while (pPreBlockIterator->MoveToNext())
+        {
+            DKE_PREBLOCK_INFO preBlock;
+            pPreBlockIterator->GetCurPreBlockInfo(&preBlock);
+            if (NULL != preBlock.pPreFlexPage)
+            {
+                PageObjectInfo objInfo;
+                objInfo.m_objectType = DKE_PAGEOBJ_PREBLOCK;
+                objInfo.m_bounding = GetRectFromBox(preBlock.boundingBox);
+                objInfo.m_objectFlowposition = preBlock.startPos;
+                interactiveObjects.push_back(objInfo);
+                pPreBlockIterator->FreeCurPreBlockInfo(&preBlock);
+            }
+        }
+        m_pPage->FreePreBlockIterator(pPreBlockIterator);
+    }
     return interactiveObjects.size();
 }
 
@@ -1063,6 +1084,19 @@ void BookTextController::FreeHitTestGallery(IDKEGallery* pGallery)
     if (m_pPage)
     {
         m_pPage->FreeHitTestGallery(pGallery);
+    }
+}
+
+bool BookTextController::HitTestPreBlock(const DK_POS& point, DKE_PREBLOCK_INFO* pPreBlockInfo)
+{
+    return m_pPage && m_pPage->HitTestPreBlock(point, pPreBlockInfo);
+}
+
+void BookTextController::FreeHitTestPreBlock(DKE_PREBLOCK_INFO* pPreBlockInfo)
+{
+    if (m_pPage)
+    {
+        m_pPage->FreeHitTestPreBlock(pPreBlockInfo);
     }
 }
 

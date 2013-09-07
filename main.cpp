@@ -76,7 +76,7 @@
 #include "drivers/FrontLight.h"
 #include "BookStore/LocalCategoryManager.h"
 #include "GUI/ImageFullRepaintCalculation.h"
-
+#include "XiaoMi/XiaoMiServiceFactory.h"
 using namespace dk::utility;
 using namespace dk::bookstore;
 
@@ -489,8 +489,9 @@ int main(int argc, char *argv[])
     // TDOO:路径改成宏或从配置文件读取
 	time_t start = time(NULL);
     
+    // Do NOT load all files at beginning. Tree model will handle this
 	DebugPrintf(DLC_DIAGNOSTIC, "Begin LoadFileToFileManger");
-    pFileManager->LoadFileToFileManger("/mnt/us/");
+    pFileManager->LoadFileToFileManger("/mnt/us/", true);
 	time_t end = time(NULL);
 	long lTime = difftime(end, start);
 	DebugPrintf(DLC_DIAGNOSTIC, "Main cost %ld seconds to scan all %d files", lTime, pFileManager->GetFileNum());
@@ -519,6 +520,43 @@ int main(int argc, char *argv[])
     //set the page to homepage
     DebugPrintf(DLC_DIAGNOSTIC, "Back to home");
     CPageNavigator::BackToHome();
+
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->GetQuota();
+    //sleep(1);
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->GetChildren("0");
+    //sleep(10);
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->DeleteDirectory("12075");
+    //sleep(1);
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->DeleteFile("12220");
+    //sleep(1);
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->GetChildren("0");
+    //sleep(1);
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateDirectory("0", "TestForKindle");
+    //sleep(10);
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateDirectory("0", "BOOKS");
+    //sleep(10);
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->GetChildren("0");
+    //sleep(10);
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateFile("49504", "/mnt/shared/cloud_test/folder1/English.txt");
+    //sleep(5);
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateFile("49504", "/mnt/shared/cloud_test/folder1/Chinese.txt");
+    //sleep(5);
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateFile("48604", "/mnt/shared/Test/pdf/Hyperlink-2test.pdf");
+    //sleep(5);
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateFile("22902", "/DuoKan/kss/log.txt");
+    //sleep(5);
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateFile("0", "/DuoKan/kss/log.txt");
+    //sleep(5);
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateFile("48604", "/mnt/shared/Test/pdf/Hyperlink-3test.pdf");
+    //sleep(5);
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateFile("48604", "/home/y/Documents/test/test2");
+    //sleep(10);
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateFile("0", "/home/y/Documents/test/test3");
+    //sleep(10);
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->GetChildren("22902");
+    //sleep(10);
+    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->GetChildren("30831");
+    //sleep(100);
 #if 0
     if (SystemSettingInfo::GetInstance()->GetIsAppFirstLoading())
     {

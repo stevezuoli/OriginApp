@@ -3,7 +3,7 @@
 #include "BookStore/BookStoreInfoManager.h"
 #include "Framework/CNativeThread.h"
 #include "Utility/PathManager.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "Common/File_DK.h"
 #include "dkBaseType.h"
 #include "interface.h"
@@ -327,7 +327,8 @@ int DownloadBookTaskImpl::FinishTask()
                     GetFilePassword().c_str(),
                     DirList->FileSize);
 
-                fileManager->AddFile(pBookFileInfo);
+                PCDKFile pFile = PCDKFile(dynamic_cast<CDKFile*>(pBookFileInfo));
+                fileManager->AddFile(pFile);
 
             }
             pTemp = DirList;
@@ -377,7 +378,8 @@ int DownloadBookTaskImpl::FinishTask()
 
         }
 
-        fileManager->AddFile(pBookFileInfo);
+        PCDKFile pFile = PCDKFile(dynamic_cast<CDKFile*>(pBookFileInfo));
+        fileManager->AddFile(pFile);
         fileManager->SortFile(DFC_Book);
         fileManager->FireFileListChangedEvent();
     }

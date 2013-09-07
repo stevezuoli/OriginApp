@@ -68,10 +68,8 @@ public:
     }
 
     bool GetChildrenNodeList(std::string categoryId, BasicObjectList& childrenList) const;
-    BasicObjectList GetChildrenNodeList() const
-    {
-        return m_childrenList;
-    }
+    BasicObjectList GetChildrenNodeList() const { return m_childrenList; }
+    BasicObjectList& mutableChildrenNodeList() { return m_childrenList; }
     
     CategoryInfo* GetParentNode() const
     {

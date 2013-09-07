@@ -17,6 +17,7 @@ DownloadTask::DownloadTask()
     , m_priority(-1)
     , m_method(GET)
     , m_file(NULL)
+    , m_retCode(0)
 {
 }
 

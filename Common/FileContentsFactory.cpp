@@ -7,7 +7,7 @@
 
 #include "Common/FileContentsFactory.h"
 #include "Model/ArchiveFileContentsImpl.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "interface.h"
 #include "dkWinError.h"
 

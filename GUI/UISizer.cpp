@@ -537,8 +537,11 @@ bool UISizerItem::IsShown() const
             break;
 
         case Item_Window:
-            return m_window->IsShown();
-
+            if (m_window)
+            {
+                return m_window->IsShown();
+            }
+            return false;
         case Item_Sizer:
         {
             // arbitrarily decide that if at least one of our elements is
@@ -1323,7 +1326,10 @@ void UISizer::ShowItems( bool show )
     UISizerItemListIterator node = m_children.begin();
     while (node != m_children.end())
     {
-        (*node)->Show( show );
+        if (*node)
+        {
+            (*node)->Show( show );
+        }
         ++node;
     }
 }
@@ -1751,7 +1757,7 @@ dkSize UIBoxSizer::CalcMin()
     {
         UISizerItem * const item = *i;
 
-        if ( !item->IsShown() )
+        if (!item || !item->IsShown() )
             continue;
 
         const dkSize sizeMinThis = item->CalcMin();

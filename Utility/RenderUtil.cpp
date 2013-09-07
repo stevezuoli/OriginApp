@@ -1,5 +1,6 @@
 #include "Utility/RenderUtil.h"
 #include "GUI/CTpImage.h"
+#include "DkFilterFactory.h"
 
 namespace dk
 {
@@ -51,6 +52,34 @@ bool RenderUtil::CreateRenderImageAndDevice32(
     }
 
     return true;
+}
+
+bool RenderUtil::SaveBitmapToJpeg(const DkFormat::DK_IMAGE& bitmap, const char* jpgFilePath)
+{
+    bool result = false;
+    if (bitmap.pbData && jpgFilePath)
+    {
+        int length = bitmap.iWidth * bitmap.iHeight;
+        DK_BYTE *data = DK_MALLOCZ_OBJ_N(DK_BYTE, length);
+        if(data)
+        {
+            for(int i = 0; i < length; i++)
+            {
+                data[i] = ~bitmap.pbData[i];
+            }
+
+            DK_BITMAPBUFFER_DEV dev;
+            dev.lWidth = bitmap.iWidth;
+            dev.lHeight = bitmap.iHeight;
+            dev.nPixelFormat = DK_PIXELFORMAT_GRAY;
+            dev.lStride = bitmap.iStrideWidth;
+            dev.nDPI = RenderConst::SCREEN_DPI;
+            dev.pbyData = data;
+            result = (DKR_OK == DkFilterFactory::SaveBitmapToJpeg(dev, 70, jpgFilePath));
+            SafeDeletePointer(data);
+        }
+    }
+    return result;
 }
 
 bool RenderUtil::SaveDKImage(DkFormat::DK_IMAGE image, const char* filename)

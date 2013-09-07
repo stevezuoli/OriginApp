@@ -6,7 +6,7 @@
 #include <fcntl.h>
 
 #include "interface.h"
-#include "DebugConsole.h"
+#include "Common/DebugConsole.h"
 
 struct termios saved_attributes;
 

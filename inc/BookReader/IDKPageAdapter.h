@@ -212,9 +212,13 @@ public:
 
     virtual IDKEGalleryIterator* GetGalleryIterator() = 0;
     virtual DK_VOID FreeGalleryIterator(IDKEGalleryIterator* pGalleryIterator) = 0;
-
     virtual DK_BOOL HitTestGallery(const DK_POS& point, IDKEGallery** ppGallery) = 0;
     virtual DK_VOID FreeHitTestGallery(IDKEGallery* pGallery) = 0;
+
+    virtual IDKEPreBlockIterator* GetPreBlockIterator() = 0;
+    virtual DK_VOID FreePreBlockIterator(IDKEPreBlockIterator* pPreBlockIterator) = 0;
+    virtual DK_BOOL HitTestPreBlock(const DK_POS& point, DKE_PREBLOCK_INFO* pPreBlockInfo) = 0;
+    virtual DK_VOID FreeHitTestPreBlock(DKE_PREBLOCK_INFO* pPreBlockInfo) = 0;
 
     virtual IDKEHitableObjIterator* GetHitableObjIterator() = 0;
     virtual DK_VOID FreeHitableObjIterator(IDKEHitableObjIterator* pHitableObjIterator) = 0;
@@ -436,6 +440,29 @@ struct IDKEPageTraits: public IDKPageTraitsBase<IDKEBook, IDKEPage, IDKETextIter
         }
     }
 
+    static IDKEPreBlockIterator* GetPreBlockIterator(PageType* pPage) 
+    {
+        return pPage ? pPage->GetPreBlockIterator() : NULL;
+    }
+    static DK_VOID FreePreBlockIterator(PageType* pPage, IDKEPreBlockIterator* pPreBlockIterator)
+    {
+        if (pPage)
+        {
+            pPage->FreePreBlockIterator(pPreBlockIterator);
+        }
+    }
+    static DK_BOOL HitTestPreBlock(PageType* pPage, const DK_POS& point, DKE_PREBLOCK_INFO* pPreBlockInfo)
+    {
+        return (pPage && DK_SUCCEEDED(pPage->HitTestPreBlock(point, pPreBlockInfo)));
+    }
+    static DK_VOID FreeHitTestPreBlock(PageType* pPage, DKE_PREBLOCK_INFO* pPreBlockInfo)
+    {
+        if (pPage)
+        {
+            pPage->FreeHitTestPreBlock(pPreBlockInfo);
+        }
+    }
+
     static IDKEHitableObjIterator* GetHitableObjIterator(PageType* pPage)
     {
         if (pPage)
@@ -621,6 +648,21 @@ struct IDKMPageTraits: public IDKPageTraitsBase<IDKMBook, IDKMPage, IDKMTextIter
     {
     }
 
+    static IDKEPreBlockIterator* GetPreBlockIterator(PageType* pPage) 
+    {
+        return NULL;
+    }
+    static DK_VOID FreePreBlockIterator(PageType* pPage, IDKEPreBlockIterator* pPreBlockIterator)
+    {
+    }
+    static DK_BOOL HitTestPreBlock(PageType* pPage, const DK_POS& point, DKE_PREBLOCK_INFO* pPreBlockInfo)
+    {
+        return false;
+    }
+    static DK_VOID FreeHitTestPreBlock(PageType* pPage, DKE_PREBLOCK_INFO* pPreBlockInfo)
+    {
+    }
+
     static IDKEHitableObjIterator* GetHitableObjIterator(PageType* pPage)
     {
         return NULL;
@@ -790,6 +832,21 @@ struct IDKTPageTraits: public IDKPageTraitsBase<IDKTBook, IDKTPage, IDKTTextIter
         return false;
     }
     static DK_VOID FreeHitTestGallery(PageType* pPage, IDKEGallery* pGallery)
+    {
+    }
+
+    static IDKEPreBlockIterator* GetPreBlockIterator(PageType* pPage) 
+    {
+        return NULL;
+    }
+    static DK_VOID FreePreBlockIterator(PageType* pPage, IDKEPreBlockIterator* pPreBlockIterator)
+    {
+    }
+    static DK_BOOL HitTestPreBlock(PageType* pPage, const DK_POS& point, DKE_PREBLOCK_INFO* pPreBlockInfo)
+    {
+        return false;
+    }
+    static DK_VOID FreeHitTestPreBlock(PageType* pPage, DKE_PREBLOCK_INFO* pPreBlockInfo)
     {
     }
 
@@ -997,6 +1054,21 @@ struct IDKPPageExTraits: public IDKPageTraitsBase<IPdfKernelHandle, IDKPPageEx, 
     {
     }
 
+    static IDKEPreBlockIterator* GetPreBlockIterator(PageType* pPage) 
+    {
+        return NULL;
+    }
+    static DK_VOID FreePreBlockIterator(PageType* pPage, IDKEPreBlockIterator* pPreBlockIterator)
+    {
+    }
+    static DK_BOOL HitTestPreBlock(PageType* pPage, const DK_POS& point, DKE_PREBLOCK_INFO* pPreBlockInfo)
+    {
+        return false;
+    }
+    static DK_VOID FreeHitTestPreBlock(PageType* pPage, DKE_PREBLOCK_INFO* pPreBlockInfo)
+    {
+    }
+
     static IDKEHitableObjIterator* GetHitableObjIterator(PageType* pPage)
     {
         return NULL;
@@ -1191,6 +1263,21 @@ struct IDKPPageTraits: public IDKPageTraitsBase<DK_VOID *, IPdfKernelHandle, PDF
         return false;
     }
     static DK_VOID FreeHitTestGallery(PageType* pPage, IDKEGallery* pGallery)
+    {
+    }
+
+    static IDKEPreBlockIterator* GetPreBlockIterator(PageType* pPage) 
+    {
+        return NULL;
+    }
+    static DK_VOID FreePreBlockIterator(PageType* pPage, IDKEPreBlockIterator* pPreBlockIterator)
+    {
+    }
+    static DK_BOOL HitTestPreBlock(PageType* pPage, const DK_POS& point, DKE_PREBLOCK_INFO* pPreBlockInfo)
+    {
+        return false;
+    }
+    static DK_VOID FreeHitTestPreBlock(PageType* pPage, DKE_PREBLOCK_INFO* pPreBlockInfo)
     {
     }
 
@@ -1404,6 +1491,23 @@ public:
     virtual DK_VOID FreeHitTestGallery(IDKEGallery* pGallery)
     {
         return IDKPageTraits::FreeHitTestGallery(m_pPage, pGallery);
+    }
+
+    virtual IDKEPreBlockIterator* GetPreBlockIterator() 
+    {
+        return IDKPageTraits::GetPreBlockIterator(m_pPage);
+    }
+    virtual DK_VOID FreePreBlockIterator(IDKEPreBlockIterator* pPreBlockIterator)
+    {
+        return IDKPageTraits::FreePreBlockIterator(m_pPage, pPreBlockIterator);
+    }
+    virtual DK_BOOL HitTestPreBlock(const DK_POS& point, DKE_PREBLOCK_INFO* pPreBlockInfo)
+    {
+        return IDKPageTraits::HitTestPreBlock(m_pPage, point, pPreBlockInfo);
+    }
+    virtual DK_VOID FreeHitTestPreBlock(DKE_PREBLOCK_INFO* pPreBlockInfo)
+    {
+        return IDKPageTraits::FreeHitTestPreBlock(m_pPage, pPreBlockInfo);
     }
 
     virtual IDKEFootnoteIterator* GetFootnoteIterator()

@@ -2,7 +2,7 @@
 #include "DownloadManager/DownloadBookTaskImpl.h"
 #include "DownloadManager/DownloadTaskFactory.h"
 #include "DownloadManager/curlDownload.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "DlManagerSerialization.h"
 #include "interface.h"
 #include "Framework/CNativeThread.h"
@@ -26,16 +26,21 @@ const char* IDownloader::EventDownloadProgressUpdate = "EventDownloadProgressUpd
 DownloadUpdateEventArgs::DownloadUpdateEventArgs()
     : percentage(-1)
     , state(IDownloadTask::NONE)
+    , type(IDownloadTask::UNKNOWN_TYPE)
 {
 }
 
 // Called by downloading thread
-void IDownloader::FireDownloadProgressUpdateEvent(IDownloadTask::DLState state, int percentage, std::string urlID)
+void IDownloader::FireDownloadProgressUpdateEvent(IDownloadTask::DLType type,
+                                                  IDownloadTask::DLState state,
+                                                  int percentage,
+                                                  std::string urlID)
 {
     DownloadUpdateEventArgs args;
     args.taskId = urlID;
     args.percentage = percentage;
     args.state = state;
+    args.type  = type;
     FireEvent(IDownloader::EventDownloadProgressUpdate, args);
 }
 
@@ -101,7 +106,9 @@ void DownloaderImpl::SaveHistroy(void)
         itr != m_tasks.end();
         itr++ )
     {
-        if((*itr))
+        if((*itr) && !((*itr)->GetState() & (IDownloadTask::CANCELED |
+                                             IDownloadTask::DONE |
+                                             IDownloadTask::FAILED)))
         {
             DlSerializationParentsNode &ParentsNode = RootNode.AddChildNode("DkDlTaskItem");
             ParentsNode.AddAttribute("DkDlTaskType",(int)(*itr)->GetType());

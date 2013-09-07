@@ -12,15 +12,19 @@
 #define WINDOWSMETRICS_H
 
 #define METRICS_LIST(MACRO_NAME) \
+    MACRO_NAME(UIPixelValue1, 1, 2)\
+    MACRO_NAME(UIPixelValue2, 2, 3)\
     MACRO_NAME(UIPixelValue3, 3, 4)\
     MACRO_NAME(UIPixelValue5, 5, 7)\
     MACRO_NAME(UIPixelValue8, 8, 10)\
     MACRO_NAME(UIPixelValue10, 10, 13)\
+    MACRO_NAME(UIPixelValue11, 11, 14)\
     MACRO_NAME(UIPixelValue12, 12, 15)\
     MACRO_NAME(UIPixelValue13, 13, 16)\
     MACRO_NAME(UIPixelValue14, 14, 18)\
     MACRO_NAME(UIPixelValue15, 15, 19)\
     MACRO_NAME(UIPixelValue16, 16, 20)\
+    MACRO_NAME(UIPixelValue19, 19, 24)\
     MACRO_NAME(UIPixelValue20, 20, 26)\
     MACRO_NAME(UIPixelValue22, 22, 28)\
     MACRO_NAME(UIPixelValue23, 23, 29)\
@@ -49,6 +53,9 @@
     MACRO_NAME(UIPixelValue142, 142, 181)\
     MACRO_NAME(UIPixelValue150, 150, 192)\
     MACRO_NAME(UIPixelValue155, 155, 198)\
+    MACRO_NAME(UIPixelValue180, 180, 230)\
+    MACRO_NAME(UIPixelValue190, 190, 243)\
+    MACRO_NAME(UIPixelValue200, 200, 256)\
     MACRO_NAME(UIPixelValue400, 400, 512)\
     MACRO_NAME(UIHorizonMargin, 30, 38)\
     MACRO_NAME(UIElementSpacing, 3, 5)\
@@ -114,8 +121,6 @@
     MACRO_NAME(UIHomePageBookNameMaxWidth, 300, 384)\
     MACRO_NAME(UIHomePageImageMaxWidth, 46, 58)\
     MACRO_NAME(UIHomePageSortTypeButtonWidth, 124, 159)\
-    MACRO_NAME(UIHomePageSearchButtonWidth, 59, 76)\
-    MACRO_NAME(UIHomePageSearchButtonHeight, 50, 64)\
     MACRO_NAME(UIHomePageCoverViewItemLeft, 30, 38)\
     MACRO_NAME(UIHomePageCoverViewItemWidth, 174, 224)\
     MACRO_NAME(UIHomePageCoverViewItemHeight, 306, 390)\
@@ -356,15 +361,13 @@
     MACRO_NAME(UIBookStoreChartsPageItemHeight, 59, 75)\
     MACRO_NAME(UIButtonTopPadding, 5, 6) \
     MACRO_NAME(UIButtonLeftPadding, 15, 19) \
-    MACRO_NAME(UIDirectoryListItemProgressBarWidth, 128, 164)\
-    MACRO_NAME(UIDirectoryListItemProgressBarHeight, 2, 2)\
+    MACRO_NAME(UINodeViewProgressBarWidth, 128, 164)\
+    MACRO_NAME(UINodeViewProgressBarHeight, 2, 2)\
     MACRO_NAME(UIDictionaryDialogTranslateImageHeight, 590, 755)\
     MACRO_NAME(UIBookStoreBookCatalogueItemHeight, 50, 64)\
     MACRO_NAME(UIWeiboSharePageTitleVPadding, 8, 10)\
     MACRO_NAME(UIWeiboSharePageUserNameVPadding, 17, 22)\
     MACRO_NAME(UIWeiboSharePageContentEditVPadding, 11, 14)\
-    MACRO_NAME(UIWeiboSharePageContentHeight, 220, 282)\
-	MACRO_NAME(UIWeiboSharePagePictureWidth, 165, 211)\
 	MACRO_NAME(UIWeiboSharePageContentHorzPadding, 10, 13)\
     MACRO_NAME(UIWeiboBindDlgLogoVPadding, 30, 37)\
     MACRO_NAME(UIWeiboBindDlgEditBoxHeight, 49, 63)\

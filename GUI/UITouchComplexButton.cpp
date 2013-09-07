@@ -25,6 +25,8 @@ UITouchComplexButton::UITouchComplexButton()
     , m_bUpRightSquare(false)
     , m_bRightDownSquare(false)
     , m_bLeftDownSquare(false)
+    , m_internalHorzSpacing(0)
+    , m_internalVertSpacing(0)
     , m_borderLine(1)
     , m_imgBackground(NULL)
 {
@@ -37,6 +39,8 @@ UITouchComplexButton::UITouchComplexButton(UIContainer* pParent, const DWORD dwI
     , m_bUpRightSquare(false)
     , m_bRightDownSquare(false)
     , m_bLeftDownSquare(false)
+    , m_internalHorzSpacing(0)
+    , m_internalVertSpacing(0)
     , m_borderLine(1)
     , m_imgBackground(NULL)
 {

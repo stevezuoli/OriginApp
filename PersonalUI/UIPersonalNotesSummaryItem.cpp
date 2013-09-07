@@ -7,7 +7,7 @@
 #include "GUI/UISizer.h"
 #include "Common/WindowsMetrics.h"
 #include "I18n/StringManager.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "Framework/CNativeThread.h"
 #include "GUI/UIMessageBox.h"
 #ifdef KINDLE_FOR_TOUCH

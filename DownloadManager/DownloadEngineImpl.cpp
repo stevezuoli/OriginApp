@@ -4,7 +4,7 @@
 #include <string.h>
 #include "curl/curl.h"
 #include "interface.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "Common/File_DK.h"
 #include "DownloadManager/IDownloadTask.h"
 #include "DownloadManager/DownloadEngineImpl.h"

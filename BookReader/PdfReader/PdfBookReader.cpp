@@ -228,18 +228,7 @@ DK_IMAGE* PdfBookReader::GetPageBMP()
         return NULL;
     }
 
-    DK_IMAGE* image = m_pPdfHandler->GetPage(false);
-    if (m_pPdfHandler->GetFontSmoothType() == DK_FONT_SMOOTH_SHARP)
-    {
-        const PdfModeController* modeController = m_pPdfHandler->GetModeController();
-        IBMPProcessor* pProcessor = BMPProcessFactory::CreateInstance(IBMPProcessor::DK_BMPPROCESSOR_SHARPEN);
-        if ((NULL != image) && (NULL != modeController) && (NULL != pProcessor) && (PDF_RM_Rearrange != modeController->m_eReadingMode))
-        {
-            pProcessor->Process(image);
-        }
-    }
-
-    return image;
+    return m_pPdfHandler->GetPage(false);
 }
 
 long PdfBookReader::GetCurrentPageIndex()

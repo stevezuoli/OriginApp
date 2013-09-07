@@ -27,6 +27,7 @@
 #include "../ImageHandler/DkImageHelper.h"
 #include "StopWatch.h"
 #include "ValueScope.h"
+#include "Utility/RenderUtil.h"
 
 
 #define PRINTSCREENPATH "/mnt/us/DK_ScreenShots/"
@@ -572,58 +573,8 @@ void CDisplay::PrintSrceen()
     time ( &rawtime );
     info = localtime ( &rawtime );
     strftime(name,256,"20%y%m%d%H%M%S",info);
-    sprintf(ScreenPath,"%s%s.bmp",PRINTSCREENPATH,name);
-
-    // fill the bmp format header
-    BITMAPFILEHEADER bmp_file_header;
-    memset(&bmp_file_header,0,sizeof(BITMAPFILEHEADER));
-    bmp_file_header.bfOffBits =  0x36 + 256 * 4;
-    bmp_file_header.bfSize = m_memDC.iWidth * m_memDC.iHeight + 0x36 + 256 * 4;
-    bmp_file_header.bfType = 0x4d42;
-    BITMAPINFOHEADER bmp_info_header;
-    memset(&bmp_info_header,0,sizeof(BITMAPINFOHEADER));
-    bmp_info_header.biSize = sizeof(BITMAPINFOHEADER);
-    bmp_info_header.biWidth = m_memDC.iWidth;
-    bmp_info_header.biHeight = m_memDC.iHeight;
-    bmp_info_header.biPlanes = 1;
-    bmp_info_header.biBitCount = 8;
-    bmp_info_header.biSizeImage = m_memDC.iWidth * m_memDC.iHeight;
-    bmp_info_header.biClrUsed = 256;
-
-
-    int plus[256];
-    memset(plus, 0 , 256 * sizeof(int));
-    for(int i=0; i < 256; i++)
-    {
-        memset(plus + i, 255 - i, 4);
-    }
-    FILE * fp = fopen(ScreenPath,"w+");
-    if (fp)
-    {
-        int width = (m_memDC.iWidth + 3) & ~(0x3);
-        // TODO:check the disk space
-        fwrite(&bmp_file_header, sizeof(BITMAPFILEHEADER), 1, fp);
-        fwrite(&bmp_info_header, sizeof(BITMAPINFOHEADER), 1, fp);
-        fwrite(plus, 256 * 4, 1, fp);
-        int dataLen = width * m_memDC.iHeight;
-        char *data = new char[dataLen];
-
-        memset(data, 0, dataLen); 
-        if(data)
-        {
-            int i = m_memDC.iHeight;
-            while(i > 0)
-            {
-                memcpy(data + (i - 1) * width,m_memDC.pbData + (m_memDC.iHeight - i)* m_memDC.iWidth,m_memDC.iWidth);
-                i--;
-            }
-            fwrite(data, dataLen, 1, fp);
-            delete []data;
-            data = NULL;
-        }
-        fclose(fp);
-    }
-
+    sprintf(ScreenPath,"%s%s.jpg",PRINTSCREENPATH,name);
+    dk::utility::RenderUtil::SaveBitmapToJpeg(m_memDC, ScreenPath);
     ScreenRefresh();
    return ;
 

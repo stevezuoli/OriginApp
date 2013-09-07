@@ -1177,7 +1177,7 @@ HRESULT UIContainer::Draw(DK_IMAGE drawingImg)
         }
         else
         {
-            DebugPrintf(DLC_ERROR, "%s: FAILED to get child %d/%d !!!", GetClassName(), i, iSize);
+            DebugPrintf(DLC_GUI_VERBOSE, "%s: FAILED to get child %d/%d !!!", GetClassName(), i, iSize);
         }
     }
 

@@ -321,9 +321,14 @@ struct DKE_FOOTNOTE_INFO
         DK_WCHAR* noteId;                   // 富文本注释指向的ID，可以通过该ID获取展示富文本的句柄，当noteType为DKE_FOOTNOTECONTENT_RICHTEXT时有效
     };
 
+    DKFILEINFO* srcImageData;           // 图片的原始数据
+    DK_WCHAR* srcImagePath;				// 图片在EPUB包内的全路径
+
     DKE_FOOTNOTE_INFO()
         : noteType(DKE_FOOTNOTECONTENT_ALTTEXT)
         , noteText(DK_NULL)
+        , srcImageData(DK_NULL)
+        , srcImagePath(DK_NULL)
     {
         // do nothing
     }
@@ -665,6 +670,7 @@ enum DKE_PAGEUNIT_TYPE
 {
     DKE_PAGEUNIT_UNSUPPORT,
     DKE_PAGEUNIT_TEXT,
+    DKE_PAGEUNIT_FOOTNOTE,
     DKE_PAGEUNIT_IMAGE,
     DKE_PAGEUNIT_PATH,
     DKE_PAGEUNIT_BLOCK

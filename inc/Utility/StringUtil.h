@@ -42,6 +42,7 @@ public:
     {
         return 0 == s || 0 == s[0];
     }
+    static int CountsOfChar(const std::string& str, const std::string& pat);
     static bool IsValidEmail(const char* email);
     static std::vector<std::string> Split(const char* s, const char* seps);
     static std::string Join(const std::vector<std::string>& ids, const char* seps);

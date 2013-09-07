@@ -7,8 +7,8 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "Framework/CDisplay.h"
-#include "../Common/FileManager_DK.h"
-#include "../Common/FileSorts_DK.h"
+#include "Common/FileManager_DK.h"
+#include "Common/FileSorts_DK.h"
 #include "CommonUI/CPageNavigator.h"
 #include "TouchAppUI/UIHomePage.h"
 #include "TouchAppUI/UISystemSettingPageNew.h"

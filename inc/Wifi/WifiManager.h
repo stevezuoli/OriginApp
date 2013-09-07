@@ -137,7 +137,6 @@ public:
     //bool FireWifiAutoJoinEvent();
     //bool FireWifiRefreshEvent();
     //bool FireWifiShowRefreshTipEvent();
-    bool IsManualJoinAP();
 
 protected:
     IWifiBase *GetWifiBase();   

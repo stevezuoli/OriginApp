@@ -14,7 +14,7 @@
 #include "../GUI/UITextSingleLine.h"
 #include "../GUI/UIText.h"
 #include "Model/91SearchItemModelImpl.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 
 enum SearchedDialogUpdateStatus
 {

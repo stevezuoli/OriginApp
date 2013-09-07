@@ -10,7 +10,7 @@
 #include "CommonUI/UIUtility.h"
 #include "GUI/UIMessageBox.h"
 #include "Wifi/WifiManager.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "I18n/StringManager.h"
 #include "Utility/SystemUtil.h"
 
@@ -58,7 +58,7 @@ void FtpService::EnableWifiTransfer()
 
         FtpService::Stop();
         CDKFileManager* FileManger = CDKFileManager::GetFileManager();
-        FileManger->ReLoadFileToFileManger(SystemSettingInfo::GetInstance()->GetMTDPathLP());
+        FileManger->ReLoadFileToFileManger(SystemSettingInfo::GetInstance()->GetMTDPathLP(), true);
         SystemSettingInfo::GetInstance()->ResetFontSize();
     }
 

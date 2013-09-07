@@ -85,6 +85,9 @@ public:
     bool HitTestGallery(const DK_POS& point, IDKEGallery** ppGallery);
     void FreeHitTestGallery(IDKEGallery* pGallery);
 
+    bool HitTestPreBlock(const DK_POS& point, DKE_PREBLOCK_INFO* pPreBlockInfo);
+    void FreeHitTestPreBlock(DKE_PREBLOCK_INFO* pPreBlockInfo);
+
     bool SelectingInGallery() const;
     void SetSelectionRangeMode(int mode);
     void ReSetSelectionRangeMode();

@@ -49,6 +49,24 @@ class XmlUtil
 public:
     static bool ParseXmlNode(const XMLDomNode* domNode, XmlParseData* parseData);
     static bool BuildXmlNode(XMLDomNode* domNode, XmlStoreData* storeData);
+    static DK_ReturnCode ReadAtomNodeValue(XMLDomNode &_DomNode, std::string &_strValue)
+    {
+        XMLDomNode TmpNode;
+        DK_ReturnCode rc = _DomNode.GetLastChild(&TmpNode);
+        if(rc != DKR_OK)
+        {
+            return rc;
+        }
+        if(TmpNode.GetNodeType() == DK_XML_NODE_TEXT)
+        {
+            if(DK_NULL != TmpNode.GetNodeValue())
+            {
+                _strValue = TmpNode.GetNodeValue();
+                return DKR_OK;
+            }
+        }
+        return DKR_FAILED;
+    }
 private:
     static bool ParseSingleXmlNode(const XMLDomNode* domNode, XmlParseData* parseData);
     XmlUtil();

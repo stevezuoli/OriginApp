@@ -35,7 +35,7 @@
 #include "GUI/FCFontManager.h"
 #include "GUI/FontManager.h"
 #include "Common/ConfigInfo.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "DownloadManager/IDownloader.h"
 #include "Model/UpgradeModelImpl.h"
 #include "Utility/FileSystem.h"
@@ -691,7 +691,7 @@ CMessageHandler::EHandlerReturnType CMessageHandler::DispatchMessage(SNativeMess
                     DebugPrintf(DLC_MESSAGE, "ShowUnfonfigPicture");
                     lpUsb->ShowUnConfigurePic();
                     CDKFileManager* fileManager = CDKFileManager::GetFileManager();
-                    fileManager->ReLoadFileToFileManger(SystemSettingInfo::GetInstance()->GetMTDPathLP());
+                    fileManager->ReLoadFileToFileManger(SystemSettingInfo::GetInstance()->GetMTDPathLP(), true);
                     // 再次刷新字体，可能开始时字体没有完全载入
                     // 更新字体管理器.
                     // 如字体文件变更，再次注册 Kernel 字体
@@ -1158,7 +1158,8 @@ CMessageHandler::EHandlerReturnType CMessageHandler::DispatchMessage(SNativeMess
                         continue;
                     }
                     CDKBook* pBookFileInfo = DK_FileFactory::CreateBookFileInfoFromPush(movedFiles[i].c_str(), (int)buf.st_size);
-                    fileManager->AddFile(pBookFileInfo);
+                    PCDKFile pFile = PCDKFile(dynamic_cast<CDKFile*>(pBookFileInfo));
+                    fileManager->AddFile(pFile);
                 }
                 fileManager->FireFileListChangedEvent();
                 MailService::GetInstance()->SetMailCheckText("RecvMailGotResult\n");

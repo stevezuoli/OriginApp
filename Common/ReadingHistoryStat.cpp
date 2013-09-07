@@ -7,7 +7,7 @@
 #include "Common/CAccountManager.h"
 #include "Common/ReadingHistoryStat.h"
 #include "CommonUI/UIUtility.h"
-#include "FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "Mutex.h"
 #include "Utility/StringUtil.h"
 #include "Utility/SystemUtil.h"

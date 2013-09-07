@@ -326,6 +326,10 @@ void UIInteractiveImageDetailPage::ShareToSinaWeibo()
     {
         title.append(subTitle);
     }
+    if (title.empty())
+    {
+        title = StringManager::GetPCSTRById(SHARE_PIC);
+    }
     std::string sharedContent = UIWeiboSharePage::PruneStringForDKComment(m_bookName, title);
     UIWeiboSharePage* pPage = new UIWeiboSharePage(sharedContent.c_str());
     if (pPage)

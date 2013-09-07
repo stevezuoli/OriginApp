@@ -48,22 +48,18 @@ UIFrontLightManager::UIFrontLightManager()
 
     const int totalHeight = 172;
     const int leftPadding = 16;
-    const int btnWidth = 52;
-    const int btnHeight = 52;
     const int internalHorzSpacing = 10;
 
     UISizer* mainSizer = new UIBoxSizer(dkVERTICAL);
     mainSizer->AddSpacer(topPadding);
     UIBoxSizer* barSizer = new UIBoxSizer(dkHORIZONTAL);
 
-    barSizer->AddSpacer(leftPadding);
     m_btnSub.Initialize(ID_BTN_TOUCH_FRONTLIGHT_SUB, NULL, fontsize);
     m_btnSub.SetIcons(ImageManager::GetImage(IMAGE_KPW_ICON_FRONTLIGHT_SUB), ImageManager::GetImage(IMAGE_KPW_ICON_FRONTLIGHT_SUB), UIComplexButton::ICON_TOP);
     m_btnSub.SetCornerStyle(true, true, true, true);
-    m_btnSub.SetMinSize(btnWidth, btnHeight);
     m_btnSub.ShowBorder(false);
 	AppendChild(&m_btnSub);
-    barSizer->Add(&m_btnSub);
+    barSizer->Add(&m_btnSub, UISizerFlags(1).Expand());
     barSizer->AddSpacer(internalHorzSpacing);
 
     for (int i = 0; i < TOTAL_LEVELS; ++i)
@@ -78,11 +74,10 @@ UIFrontLightManager::UIFrontLightManager()
     m_btnAdd.Initialize(ID_BTN_TOUCH_FRONTLIGHT_ADD, NULL, fontsize);
     m_btnAdd.SetIcons(ImageManager::GetImage(IMAGE_KPW_ICON_FRONTLIGHT_ADD), ImageManager::GetImage(IMAGE_KPW_ICON_FRONTLIGHT_ADD), UIComplexButton::ICON_TOP);
     m_btnAdd.SetCornerStyle(true, true, true, true);
-    m_btnAdd.SetMinSize(btnWidth, btnHeight);
     m_btnAdd.ShowBorder(false);
     AppendChild(&m_btnAdd);
-    barSizer->Add(&m_btnAdd);
-    mainSizer->Add(barSizer);
+    barSizer->Add(&m_btnAdd, UISizerFlags(1).Expand());
+    mainSizer->Add(barSizer, UISizerFlags().Expand());
 
     SetSizer(mainSizer);
 	MoveWindow(0, 200, CDisplay::GetDisplay()->GetScreenWidth(), totalHeight);
@@ -270,7 +265,7 @@ void UIFrontLightManager::UpdateLighBar()
 
 void UIFrontLightManager::UpdateLevelByX(int x)
 {
-    //if (x >= m_bars[0].GetX() && x <= m_bars[TOTAL_LEVELS-1].GetX() + m_bars[TOTAL_LEVELS-1].GetWidth())
+    if (x >= m_bars[0].GetX() && x <= m_bars[TOTAL_LEVELS-1].GetX() + m_bars[TOTAL_LEVELS-1].GetWidth())
     {
         int prevBar = -1;
         for (int i = 0; i < TOTAL_LEVELS; ++i)

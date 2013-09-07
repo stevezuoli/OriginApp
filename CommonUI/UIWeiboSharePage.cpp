@@ -62,9 +62,9 @@ bool UIWeiboSharePage::InitUI()
     m_sharePicture.SetEnable(false);
 	m_userNameLabel.SetForeColor(ColorManager::GetColor(COLOR_MENUITEM_INACTIVE));
 	m_wordCountTipsLabel.SetForeColor(ColorManager::GetColor(COLOR_MENUITEM_INACTIVE));
-	int contentHeight = GetWindowMetrics(UIWeiboSharePageContentHeightIndex);
+	int contentHeight = GetWindowMetrics(UIPixelValue190Index);
     m_weiboContentEdit.SetTextUTF8(m_weiboSharedContent.c_str());
-    m_weiboContentEdit.SetFontSize(GetWindowFontSize(FontSize22Index));
+    m_weiboContentEdit.SetFontSize(GetWindowFontSize(FontSize18Index));
 #ifdef KINDLE_FOR_TOUCH
     m_weiboSharedButton.Initialize(ID_BTN_SINAWEIBO_SHARE, StringManager::GetPCSTRById(SHARE), GetWindowFontSize(FontSize22Index));
     m_weiboSharedButton.SetBackground(ImageManager::GetImage(IMAGE_TOUCH_WEIBO_SHARE));
@@ -83,6 +83,10 @@ bool UIWeiboSharePage::InitUI()
     m_titleShareLabel.SetAlign(ALIGN_CENTER);
     m_titleShareLabel.SetFontSize(GetWindowFontSize(FontSize24Index));
     m_titleShareLabel.SetText(StringManager::GetPCSTRById(SHARE_BOOK_TO_SINAWEIBO));
+
+    m_textSharePic.SetFontSize(GetWindowFontSize(FontSize16Index));
+    m_textSharePic.SetText(StringManager::GetPCSTRById(PICTURE_SHARE));
+    
     m_wordCountTipsLabel.SetAlign(ALIGN_RIGHT);
     const int weiboContentMaxLen = WeiboFactory::GetSinaWeibo()->GetShortWeiboMaxLen();
     char buf[128] = {0};
@@ -98,6 +102,7 @@ bool UIWeiboSharePage::InitUI()
         UISizer* mainSizer = new UIBoxSizer(dkVERTICAL);
         if (mainSizer)
         {
+            const int horizonMargin = GetWindowMetrics(UIHorizonMarginIndex);
             m_weiboContentEdit.SetMinHeight(contentHeight);
             mainSizer->Add(&m_titleBar);
             m_topSizer = new UIBoxSizer(dkHORIZONTAL);
@@ -116,8 +121,7 @@ bool UIWeiboSharePage::InitUI()
                 mainSizer->Add(m_topSizer,
                     UISizerFlags().
                     Expand().
-                    Border(dkLEFT | dkRIGHT,
-                    GetWindowMetrics(UIHorizonMarginIndex)));
+                    Border(dkLEFT | dkRIGHT,horizonMargin ));
 #endif
             }
             mainSizer->AddSpacer(2);
@@ -128,29 +132,28 @@ bool UIWeiboSharePage::InitUI()
                 userNameSizer->Add(&m_wordCountTipsLabel,1);
                 mainSizer->Add(userNameSizer, UISizerFlags().
                         Expand().
-                        Border(dkLEFT | dkRIGHT, GetWindowMetrics(UIHorizonMarginIndex)).
+                        Border(dkLEFT | dkRIGHT, horizonMargin).
                         Border(dkTOP, GetWindowMetrics(UIWeiboSharePageContentEditVPaddingIndex)));
             }
 
-			UISizer* shareContent = new UIBoxSizer(dkHORIZONTAL);
-			shareContent->Add(&m_weiboContentEdit, UISizerFlags(1).Expand());
+            m_sharePicture.SetVisible(FALSE);
+            m_textSharePic.SetVisible(FALSE);
+            m_pictureSizer = new UIBoxSizer(dkHORIZONTAL);
+            m_pictureSizer->Show(false);
+            m_sharePicture.SetMaxSize(dkSize(GetWindowMetrics(UIPixelValue40Index), GetWindowMetrics(UIPixelValue40Index)));
+            m_pictureSizer->Add(&m_sharePicture, UISizerFlags().Expand());
+            m_pictureSizer->Add(&m_textSharePic, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL).Border(dkLEFT, GetWindowMetrics(UIPixelValue10Index)));
+            m_pictureSizer->AddStretchSpacer();
 
-			m_pictureSizer = new UIBoxSizer(dkHORIZONTAL);
-			m_pictureSizer->Show(false);
-			m_sharePicture.SetMaxSize(dkSize(GetWindowMetrics(UIWeiboSharePagePictureWidthIndex), contentHeight));
-			m_pictureSizer->AddStretchSpacer();
-			m_pictureSizer->Add(&m_sharePicture, UISizerFlags().Align(dkALIGN_BOTTOM | dkALIGN_CENTER_HORIZONTAL));
-			m_pictureSizer->AddStretchSpacer();
-			shareContent->Add(m_pictureSizer, UISizerFlags().Align(dkALIGN_RIGHT));
-            mainSizer->Add(shareContent, UISizerFlags().Expand()
-					.Border(dkTOP, GetWindowMetrics(UIWeiboSharePageContentEditVPaddingIndex))
-					.Border(dkBOTTOM, 2*GetWindowMetrics(UIWeiboSharePageContentEditVPaddingIndex))
-					.Border(dkLEFT | dkRIGHT, GetWindowMetrics(UIHorizonMarginIndex)));
-			
+            mainSizer->Add(&m_weiboContentEdit, UISizerFlags().Expand()
+                        .Border(dkTOP, GetWindowMetrics(UIWeiboSharePageContentEditVPaddingIndex))
+                        .Border(dkLEFT | dkRIGHT, horizonMargin));
+            mainSizer->Add(m_pictureSizer, UISizerFlags().Expand().Border(dkLEFT | dkRIGHT, horizonMargin).Border(dkTOP | dkBOTTOM, GetWindowMetrics(UIPixelValue8Index)).ReserveSpaceEvenIfHidden());
+
 #ifdef KINDLE_FOR_TOUCH
-            mainSizer->Add(&m_weiboSharedButton, UISizerFlags().Border(dkLEFT | dkRIGHT, GetWindowMetrics(UIHorizonMarginIndex)).Expand());
+            mainSizer->Add(&m_weiboSharedButton, UISizerFlags().Border(dkLEFT | dkRIGHT, horizonMargin).Expand());
 #else
-            mainSizer->Add(&m_weiboSharedButton, UISizerFlags().Border(dkLEFT | dkRIGHT, GetWindowMetrics(UIHorizonMarginIndex)).Align(dkALIGN_RIGHT));
+            mainSizer->Add(&m_weiboSharedButton, UISizerFlags().Border(dkLEFT | dkRIGHT, horizonMargin).Align(dkALIGN_RIGHT));
 #endif
             SetSizer(mainSizer);
         }
@@ -163,6 +166,7 @@ bool UIWeiboSharePage::InitUI()
     AppendChild(&m_weiboContentEdit);
     AppendChild(&m_weiboSharedButton);
 	AppendChild(&m_sharePicture);
+    AppendChild(&m_textSharePic);
 #ifdef KINDLE_FOR_TOUCH
     AppendChild(&m_backButton);
 #else
@@ -190,14 +194,11 @@ bool UIWeiboSharePage::SetSharedPicture(const char* absoluteFilePath, bool autoD
                 || StringUtil::EndWith(filePath.c_str(), "jpg")
                 || StringUtil::EndWith(filePath.c_str(), "png"))
         {
-        	m_pictureSizer->SetMinSize(dkSize(GetWindowMetrics(UIWeiboSharePagePictureWidthIndex),
-							GetWindowMetrics(UIWeiboSharePageContentHeightIndex)));
-        	m_pictureSizer->Show(true);
-			m_pictureSizer->PrependSpacer(GetWindowMetrics(UIWeiboSharePageContentHorzPaddingIndex));
+            m_pictureSizer->Show(true);
             m_weiboSharedPicturePath.assign(absoluteFilePath);
-			m_sharePicture.SetAutoSize(true);
-			m_sharePicture.SetImageFile(m_weiboSharedPicturePath);
-			Layout();
+            m_sharePicture.SetAutoSize(true);
+            m_sharePicture.SetImageFile(m_weiboSharedPicturePath);
+            Layout();
         }
 
         m_autoDeletePictureFile = autoDeleteFile;
@@ -345,18 +346,21 @@ HRESULT UIWeiboSharePage::DrawBackGround(DK_IMAGE drawingImg)
 
 string UIWeiboSharePage::PruneStringForDKComment(const string& bookName, const string& originalText)
 {
-    int weiboContentMaxLen = dk::weibo::WeiboFactory::GetSinaWeibo()->GetShortWeiboMaxLen();
-    string dkComment = StringManager::GetPCSTRById(DUOKANSHUZHAI);
-    string dkBookName = string(" #").append(bookName).append(1, '#');
-    wstring wText = EncodeUtil::ToWString(originalText);
-    int textLength = wcslen(wText.c_str());
-    int remainWordNumber = weiboContentMaxLen 
-        - wcslen(EncodeUtil::ToWString(dkComment).c_str()) - wcslen(EncodeUtil::ToWString(dkBookName).c_str());
+    string newBookName = string("\n").append(StringManager::GetPCSTRById(LEFT_TITLE_NUMBER)).append(bookName).append(StringManager::GetPCSTRById(RIGHT_TITLE_NUMBER));
+    string newOriginalText = StringManager::GetPCSTRById(DUOKANSHUZHAI);
+    newOriginalText.append("\n").append(originalText);
+    wstring shareBookName = EncodeUtil::ToWString(newBookName);
+    wstring shareOriginalText = EncodeUtil::ToWString(newOriginalText);
+
+    const int weiboContentMaxLen = dk::weibo::WeiboFactory::GetSinaWeibo()->GetShortWeiboMaxLen();
+    const int remainWordNumber = weiboContentMaxLen - wcslen(shareBookName.c_str());
+    const int textLength = wcslen(shareOriginalText.c_str());
     if (textLength > remainWordNumber)
     {
         wstring elipses = L"...";
-        wText = wText.substr(0, remainWordNumber - wcslen(elipses.c_str())).append(elipses);
+        shareOriginalText = shareOriginalText.substr(0, remainWordNumber - wcslen(elipses.c_str())).append(elipses);
     }
+    shareOriginalText.append(shareBookName);
 
-    return dkComment.append(EncodeUtil::ToString(wText)).append(dkBookName);
+    return EncodeUtil::ToString(shareOriginalText);
 }

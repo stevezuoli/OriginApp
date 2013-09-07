@@ -39,6 +39,7 @@ class JsonObject
 		
 		bool GetIntValue(const char *key, int *value) const;
 		bool GetIntValue(int * value) const;
+        bool GetInt64Value(const char* key, int64_t * value) const;
 		bool GetIntValueFromIntOrString(const char *key, int *value) const;
 		bool GetDoubleValue(const char *key, double *value) const;
         bool GetDoubleValue(double* value) const;

@@ -26,9 +26,11 @@
 #include "dkBaseType.h"
 #include <string>
 #include <tr1/memory>
+#include "Utility/PathManager.h"
 
 using namespace std;
 using namespace std::tr1;
+using namespace dk::utility;
 
 #define INVALIDCHAPTER  -2
 
@@ -305,11 +307,12 @@ private:
 
     string m_bookID;
     string m_gbkName;
-    string m_path;
-    string m_name;
-    string m_artist;
-    string m_password;
     string m_revision;
+
+    char m_path[FILEPATHMAXLEN]; //文件全路径
+    char m_name[FILENAMEMAXLEN]; //文件名
+    char m_artist[FILEARTISTMAXLEN]; //作者名、艺术家
+    char m_password[FILEPASSWORDMAXLEN]; //密码
 
     PCHAR m_image;
     PCHAR m_abstract;
@@ -343,7 +346,7 @@ private:
 class FileMatcher
 {
 public:
-    virtual bool operator()(const CDKFile* file) const = 0;
+    virtual bool operator()(const PCDKFile file) const = 0;
     virtual ~FileMatcher(){};
 };
 
@@ -356,7 +359,7 @@ public:
     }
     virtual ~FilePathMatcher(){};
 
-    virtual bool operator()(const CDKFile* file) const
+    virtual bool operator()(const PCDKFile file) const
     {
         if (NULL == m_path)
         {
@@ -378,13 +381,33 @@ public:
     }
     virtual ~FileIDMatcher(){};
 
-    virtual bool operator()(const CDKFile* file) const
+    virtual bool operator()(const PCDKFile file) const
     {
         return file->GetFileID() == m_id;
     }
 
 private:
     int m_id;
+};
+
+class FileNameMatcher: public FileMatcher
+{
+public:
+    FileNameMatcher(const string& name, int64_t size)
+        : name_(name)
+        , size_(size)
+    {}
+    virtual ~FileNameMatcher(){};
+
+    virtual bool operator()(const PCDKFile file) const
+    {
+        string name = PathManager::GetFileName(file->GetFilePath());
+        return name == name_ && file->GetFileSize() == size_;
+    }
+
+private:
+    string name_;
+    int64_t size_;
 };
 
 class BookIdMatcher: public FileMatcher
@@ -396,7 +419,7 @@ public:
     }
     virtual ~BookIdMatcher(){};
 
-    virtual bool operator()(const CDKFile* file) const
+    virtual bool operator()(const PCDKFile file) const
     {
         return file->GetBookID() == m_bookId;
     }
@@ -414,7 +437,7 @@ public:
     }
     virtual ~FileCategoryMatcher(){};
 
-    virtual bool operator()(const CDKFile* file) const
+    virtual bool operator()(const PCDKFile file) const
     {
         return file->GetFileCategory() == m_category;
     }
@@ -428,7 +451,7 @@ class FileKeywordMatcher: public FileMatcher
 public:
     FileKeywordMatcher(const char* keyword);
     virtual ~FileKeywordMatcher(){};
-    virtual bool operator()(const CDKFile* file) const;
+    virtual bool operator()(const PCDKFile file) const;
 private:
     const char* m_keyword;
     bool m_matchByFirstLetters;
@@ -451,7 +474,7 @@ public:
     {
     }
 
-    bool operator()(const CDKFile* lhs, const CDKFile* rhs) const;
+    bool operator()(const PCDKFile lhs, const PCDKFile rhs) const;
 private:
     CompareType m_type;
 };

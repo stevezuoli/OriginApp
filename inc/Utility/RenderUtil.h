@@ -21,6 +21,7 @@ public:
             const DK_ARGBCOLOR& backgroundColor,
             DK_IMAGE* image,
             DK_BITMAPBUFFER_DEV* dev);
+    static bool SaveBitmapToJpeg(const DkFormat::DK_IMAGE& bitmap, const char* jpgFilePath);
     static bool SaveDKImage(DkFormat::DK_IMAGE image, const char* filename);
 private:
     RenderUtil();

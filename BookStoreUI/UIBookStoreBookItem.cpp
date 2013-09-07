@@ -11,7 +11,7 @@
 #include "GUI/UIMessageBox.h"
 #include "GUI/GUISystem.h"
 #include "GUI/UISizer.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "Common/WindowsMetrics.h"
 #include "Framework/CDisplay.h"
 #include "Utility/PathManager.h"

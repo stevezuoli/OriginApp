@@ -34,6 +34,7 @@ public:
     std::string taskId;
     int percentage;
     IDownloadTask::DLState state;
+    IDownloadTask::DLType  type;
 };
 
 typedef std::vector<DownloadUpdateEventArgs> DownloadUpdateEventArgsList;
@@ -92,7 +93,10 @@ public:
     virtual void SaveHistroy() = 0;
 
     // Status Update
-    void FireDownloadProgressUpdateEvent(IDownloadTask::DLState state, int percentage, std::string urlID = std::string());
+    void FireDownloadProgressUpdateEvent(IDownloadTask::DLType type,
+                                         IDownloadTask::DLState state,
+                                         int percentage,
+                                         std::string urlID = std::string());
 
     virtual AllDownloadTaskNums UpdateAllDownloadTaskNums() = 0;
     virtual DownloadTaskNums UpdateDownloadTaskNums(int type) = 0;

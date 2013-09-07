@@ -19,11 +19,14 @@
 #include "GUI/UISeperator.h"
 #include "GUI/UIButtonGroup.h"
 #include "CommonUI/CPageNavigator.h"
-#include "TouchAppUI/UIDirectoryListBox.h"
+#include "TouchAppUI/UIModelView.h"
 #include "TouchAppUI/UIComplexDialog.h"
 #include "TouchAppUI/UIButtonDlg.h"
-#include "../Common/FileSorts_DK.h"
+#include "Common/FileSorts_DK.h"
+#include "Model/model_tree.h"
 #include <string>
+
+using namespace dk::document_model;
 
 class UISizerItem;
 
@@ -68,7 +71,7 @@ protected:
 
 private:
     bool OnFileListChanged(const EventArgs& args);
-    std::string GetDirectoryViewTitle(const std::string& path) const;
+    std::string GetDirectoryViewTitle(const std::string& path);
     CString GetSortString();
     void OnDispose(BOOL bIsDisposed);
     void UpdateNavigationButton();
@@ -79,10 +82,21 @@ private:
     void RefreshUI();
     bool OnListItemClick(const EventArgs& args);
     bool OnListContentChanged(const EventArgs& args);
+    bool OnNodesUpdated(const EventArgs& args);
 
+    bool OnSortClick();
+    bool OnUpperFolderClick();
+    bool OnSearchClick();
+    bool OnNewCategoryClick();
+    bool OnViewModeClick();
+    bool OnCloudClick();
+    bool OnAddBookToCategoryClick();
+
+private:
     UITouchComplexButton m_btnSort;
 
-    UIDirectoryListBox   m_lstDir;
+    ModelTree*    m_model;
+    UIModelView   m_modelView;
     UITextSingleLine m_txtTotalBook;
 
     UITextSingleLine m_txtPageNo;
@@ -91,24 +105,18 @@ private:
     UITextSingleLine   m_txtUpperFolder;
     UITouchComplexButton m_btnSearch;
     UITouchComplexButton m_btnViewMode;
+    UITouchComplexButton m_btnCloud;
     UITouchComplexButton m_btnNewCategory;
 
     BOOL m_bIsDisposed;
     HomePageStyle m_pageStyle;
-    DK_FileSorts  m_FileSorts;
+    Field  m_sortField;
     UIText m_txtHint;
 
     //上方的工具栏有两种形式，搜索框+排序按钮，返回按钮+标题
     UISizer* m_topButtonSizer;
     UISizer* m_topUpLevelSizer;
-    BookListMode m_bookListMode;
-
-    bool OnSortClick();
-    bool OnUpperFolderClick();
-    bool OnSearchClick();
-    bool OnNewCategoryClick();
-    bool OnViewModeClick();
-    bool OnAddBookToCategoryClick();
+    ModelDisplayMode m_modelDisplayMode;
 
     void UpdateViewModeImage();
     UIButtonGroup m_topLeftButtonGroup;

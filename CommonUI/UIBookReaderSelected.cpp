@@ -206,6 +206,19 @@ void UIBookReaderSelected::FreeHitTestGallery(IDKEGallery* pGallery)
     }
 }
 
+bool UIBookReaderSelected::HitTestPreBlock(const DK_POS& point, DKE_PREBLOCK_INFO* pPreBlockInfo)
+{
+    return m_pBookTextController && m_pBookTextController->HitTestPreBlock(point, pPreBlockInfo);
+}
+
+void UIBookReaderSelected::FreeHitTestPreBlock(DKE_PREBLOCK_INFO* pPreBlockInfo)
+{
+    if (m_pBookTextController)
+    {
+        m_pBookTextController->FreeHitTestPreBlock(pPreBlockInfo);
+    }
+}
+
 bool UIBookReaderSelected::SelectingInGallery() const
 {
     return m_pBookTextController && m_pBookTextController->SelectingInGallery();

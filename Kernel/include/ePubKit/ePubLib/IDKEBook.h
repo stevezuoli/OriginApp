@@ -739,6 +739,9 @@ public:
     virtual DK_VOID FreeParInfo(DKE_SMIL_PAR_INFO* pParInfos, DK_UINT nCount) = 0;
     virtual DK_BOOL GetChapterMediaByUrl(DK_LONG chapterIndex, const DK_WCHAR* url, DKSTREAMINFO*& mediaInfo) = 0;
     virtual DK_VOID FreeChapterMediaInfo(DKSTREAMINFO* mediaInfo) = 0;
+    virtual DK_BOOL HasMediaOverlay() = 0;
+    // 如果存在Active Color则返回True，否则请使用应用层默认高亮颜色
+    virtual DK_BOOL GetMediaOverlayActiveColor(DK_ARGBCOLOR& color) = 0;
 
 public:
     //-------------------------------------------

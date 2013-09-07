@@ -46,6 +46,33 @@ public:
             unsigned int _filesize,
             unsigned int  _priority = 3,
             std::string _useragent = "");
+	static IDownloadTask* CreateMiCloudFileDownloadTask(
+            std::string _url,
+            std::string _urlID,
+            std::string _filename,
+            std::string _kssInfo,
+            std::string _filePath,
+            unsigned int _filesize,
+            unsigned int  _priority = 3,
+            std::string _useragent = "");
+    /**
+     * @brief CreateMiCloudFileUploadTask create the upload to micloud task
+     *
+     * @param _url micloud create file url
+     * @param _urlID local file path
+     * @param _kssInfo kssinfo for kss sdk
+     * @param _filesize filesize
+     *
+     * @return  pointer to the task
+     */
+	static IDownloadTask* CreateMiCloudFileUploadTask(
+            std::string _url,
+            std::string _urlID,
+            std::string _kssInfo,
+            std::string _uploadId,
+            unsigned int _filesize,
+            unsigned int  _priority = 3,
+            std::string _useragent = "");
 private:
     DownloadTaskFactory();
 };

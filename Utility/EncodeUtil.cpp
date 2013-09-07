@@ -1,7 +1,13 @@
 #include "Utility/EncodeUtil.h"
 #include "Utility/CharUtil.h"
+#include "Utility/MD5Checker.h"
 #include "DkFilterFactory.h"
 #include "KernelEncoding.h"
+#include "Thirdparties/AES.h"
+#include "Thirdparties/SHA1.h"
+#include <stdio.h>
+#include <errno.h>
+#include "interface.h"
 
 extern int get_rsa_n_1024(unsigned char* buf);
 namespace dk
@@ -281,5 +287,220 @@ std::string EncodeUtil::DecodeToken(const std::string& str)
 	return result;
 }
 
+
+std::vector<unsigned char> EncodeUtil::SHA_1(const void* data, size_t dataLen)
+{
+    std::vector<unsigned char> result(20);
+    size_t len = result.size();
+    DkFilterFactory::EncodeBuffer(FILTER_SHA_1, NULL, (const unsigned char*)data, dataLen, &result[0] , &len);
+    return result;
+}
+
+std::vector<unsigned char> EncodeUtil::Base64Encode(const void* data, size_t dataLen)
+{
+    std::vector<unsigned char> result;
+    size_t len = 4 + dataLen + dataLen/3 ;    // bin to base64 len: n * 4/3  , add 4 bytes 
+    result.resize(len);
+    DkFilterFactory::EncodeBuffer(FILTER_BASE64, NULL, (const unsigned char*)data, dataLen, &result[0] , &len);
+    return result;
+}
+
+std::vector<unsigned char> EncodeUtil::Base64Decode(const void* data, size_t dataLen)
+{
+    std::vector<unsigned char> result;
+    if (dataLen < 4)
+    {
+        return result;
+    }
+
+    int equalCount = ((unsigned char*)data)[dataLen - 1] == '=' ? 1 : 0;
+    equalCount = ((unsigned char*)data)[dataLen - 2] == '=' ? equalCount + 1 : equalCount;
+    size_t len = dataLen*3/4 - equalCount; 
+    result.resize(len);
+    DkFilterFactory::DecodeBuffer(FILTER_BASE64, NULL, (const unsigned char*)data, dataLen, &result[0] , &len);
+    return result;
+}
+
+std::string EncodeUtil::AESDecode(const char* key, const char* cipher, const unsigned int cipherlen, unsigned char* ivec)
+{
+    AES_KEY aes_key;
+    char* plain = (char*)malloc((cipherlen + 8)*sizeof(char));
+    int len = cipherlen;
+    int bits = strlen(key) * 8;
+
+    AES_set_decrypt_key((const unsigned char*)key, bits, &aes_key);
+    if (ivec)
+    {
+        AES_cbc_encrypt((const unsigned char*)cipher, (unsigned char*)plain, len, &aes_key, ivec, 0);
+    }
+    else
+    {
+        AES_ecb_encrypt((const unsigned char*)cipher, (unsigned char*)plain, len, &aes_key, 0);
+    }
+
+//PKCS5Padding
+    int rem = plain[len - 1];
+    if (rem > 0 && rem <= 16)
+    {
+        len -= rem;
+    }
+    std::string decodeString(plain, plain + len);
+    free(plain);
+    return decodeString;
+}
+
+std::string EncodeUtil::AESEncode(const char* key, const char* plain, unsigned char* ivec)
+{
+    AES_KEY aes_key;
+    char in[1024] = {0};
+    char cipher[1024] = {0};
+
+    int len = strlen(plain);
+    int rem = 16 - len%16;
+    int bits = strlen(key) * 8;
+
+    memcpy(in, plain, len);
+//PKCS5Padding
+    for (int i = 0; i < rem; ++i)
+    {
+        in[len + i] = rem;
+    }
+    //memset(in + len, ' ', rem);
+    len += rem;
+    
+    AES_set_encrypt_key((const unsigned char*)key, bits, &aes_key);
+    if (ivec)
+    {
+        AES_cbc_encrypt((const unsigned char*)in, (unsigned char*)cipher, len, &aes_key, ivec, 1);
+    }
+    else
+    {
+        AES_ecb_encrypt((const unsigned char*)in, (unsigned char*)cipher, len, &aes_key, 1);
+    }
+
+    return std::string(cipher, cipher + len);
+}
+
+std::string EncodeUtil::SHA_160(const char* filePath)
+{
+    FILE* fp;
+    if ((fp = fopen(filePath, "rb")) == NULL)
+    {
+        DebugPrintf(DLC_DIAGNOSTIC, "error: %s", strerror(errno));
+        return "";
+    }
+
+    unsigned long digest[HW] = {0};
+    unsigned char data[1024] = {0};
+    hash_context context;
+    hash_initial(&context);
+    size_t readSize = 0;
+    //1024bytes once read
+    while ((readSize = fread(data, 1, 1024, fp)))
+    {
+        hash_process(&context, data, readSize);
+    }
+    hash_final(&context, digest);
+    fclose(fp);
+
+    return LongArrayToString(digest, HW);
+}
+
+bool EncodeUtil::CalcFileBlockInfos(const char* filePath, 
+                        const int blockSize,
+                        std::vector<std::string>* shavec,
+                        std::vector<std::string>* md5vec,
+                        std::vector<int>* sizeVec)
+{
+    if (!shavec || !md5vec || !sizeVec)
+    {
+        return false;
+    }
+
+    FILE* fp;
+    if ((fp = fopen(filePath, "rb")) == NULL)
+    {
+        DebugPrintf(DLC_DIAGNOSTIC, "error: %s[%s]", strerror(errno), filePath);
+        return false;
+    }
+
+    unsigned long shaDigest[HW] = {0};
+    unsigned long md5Digest[4] = {0};
+    unsigned char data[1024] = {0};
+    unsigned char dataBak[1024] = {0};
+    //sha init
+    hash_context shaContext;
+    hash_initial(&shaContext);
+    //md5 init
+    MD5_CTX md5Context;
+    MD5Checker::GetInstance()->DK_MD5Init(&md5Context);
+    size_t readSize = 0;
+    int readBlockSize = 0;
+
+    //1024bytes once read
+    while ((readSize = fread(data, 1, 1024, fp)))
+    {
+        memcpy(dataBak, data, readSize);
+        hash_process(&shaContext, data, readSize);
+        MD5Checker::GetInstance()->DK_MD5Update(&md5Context, dataBak, readSize);
+        //DebugPrintf(DLC_DIAGNOSTIC, "(%x, %x, %x, %x) (%x, %x) (%d)"
+                //, md5Context.state[0]
+                //, md5Context.state[1]
+                //, md5Context.state[2]
+                //, md5Context.state[3]
+                //, md5Context.count[0]
+                //, md5Context.count[1]
+                //, readSize);
+        readBlockSize += readSize;
+        //block finished
+        if (readBlockSize >= blockSize)
+        {
+            hash_final(&shaContext, shaDigest);
+            shavec->push_back(LongArrayToString(shaDigest, HW));
+
+            MD5Checker::GetInstance()->DK_MD5Final((unsigned char*)md5Digest, &md5Context);
+            md5vec->push_back(BinToHex((const unsigned char*)md5Digest, 4 * sizeof(unsigned long)));
+            //md5vec->push_back(LongArrayToString(md5Digest, 4));
+
+            sizeVec->push_back(blockSize);
+
+            //init for a new block
+            readBlockSize = 0;
+            hash_initial(&shaContext);
+            MD5Checker::GetInstance()->DK_MD5Init(&md5Context);
+        }
+    }
+
+    //the block remained
+    if (readBlockSize > 0)
+    {
+        hash_final(&shaContext, shaDigest);
+        shavec->push_back(LongArrayToString(shaDigest, HW));
+
+        MD5Checker::GetInstance()->DK_MD5Final((unsigned char*)md5Digest, &md5Context);
+        //md5vec->push_back(LongArrayToString(md5Digest, 4));
+        md5vec->push_back(BinToHex((const unsigned char*)md5Digest, 4 * sizeof(unsigned long)));
+
+        sizeVec->push_back(readBlockSize);
+    }
+
+    DebugPrintf(DLC_DIAGNOSTIC, "md5: %s", MD5Checker::GetInstance()->DK_MDFile(filePath));
+
+    fclose(fp);
+    return true;
+}
+
+std::string EncodeUtil::LongArrayToString(unsigned long* array, const int length)
+{
+    std::string result;
+    for (int i = 0; i < length; ++i)
+    {
+        char data[16] = {0};
+        snprintf(data, DK_DIM(data), "%08x", array[i]);
+        result.append(data);
+    }
+
+    return result;
+}
 } // namespace utility
 } // namespace dk

@@ -2,6 +2,8 @@
 #include "DownloadManager/DownloadBookTaskImpl.h"
 #include "DownloadManager/DownloadReleaseTaskImpl.h"
 #include "DownloadManager/DownloadScreenSaverTaskImpl.h"
+#include "DownloadManager/DownloadMiCloudFileTask.h"
+#include "Utility/PathManager.h"
 
 IDownloadTask *DownloadTaskFactory::CreateDownloadTask(IDownloadTask::DLType _type)
 {
@@ -14,6 +16,9 @@ IDownloadTask *DownloadTaskFactory::CreateDownloadTask(IDownloadTask::DLType _ty
         break;
 	case IDownloadTask::SCREENSAVER:
 		return new DownloadScreenSaverTaskImpl();
+		break;
+	case IDownloadTask::MICLOUDFILE:
+		return new DownloadMiCloudFileTask();
 		break;
     default:
         break;
@@ -89,3 +94,69 @@ IDownloadTask* DownloadTaskFactory::CreateScreenSaverDownloadTask(std::string _u
 	}
 	return pScreenTask;
 }
+
+IDownloadTask* DownloadTaskFactory::CreateMiCloudFileDownloadTask(
+            std::string _url,
+            std::string _urlID,
+            std::string _filename,
+            std::string _kssInfo,
+            std::string _filePath,
+            unsigned int _filesize,
+            unsigned int  _priority,
+            std::string _useragent)
+{
+    DownloadMiCloudFileTask *pMiCloudFileTask = new DownloadMiCloudFileTask();
+    if (pMiCloudFileTask)
+    {
+		pMiCloudFileTask->SetFileName(_filename);
+		pMiCloudFileTask->SetUrl("");
+		pMiCloudFileTask->SetOrigUrl(_url);
+		pMiCloudFileTask->SetOrigUrlID(_urlID);
+		pMiCloudFileTask->SetState(IDownloadTask::WAITING);
+		pMiCloudFileTask->SetFileSize(_filesize);
+		pMiCloudFileTask->SetCanResume(false);
+		pMiCloudFileTask->SetLastOffSet(0);
+		pMiCloudFileTask->SetType(IDownloadTask::MICLOUDFILE);
+		pMiCloudFileTask->SetFilePassword("");
+		pMiCloudFileTask->SetPriority(_priority);
+		pMiCloudFileTask->SetUserAgent(_useragent);
+        pMiCloudFileTask->SetKSSInfo(_kssInfo);
+        pMiCloudFileTask->SetMoveTo(_filePath);
+    }
+
+    return pMiCloudFileTask;
+}
+
+IDownloadTask* DownloadTaskFactory::CreateMiCloudFileUploadTask(
+            std::string _url,
+            std::string _urlID,
+            std::string _kssInfo,
+            std::string _uploadId,
+            unsigned int _filesize,
+            unsigned int  _priority,
+            std::string _useragent)
+{
+    DownloadMiCloudFileTask *pMiCloudFileTask = new DownloadMiCloudFileTask();
+    if (pMiCloudFileTask)
+    {
+        std::string fileName = dk::utility::PathManager::GetFileName(_urlID);
+		pMiCloudFileTask->SetFileName(dk::utility::PathManager::GetFileNameWithoutExt(fileName.c_str()));
+		pMiCloudFileTask->SetUrl("");
+		pMiCloudFileTask->SetOrigUrl(_url);
+		pMiCloudFileTask->SetOrigUrlID(_urlID);
+		pMiCloudFileTask->SetState(IDownloadTask::WAITING);
+		pMiCloudFileTask->SetFileSize(_filesize);
+		pMiCloudFileTask->SetCanResume(false);
+		pMiCloudFileTask->SetLastOffSet(0);
+		pMiCloudFileTask->SetType(IDownloadTask::MICLOUDFILE);
+		pMiCloudFileTask->SetFilePassword("");
+		pMiCloudFileTask->SetPriority(_priority);
+		pMiCloudFileTask->SetUserAgent(_useragent);
+        pMiCloudFileTask->SetKSSInfo(_kssInfo);
+        pMiCloudFileTask->SetMoveTo(_urlID);
+        pMiCloudFileTask->SetUploadId(_uploadId);
+    }
+
+    return pMiCloudFileTask;
+}
+

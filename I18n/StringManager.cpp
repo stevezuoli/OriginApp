@@ -210,3 +210,16 @@ const char* StringManager::GetLoginErrorMessage(int errorCode, const char* msg)
     }
     return (NULL != msg) ? msg : GetPCSTRById(UNEXPECTED_ERROR);
 }
+
+const char* StringManager::GetCommentReplyErrorMessage(int errorCode, const char* msg)
+{
+    char buf[100];
+    snprintf(buf, DK_DIM(buf), "ERROR_GET_COMMENT_REPLY_%d", errorCode);
+    DK_AUTO(pos, msi.find(buf));
+    if(pos != msi.end())
+    {
+        return GetPCSTRById((SOURCESTRINGID)pos->second);
+    }
+    return (NULL != msg) ? msg : GetPCSTRById(BOOKSTORE_GETCOMMENTINFO_FAIL);
+}
+

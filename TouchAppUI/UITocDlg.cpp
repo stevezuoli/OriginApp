@@ -1,7 +1,7 @@
 #include <tr1/functional>
 #include "CommandID.h"
 #include "Utility.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "GUI/CTpGraphics.h"
 #include "GUI/UISizer.h"
 #include "TouchAppUI/UITocDlg.h"
@@ -118,6 +118,7 @@ void UITocDlg::InitUI()
 
     m_btnContinueReading.Initialize(ID_BTN_TOUCH_TOC_BACK , StringManager::GetPCSTRById(CONTINUE_READ_BOOK), GetWindowFontSize(UITocDlgFileNameIndex));
     m_btnExportNotes.Initialize(ID_BTN_EXPORT_NOTE, StringManager::GetPCSTRById(EXPORT_TO_EVERNOTE), GetWindowFontSize(FontSize18Index));
+    m_btnExportNotes.SetEnable(m_lstBookComment.GetCurBookmarkNum() > 0);
 
     m_textGetBookMarkFailure.SetText(StringManager::GetPCSTRById(TOUCH_GET_BOOKMARK_FAILURE));
     m_textGetBookMarkFailure.SetFontSize(GetWindowFontSize(UITocDlgFileNameIndex));
@@ -752,7 +753,7 @@ bool UITocDlg::ImplementExportToEvernote()
 bool UITocDlg::OnEvernoteExportFinished(const EventArgs& args)
 {
     CDKFileManager *pFileManager = CDKFileManager::GetFileManager();
-    CDKFile *pDkFile = pFileManager->GetFileById(m_iBookID);
+    PCDKFile pDkFile = pFileManager->GetFileById(m_iBookID);
     if(0 == pDkFile)
     {
         return false;

@@ -9,7 +9,7 @@
 #include "drivers/DeviceInfo.h"
 #include "BookStore/BookStoreInfoManager.h"
 #include "BookStoreUI/UIBookDetailedInfoPage.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "Framework/CNativeThread.h"
 #include "Framework/CDisplay.h"
 #ifdef KINDLE_FOR_TOUCH
@@ -49,7 +49,7 @@ UIPersonalBookNotesPage::UIPersonalBookNotesPage(const std::string& bookId,
     , m_currentPage(0)
     , m_itemsPerPage(GetWindowMetrics(UIPersonalBookNotesPageItemCountIndex))
     , m_itemHeight(GetWindowMetrics(UIPersonalBookNotesPageItemHeightIndex))
-    , m_fileInfo(NULL)
+    , m_fileInfo()
     , m_dkxBlock(NULL)
     , isWaitingToExport(false)
 {

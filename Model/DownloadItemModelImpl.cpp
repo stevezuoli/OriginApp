@@ -7,7 +7,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "Model/DownloadItemModelImpl.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 
 const std::string  CDownloadItemModelImpl::GetBookName()
 {

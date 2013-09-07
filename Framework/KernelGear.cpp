@@ -55,6 +55,7 @@ void InitializeKernel ()
     {
         DebugPrintf (DLC_KERNELGEAR, "ERR - DKE_Initialize Failed!!!!!!!!!!!!!!!");
     }
+    DKE_SetUseInteractivePre(true);
 
     // TXT
     if (!DKT_Initialize(wordSegPath.c_str()))

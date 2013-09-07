@@ -27,7 +27,7 @@
 #include "interface.h"
 #include "KernelMacro.h"
 #include "KernelType.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "../../Kernel/include/TxtKit/TxtLib/DKTAPI.h"
 #include "Utility.h"
 #include "KernelVersion.h"

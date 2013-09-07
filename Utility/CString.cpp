@@ -13,7 +13,7 @@
 #include "Utility.h"
 #include "dkBaseType.h"
 #include "interface.h"
-#include "../Common/DebugConsole.h"
+#include "Common/DebugConsole.h"
 #include "../../DkReader/Common/DKLogger.h"
 
 using namespace DkFormat;

@@ -48,6 +48,7 @@ static const char* s_migrateResultPath = "/var/local/xiaomi/migration.xml";
 static const char* s_migratePromptTimePath = "/mnt/us/system/migrateprompttime";
 static const char* s_accountMappingPath = "/var/local/xiaomi/accountMapping.dk";
 static const char* s_readingHistoryPath = "/mnt/us/system/readingHistory/";
+static const char* s_micloudServiceTokenPath = "/var/local/xiaomi/miCloud.xml";
 
 bool PathManager::Init()
 {
@@ -80,6 +81,15 @@ bool PathManager::IsBookStorePath(const char* path)
     return IsPath(path, s_bookStorePath);
 }
 
+bool PathManager::IsDocumentsPath(const char* path)
+{
+    return IsBookStorePath(path)
+        || IsNewsPath(path)
+        || IsPath(path, s_duokanDocument)
+        || IsPath(path, s_duokanDownload)
+        || IsPath(path, s_kindleDocument);
+}
+
 bool PathManager::IsNewsPath(const char* path)
 {
     return IsPath(path, s_duokanNews);
@@ -93,6 +103,11 @@ std::string PathManager::GetRootPath()
 std::string PathManager::GetNewsPath()
 {
     return s_duokanNews;
+}
+
+std::string PathManager::GetDownloadFolderPath()
+{
+    return s_duokanDownload;
 }
 
 std::string PathManager::GetTempPath()
@@ -223,6 +238,11 @@ std::string PathManager::GetAccountMappingPath()
 std::string PathManager::GetReadingHistoryPath()
 {
 	return s_readingHistoryPath;
+}
+
+std::string PathManager::GetMiCloudServiceTokenPath()
+{
+    return s_micloudServiceTokenPath;
 }
 
 bool PathManager::MakeDirectoryRecursive(const char* dir)

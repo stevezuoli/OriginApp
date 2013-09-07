@@ -9,7 +9,7 @@
 #include "Framework/CDisplay.h"
 #include "I18n/StringManager.h"
 #include "GUI/CTpGraphics.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "TouchAppUI/UIHomePage.h"
 #include "TouchAppUI/UISystemSettingPageNew.h"
 #include "BookStoreUI/UIDKBookStoreIndexPage.h"

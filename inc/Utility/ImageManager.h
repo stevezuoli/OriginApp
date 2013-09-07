@@ -276,6 +276,8 @@ using  DkFormat::SPtr;
     MACRO_NAME(ICON_COVER_UNSELECTED,           "touch/2013/icon_cover_unselected.bmp", "touch/2013/icon_cover_unselected@kp.bmp")\
     MACRO_NAME(ICON_COVER_SELECTED_TRANSPARENT,           "icon_cover_selected.png", "")\
     MACRO_NAME(ICON_COVER_UNSELECTED_TRANSPARENT,           "icon_cover_unselected.png", "")\
+    MACRO_NAME(ICON_CLOUD, "touch/2013/icon_cloud.bmp", "touch/2013/icon_cloud@kp.bmp")\
+    MACRO_NAME(ICON_CLOUD_BIG, "touch/2013/icon_cloud_big.bmp", "touch/2013/icon_cloud_big@kp.bmp")\
     MACRO_NAME(ICON_BOOKLIST_COVER,           "touch/2013/icon_booklist_cover.bmp", "touch/2013/icon_booklist_cover@kp.bmp")\
     MACRO_NAME(ICON_BOOKLIST_LIST,           "touch/2013/icon_booklist_list.bmp", "touch/2013/icon_booklist_list@kp.bmp")\
     MACRO_NAME(TOUCH_ARROW_UP,                "touch/arrow_up.bmp", "touch/arrow_up@kp.bmp")\
@@ -308,6 +310,7 @@ using  DkFormat::SPtr;
     MACRO_NAME(TOUCH_ICON_LAYOUT,             "touch/icon_layout.bmp", "touch/icon_layout@kp.bmp")\
     MACRO_NAME(TOUCH_ICON_LAYOUT_WHITE,       "touch/icon_layout_white.bmp", "touch/icon_layout_white@kp.bmp")\
     MACRO_NAME(TOUCH_ICON_LAYOUT_DISABLE,     "touch/icon_layout_disable.bmp", "touch/icon_layout_disable@kp.bmp")\
+    MACRO_NAME(TOUCH_ICON_FLIP,               "touch/icon_flip.bmp", "touch/icon_flip@kp.bmp")\
     MACRO_NAME(TOUCH_ICON_TOC,               "touch/icon_mulu.bmp", "touch/icon_mulu@kp.bmp")\
     MACRO_NAME(TOUCH_ICON_TOC_WHITE,         "touch/icon_mulu_white.bmp", "touch/icon_mulu_white@kp.bmp")\
     MACRO_NAME(TOUCH_ICON_READ,               "touch/icon_read.bmp", "touch/icon_read@kp.bmp")\

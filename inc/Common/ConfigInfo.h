@@ -90,7 +90,7 @@
 			MACRO_NAME(AppFirstLoading,       "1", "1")\
             MACRO_NAME(FontStyle_FamiliarOrTraditional,     "0", "0")\
             MACRO_NAME(KindleMAC,     "", "")\
-            MACRO_NAME(BookListMode,     "0", "0")\
+            MACRO_NAME(ModelDisplayMode,     "0", "0")\
             MACRO_NAME(SWToken,     "", "")\
             MACRO_NAME(SWTokenTime,     "0", "0")\
             MACRO_NAME(SWUid,     "", "")\

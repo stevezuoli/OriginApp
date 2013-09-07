@@ -7,11 +7,16 @@
 #include "GUI/UITextSingleLine.h"
 #include "Common/File_DK.h"
 #include "GUI/UIImageTransparent.h"
+#include "Model/node.h"
+#include "Model/model_tree.h"
+
+using namespace dk::document_model;
 
 class UICoverViewItem: public UIContainer
 {
 public:
     UICoverViewItem(UIContainer* parent,
+                    ModelTree* model_tree,
                     BookListUsage usage,
                     int minWidth,
                     int minHeight,
@@ -52,6 +57,8 @@ public:
 #ifdef KINDLE_FOR_TOUCH
     void SetHighlight(bool highlight);
 #endif
+    bool OnCoverLoadeded(const EventArgs& args);
+
 private:
 #ifdef KINDLE_FOR_TOUCH
     bool IsHighlight() const;
@@ -76,7 +83,16 @@ private:
     void DrawBorder(DK_IMAGE imgSelf);
     void DrawBottomTitle(DK_IMAGE imgSelf);
     void DrawBottomProgress(DK_IMAGE imgSelf);
-    
+
+private:
+    int GetLeftExtra() const;
+    int GetTopExtra() const;
+    int GetCoverTop() const;
+    int GetCoverLeft() const;
+    int GetCoverWidth() const;
+    int GetCoverHeight() const;
+
+private:
     UIImage m_imgCover;
     UIImageTransparent m_imgFormat;
     UIImage m_imgNew;
@@ -107,15 +123,6 @@ private:
     UITextSingleLine m_txtReadingProgressLine;
     bool m_isLoading;
     bool m_highlight;
-
-    int GetLeftExtra() const;
-    int GetTopExtra() const;
-    int GetCoverTop() const;
-    int GetCoverLeft() const;
-    int GetCoverWidth() const;
-    int GetCoverHeight() const;
-
-    bool OnCoverLoadeded(const EventArgs& args);
 };
 
 #endif

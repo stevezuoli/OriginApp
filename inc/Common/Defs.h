@@ -377,7 +377,7 @@ public:
     int x, y, width, height;
 };
 
-enum BookListMode
+enum ModelDisplayMode
 {
     BLM_ICON,
     BLM_LIST,
@@ -387,8 +387,12 @@ enum BookListMode
 
 enum BookListUsage
 {
-    BLU_BROWSE,
-    BLU_SELECT
+    BLU_BROWSE = 0x0,
+    BLU_SELECT = 0x1,
+    BLU_UPLOAD = 0x2,
+    BLU_DOWNLOAD = 0x4,
+    BLU_CLOUD_UPLOAD = BLU_SELECT | BLU_UPLOAD,
+    BLU_CLOUD_DOWNLOAD = BLU_SELECT | BLU_DOWNLOAD
 };
 
 enum PageAncestorType

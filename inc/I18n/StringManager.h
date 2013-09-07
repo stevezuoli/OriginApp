@@ -375,8 +375,6 @@ using namespace std;
 	MACRO_NAME(TOUCH_BOOKSETTING_REARRANGE,             "智能重排")\
     MACRO_NAME(TOUCH_BOOKSETTING_CLOSEREARRANGE,        "关闭重排")\
 	MACRO_NAME(TOUCH_BOOKSETTING_READERSETTING,			"阅读设置")\
-    MACRO_NAME(TOUCH_BOOKSETTING_MAINTEXT_FONTSETTING,	"正文字体设置")\
-    MACRO_NAME(TOUCH_BOOKSETTING_OTHER_FONTSETTING,     "其他字体设置")\
 	MACRO_NAME(TOUCH_BOOKSETTING_TAP_LEFT,			"轻点屏幕左侧")\
 	MACRO_NAME(TOUCH_BOOKSETTING_TAP_RIGHT,			"轻点屏幕右侧")\
 	MACRO_NAME(TOUCH_BOOKSETTING_TURN_DOWN,				"下翻页")\
@@ -714,6 +712,8 @@ using namespace std;
     MACRO_NAME(SINAWEIBO_PASSWORD_TYPE_TIPS, "输入密码")\
     MACRO_NAME(BIND_SINAWEIBO, "绑定新浪微博")\
     MACRO_NAME(SHARE, "分享")\
+    MACRO_NAME(SHARE_PIC, "分享图片")\
+    MACRO_NAME(PICTURE_SHARE, "图片分享")\
     MACRO_NAME(SHARED_SUCCESS, "分享成功")\
     MACRO_NAME(BIND, "绑定")\
     MACRO_NAME(BIND_SINAWEIBO_SUCCESS, "绑定新浪微博成功")\
@@ -860,6 +860,7 @@ using namespace std;
     MACRO_NAME(LOGIN_ERROR_57, "该请求被拒绝")\
     MACRO_NAME(LOGIN_ERROR_58, "非期望结果出现")\
 	MACRO_NAME(LOGIN_ERROR_65, "-该帐号已迁移，请用小米帐号登录")\
+    MACRO_NAME(ERROR_GET_COMMENT_REPLY_40002, "该评论未通过人工审核")\
     MACRO_NAME(GOTO_MESSAGES_COMMENTDETAILINFO, "查看评论详情")\
     MACRO_NAME(GOTO_MESSAGES_USERDETAILINFO, "查看 %s")\
     MACRO_NAME(BOXMESSAGES_MORE, "正在载入更多未读消息...")\
@@ -888,6 +889,13 @@ using namespace std;
     MACRO_NAME(BATCH_STOP_DOWNLOAD, "停止下载")\
     MACRO_NAME(ASK_OPEN_EXTERNAL_LINK, "是否打开链接: %s ?")\
     MACRO_NAME(BOOKSTORE_WAITING,      "等待")\
+    MACRO_NAME(CLOUD_SCANNING, "正在扫描...")\
+    MACRO_NAME(CLOUD_SCAN_SUCCESSED, "扫描结果(%d)")\
+    MACRO_NAME(CLOUD_SCAN_NOBOOK, "没有要上传的书籍")\
+    MACRO_NAME(CLOUD_UPLOAD, "上传")\
+    MACRO_NAME(CLOUD_LOGININFO_TITLE, "云书架登录")\
+    MACRO_NAME(CLOUD_LOGININFO, "云书架是小米账号的特色服务，提供云端存储空间供大家免费享用")\
+    MACRO_NAME(SELECT_ALL, "全选")\
 
 // TODO: 将该部分改为从文件读取。
 #define LAYOUT_DEMO_FILEPATH "/DuoKan/LayoutDemo.txt"
@@ -925,6 +933,7 @@ public:
     static const std::string &GetDemoString();
 
     static const char* GetLoginErrorMessage(int errorCode, const char* msg);
+    static const char* GetCommentReplyErrorMessage(int errorCode, const char* msg = NULL);
 private:
     static StringManager* s_pStringManager;
 

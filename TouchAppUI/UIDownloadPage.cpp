@@ -7,7 +7,7 @@
 #include "CommonUI/UIUtility.h"
 #include "Wifi/WifiManager.h"
 #include "Framework/CDisplay.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "Utility/ThreadHelper.h"
 #include "SQM.h"
 #include "I18n/StringManager.h"

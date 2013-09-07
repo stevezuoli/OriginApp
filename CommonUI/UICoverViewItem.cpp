@@ -31,6 +31,7 @@ static const int BORDER_INTERVAL = 0;
 #endif
 
 UICoverViewItem::UICoverViewItem(UIContainer* parent,
+                                 ModelTree* model_tree,
                                  BookListUsage usage,
                                  int minWidth,
                                  int minHeight,
@@ -55,9 +56,9 @@ UICoverViewItem::UICoverViewItem(UIContainer* parent,
     , m_highlight(false)
 {
     InitUI();
-    SubscribeMessageEvent(BookCoverLoader::EventBookCoverLoaded,
-            *BookCoverLoader::GetInstance(),
-            std::tr1::bind(
+    SubscribeMessageEvent(ModelTree::EventCoverLoaded,
+        *model_tree,
+        std::tr1::bind(
             std::tr1::mem_fn(&UICoverViewItem::OnCoverLoadeded),
             this,
             std::tr1::placeholders::_1));
@@ -385,7 +386,7 @@ void UICoverViewItem::DrawCover(DK_IMAGE imgSelf)
 
 void UICoverViewItem::DrawSelect(DK_IMAGE imgSelf)
 {
-    if (BLU_SELECT != m_usage)
+    if (BLU_BROWSE == m_usage)
     {
         return;
     }
@@ -600,7 +601,7 @@ bool UICoverViewItem::IsDuoKanBook() const
 
 void UICoverViewItem::UpdateSelectImage()
 {
-    if (BLU_SELECT != m_usage)
+    if (BLU_BROWSE == m_usage)
     {
         return;
     }
@@ -687,10 +688,9 @@ bool UICoverViewItem::OnCoverLoadeded(const EventArgs& args)
     {
         return true;
     }
-    const BookCoverLoadedArgs& bookCoverLoadedArgs =
-        (const BookCoverLoadedArgs&)args;
-    if (m_bookPath != bookCoverLoadedArgs.bookPath
-            || bookCoverLoadedArgs.coverPath.empty())
+    const BookCoverLoadedArgs& bookCoverLoadedArgs = (const BookCoverLoadedArgs&)args;
+    if (m_bookPath != bookCoverLoadedArgs.bookPath ||
+        bookCoverLoadedArgs.coverPath.empty())
     {
         return true;
     }

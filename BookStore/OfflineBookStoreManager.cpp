@@ -9,7 +9,7 @@
 #include "BookStore/BookStoreTypes.h"
 #include "Common/CAccountManager.h"
 #include "Common/File_DK.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "KernelVersion.h"
 #include "Wifi/WifiManager.h"
 #include <algorithm>

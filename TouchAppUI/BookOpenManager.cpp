@@ -4,7 +4,7 @@
 // Copyright (c) Duokan Corporation. All rights reserved.
 // create by jzn
 ////////////////////////////////////////////////////////////////////////
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "GUI/UIMessageBox.h"
 #include "Framework/CHourglass.h"
 #include "Framework/CDisplay.h"

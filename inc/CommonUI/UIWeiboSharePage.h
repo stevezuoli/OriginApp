@@ -60,6 +60,7 @@ private:
     UISizer* m_topSizer;
 	UISizer* m_pictureSizer;
 	UIImageTransparent m_sharePicture;
+    UITextSingleLine m_textSharePic;
 };//UIWeiboSharedPage
 
 #endif//UIWEIBOSHAREDPAGE_H

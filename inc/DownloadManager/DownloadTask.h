@@ -35,7 +35,8 @@ public:
         POST,
         POSTFORM,
         PUT,
-        DELETE
+        DELETE,
+        METHOD_COUNT
     };
     typedef std::map<std::string, std::string> PostData;
     typedef std::map<std::string, std::string> CookieData;
@@ -127,6 +128,8 @@ public:
     void SetUserData(const std::string& userData) { m_userData = userData; }
     std::string GetUserData() const { return m_userData; }
 
+    long GetRetCode() const { return m_retCode; }
+    void SetRetCode(long retCode) { m_retCode = retCode; }
 protected:
     std::string GetTmpFilePath()
     {
@@ -155,6 +158,7 @@ protected:
     std::string m_postFileField;
     std::string m_postFilePath;//absolute path
     std::string m_userData;
+    long m_retCode;
 }; // class DownloadTask
 
 class BookOrderDownloadTask: public DownloadTask

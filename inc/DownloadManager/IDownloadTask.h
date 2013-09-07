@@ -25,11 +25,13 @@ public:
     };
 
     enum DLType {
+        UNKNOWN_TYPE = 0x0000,
         BOOK  = 0x0001,
         VIDEO = 0x0002,
         AUDIO = 0x0004,
         UPGRADEPACKAGE = 0x0008,
-		SCREENSAVER = 0x0010
+		SCREENSAVER = 0x0010,
+        MICLOUDFILE = 0x0020
     };
 
 public:
@@ -98,6 +100,11 @@ public:
     virtual void StopEngine() = 0;
 
     virtual bool TaskIsWorking() = 0;
+
+    virtual bool IsUploadTask() const
+    {
+        return false;
+    }
     // curl里回调, downloadTotal是本次需要下的字节数，downloadNow是这次已经下的字节数
     virtual void OnProgressUpdate(unsigned int downloadTotal, unsigned downloadNow);
 

@@ -21,7 +21,7 @@
 #include "DownloadManager/DownloadTaskFactory.h"
 #include "PersonalUI/PushedMessagesManager.h"
 #include "Common/LockObject.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "XMLDomDocument.h"
 #include "Utility/HttpUtil.h"
 #include "Utility/SystemUtil.h"
@@ -1901,7 +1901,7 @@ int BookStoreInfoManagerImpl::GetBookStatus(model::BookInfoSPtr bookInfo)
         int discountPrice = bookInfo->GetDiscountPrice();
         int price = bookInfo->GetPrice();
 
-        // 原价不为零且打折的书
+        // 鍘熶环涓嶄负闆朵笖鎵撴姌鐨勪功
         if(price <= 0 || discountPrice <= 0)
         {
             ret = ret | BS_FREE;
@@ -2680,7 +2680,11 @@ bool BookStoreInfoManagerImpl::OnCommentReplyUpdate(const EventArgs& args)
         model::BookComment* commentReply = model::BookComment::CreateBookComment(jsonObj.get(), model::OT_MYCOMMENTS);
         if (NULL != commentReply)
         {
-            commentReplyArgs.succeeded = true;
+            if (jsonObj->GetIntValue("result", &commentReplyArgs.errorCode) 
+                && 0 == commentReplyArgs.errorCode)
+            {
+                commentReplyArgs.succeeded = true; 
+            }
             commentReplyArgs.commentInfo = model::BookCommentSPtr(commentReply);
         }
     }

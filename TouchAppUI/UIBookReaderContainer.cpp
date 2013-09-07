@@ -18,7 +18,7 @@
 #include "TouchAppUI/UIBookContentSearchDlg.h"
 #include "CommonUI/UIBookCorrectionDlg.h"
 #include "I18n/StringManager.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "BookReader/EpubBookReader.h"
 #include "BookReader/MobiBookReader.h"
 #include "BookReader/TextBookReader.h"
@@ -63,6 +63,7 @@
 #include "Weibo/WeiboFactory.h"
 #include "Common/ReadingHistoryStat.h"
 #include "CommonUI/UIInteractiveImageDetailPage.h"
+#include "CommonUI/UIInteractiveFlexPage.h"
 #include "GUI/GUIHelper.h"
 #include "GUI/GlobalEventListener.h"
 #include "TouchAppUI/UITocDlg.h"
@@ -285,7 +286,7 @@ BOOL UIBookReaderContainer::Initialize (LPCSTR pstrFilePath, LPCSTR strBookName,
 
     // TODO:delete it.
     CDKFileManager *pFileManager = CDKFileManager::GetFileManager();
-    CDKFile *pDkFile = pFileManager->GetFileById(iBookId);
+    PCDKFile pDkFile = pFileManager->GetFileById(iBookId);
     if(NULL == pDkFile)
     {
         return FALSE;
@@ -2370,19 +2371,8 @@ void UIBookReaderContainer::OnCommand(DWORD dwCmdId, UIWindow * pSender, DWORD d
         break;
     case ID_BTN_SINAWEIBO_SHARE:
         {
-            //AddDigest();
-            int weiboContentMaxLen = dk::weibo::WeiboFactory::GetSinaWeibo()->GetShortWeiboMaxLen();
-            string dkComment = StringManager::GetPCSTRById(DUOKANSHUZHAI);
-            string bookName = string(" #").append(m_strBookName).append(1, '#');
-            wstring selectedContent = EncodeUtil::ToWString(m_strSelected);
-            int selectedContentCount = wcslen(selectedContent.c_str());
-            int wordNumberRemained = weiboContentMaxLen - wcslen(EncodeUtil::ToWString(dkComment).c_str()) - wcslen(EncodeUtil::ToWString(bookName).c_str());
-            if (selectedContentCount > wordNumberRemained)
-            {
-                wstring elipses = L"...";
-                selectedContent = selectedContent.substr(0, wordNumberRemained - wcslen(elipses.c_str())).append(elipses);
-            }
-            UIWeiboSharePage* pPage = new UIWeiboSharePage(dkComment+EncodeUtil::ToString(selectedContent)+bookName);
+            std::string sharedContent = UIWeiboSharePage::PruneStringForDKComment(m_strBookName, m_strSelected);
+            UIWeiboSharePage* pPage = new UIWeiboSharePage(sharedContent.c_str());
             if (pPage)
             {
                 CPageNavigator::Goto(pPage);
@@ -4411,6 +4401,22 @@ bool UIBookReaderContainer::HandleInteractiveImage(int _x, int _y)
                     }
                 }
                 break;
+            case DKE_PAGEOBJ_PREBLOCK:
+                {
+                    DKE_PREBLOCK_INFO preBlock;
+                    if (m_clsSelected.HitTestPreBlock(pos, &preBlock) && (NULL != preBlock.pPreFlexPage))
+                    {
+                        UIInteractiveFlexPage* pPage = new UIInteractiveFlexPage(m_strBookName);
+                        if (pPage)
+                        {
+                            pPage->SetPreBlockInfo(preBlock);
+                            CPageNavigator::Goto(pPage);
+                            ret = true;
+                        }
+                        m_clsSelected.FreeHitTestPreBlock(&preBlock);
+                    }
+                }
+                break;
             default:
                 break;
             }
@@ -5285,6 +5291,7 @@ bool UIBookReaderContainer::DrawInteractiveImageSymbol(DK_IMAGE drawingImg)
         {
         case DKE_PAGEOBJ_INTERACTIVEIMAGE:
         case DKE_PAGEOBJ_GALLERY:
+        case DKE_PAGEOBJ_PREBLOCK:
             {
                 DK_IMAGE imgSelf;
                 DK_RECT bounding = interactiveObject.m_bounding;

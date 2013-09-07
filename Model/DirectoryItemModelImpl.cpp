@@ -11,7 +11,7 @@
 #include "Utility/StringUtil.h"
 #include "Utility/EncodeUtil.h"
 #include "Utility/PathManager.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 
 using namespace dk::utility;
 using namespace std;
@@ -101,7 +101,7 @@ std::string CDirectoryItemModelImpl::GetItemDisplayName() const
     }
 
     CDKFileManager* fileManager = CDKFileManager::GetFileManager();
-    CDKFile* file = fileManager->GetFileByPath(GetFullPath());
+    PCDKFile file = fileManager->GetFileByPath(GetFullPath());
     if (NULL == file)
     {
         return "";

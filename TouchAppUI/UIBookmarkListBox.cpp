@@ -11,7 +11,7 @@
 #include "CommonUI/CPageNavigator.h"
 #include "TouchAppUI/DkReaderPage.h"
 #include "TouchAppUI/UISingleTextInputDialog.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "Common/File_DK.h"
 #include "Framework/CDisplay.h"
 #include "Framework/CNativeThread.h"

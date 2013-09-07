@@ -4,7 +4,7 @@
 #include "CommonUI/CPageNavigator.h"
 #include "GUI/CTpGraphics.h"
 #include "GUI/UIBookReaderProgressBar.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "Utility.h"
 #include "Framework/CDisplay.h"
 #include "Framework/CHourglass.h"
@@ -117,9 +117,8 @@ BOOL UIImageReaderContainer::SetImage(UINT nFileId, INT iBookId, IDkStream *pStr
         return FALSE;
     }
     
-    // ²»ÓÃÊÍ·Å
-    CDKFile *pDkFile = pFileManager->GetFileById(iBookId);
-    if(NULL == pDkFile)
+    PCDKFile pDkFile = pFileManager->GetFileById(iBookId);
+    if(0 == pDkFile)
     {
         return FALSE;
     }

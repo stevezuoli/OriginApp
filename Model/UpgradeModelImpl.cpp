@@ -837,7 +837,7 @@ BOOL UpgradeModelImpl::InstallRelease()
         return FALSE;
     }
 
-    UIMessageBox* msgbox = UIUtility::CreateMessageBox(MB_TIPMSG);
+    UIMessageBox* msgbox = UIUtility::CreateMessageBox(MB_WITHOUTBTN);
     if(NULL == msgbox)
     {
         GotoSystemDir();

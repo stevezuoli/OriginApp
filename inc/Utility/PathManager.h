@@ -40,6 +40,8 @@ public:
     static std::string GetMigratePromptTimePath();
 	static std::string GetAccountMappingPath();
 	static std::string GetReadingHistoryPath();
+	static std::string GetMiCloudServiceTokenPath();
+    static std::string GetDownloadFolderPath();
 
     static bool IsRootPath(const char* path);
     static bool IsRootPath(const std::string& path)
@@ -57,6 +59,7 @@ public:
         return ShouldBlockPath(path.c_str(), itemName.c_str());
     }
 
+    static bool IsDocumentsPath(const char* path);
     static bool IsNewsPath(const char* path);
     static bool IsValidDirName(const char* path);
 

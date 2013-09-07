@@ -30,6 +30,8 @@ ln -s ./libz.so.1.2.5 ./libz.so.1
 ln -s ./libzip.so.2.1.0 ./libzip.so
 ln -s ./libzip.so.2.1.0 ./libzip.so.2
 
+ln -s ./libjson-c.so.2.0.0 ./libjson-c.so.2
+ln -s ./libjson-c.so.2.0.0 ./libjson-c.so
 sync
 cd ..
 LD_LIBRARY_PATH=.:$SYS_LITE_PATH/lib/:../lib/:${LD_LIBRARY_PATH}

@@ -6,7 +6,7 @@
 #include <string.h>
 #include <algorithm>
 #include "KernelDef.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "I18n/StringManager.h"
 
 using namespace dk::utility;

@@ -228,8 +228,9 @@ void UIReaderSettingDlg::InitMiddleChapterWindows()
 	const int textHeight = m_fontsize20 + 3;
     m_btnRollBack.Initialize(ID_BTN_TOUCH_ROLLBACK, "", m_fontsize20);
 	m_btnRollBack.SetIcons(ImageManager::GetImage(IMAGE_ICON_GO_TO_LEFT), ImageManager::GetImage(IMAGE_ICON_GO_TO_LEFT), UIButton::ICON_CENTER);
-	m_btnRollBack.SetDisabledIcon(ImageManager::GetImage(IMAGE_ICON_GO_TO_LEFT_GREY));
-	m_btnRollBack.ShowBorder(false);
+    m_btnRollBack.SetDisabledIcon(ImageManager::GetImage(IMAGE_ICON_GO_TO_LEFT_GREY));
+    m_btnRollBack.SetInternalHorzSpacing(GetWindowMetrics(UIPixelValue20Index));
+    m_btnRollBack.ShowBorder(false);
 	
     m_textCurChapterInfo.SetFontSize(m_fontsize20);
 	m_textCurChapterInfo.SetMinSize(dkSize(CDisplay::GetDisplay()->GetScreenWidth() - horizonMargin*2, textHeight));
@@ -247,9 +248,9 @@ void UIReaderSettingDlg::InitMiddleChapterWindows()
 	m_nextChapter.Initialize(ID_BTN_TOUCH_NEXTCHAPTER, StringManager::GetStringById(TOUCH_BOOKSETTING_NEXT_CHAPTER), m_fontsize20);
 	m_nextChapter.SetIcons(ImageManager::GetImage(IMAGE_ICON_GO_RIGHT), ImageManager::GetImage(IMAGE_ICON_GO_RIGHT), UIButton::ICON_LEFT);
 	m_nextChapter.ShowBorder(false);
-	m_nextChapter.SetEnable(!m_bIsImage);
+    m_nextChapter.SetEnable(!m_bIsImage);
 	
-	m_jumpPageNum.SetFontSize(m_fontsize20);
+    m_jumpPageNum.SetFont(FONT_ENGLISH, 0, GetWindowFontSize(FontSize18Index));
 	m_jumpPageNum.SetMarginRight(10);
 	m_jumpPageNum.SetMinWidth(GetWindowMetrics(UIReaderSettingDlgJumpTextBoxWidthIndex));
 	if (IsPageInfoShowPercent())
@@ -264,6 +265,7 @@ void UIReaderSettingDlg::InitMiddleChapterWindows()
 	m_totalPageNum.SetFontSize(m_fontsize20);
 	m_totalPageNum.SetAlign(ALIGN_LEFT);
 	m_totalPageNum.SetFirstLineIndent(-1);
+    m_totalPageNum.SetEnglishGothic();
 	m_splitLine.SetMinHeight(1);
 	
     AppendChild(&m_textCurChapterInfo);
@@ -284,24 +286,27 @@ void UIReaderSettingDlg::InitMiddleChapterWindows()
 	m_clsReaderProgressBar.SetCallBackFun(RefreshProgress, this);
 	int progressBarWidth = CDisplay::GetDisplay()->GetScreenWidth() - btnWidth - horizonMargin*2 - spacing;
 	m_clsReaderProgressBar.SetMinSize(dkSize(progressBarWidth, btnHeight));
-    m_btnRollBack.SetMinSize(dkSize(btnWidth, btnHeight));
 
 	UISizer* jumpSizer = new UIBoxSizer(dkHORIZONTAL);
-	jumpSizer->Add(&m_prevChapter, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL | dkALIGN_LEFT).Border(dkLEFT, horizonMargin));
+    const int leftMargin = horizonMargin - m_prevChapter.GetInternalHorzSpacing() - GetWindowMetrics(UIPixelValue3Index);
+    const int rightMargin = horizonMargin - m_nextChapter.GetInternalHorzSpacing() - GetWindowMetrics(UIPixelValue5Index);
+	jumpSizer->Add(&m_prevChapter, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL | dkALIGN_LEFT).Border(dkLEFT, leftMargin));
 	jumpSizer->AddStretchSpacer();
 	jumpSizer->Add(&m_jumpPageNum, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
 	jumpSizer->Add(&m_totalPageNum, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
 	jumpSizer->AddStretchSpacer();
-	jumpSizer->Add(&m_nextChapter, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL | dkALIGN_RIGHT).Border(dkRIGHT, horizonMargin));
+	jumpSizer->Add(&m_nextChapter, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL | dkALIGN_RIGHT).Border(dkRIGHT, rightMargin));
 	UISizer* progressSizer = new UIBoxSizer(dkHORIZONTAL);
-	progressSizer->Add(&m_clsReaderProgressBar, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
-	progressSizer->Add(&m_btnRollBack, UISizerFlags().Border(dkLEFT, spacing).Align(dkALIGN_CENTER_VERTICAL));
+	progressSizer->Add(&m_clsReaderProgressBar, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL).Border(dkLEFT, horizonMargin));
+    progressSizer->AddStretchSpacer();
+    const int rollBackRightMargin = horizonMargin - m_btnRollBack.GetInternalHorzSpacing() + GetWindowMetrics(UIPixelValue2Index);
+	progressSizer->Add(&m_btnRollBack, UISizerFlags().Border(dkLEFT, spacing).Border(dkRIGHT, rollBackRightMargin).Align(dkALIGN_CENTER_VERTICAL));
 	m_middleSizers[MID_WINDOWS_CHAPTER]->Add(jumpSizer, UISizerFlags().Expand().Border(dkDOWN, verticalMargin - 2).Align(dkALIGN_CENTER_VERTICAL));
 	m_middleSizers[MID_WINDOWS_CHAPTER]->Add(&m_splitLine, UISizerFlags().Expand());
 	m_middleSizers[MID_WINDOWS_CHAPTER]->Add(&m_textCurChapterInfo, UISizerFlags()
 		.Border(dkLEFT | dkRIGHT, horizonMargin).Align(dkALIGN_BOTTOM)
 		.Border(dkUP, verticalMargin).ReserveSpaceEvenIfHidden());
-	m_middleSizers[MID_WINDOWS_CHAPTER]->Add(progressSizer, UISizerFlags().Expand().Border(dkLEFT | dkRIGHT, horizonMargin).Align(dkALIGN_CENTER_VERTICAL));
+	m_middleSizers[MID_WINDOWS_CHAPTER]->Add(progressSizer, UISizerFlags().Expand().Align(dkALIGN_CENTER_VERTICAL));
 	m_middleSizers[MID_WINDOWS_CHAPTER]->Add(&m_textBookName, UISizerFlags().Border(dkLEFT | dkRIGHT, horizonMargin).Align(dkALIGN_TOP | dkALIGN_CENTER_HORIZONTAL));
 }
 
@@ -312,11 +317,6 @@ void UIReaderSettingDlg::InitMiddleFontSettingWindows()
     const int tagFontSize = GetWindowFontSize(FontSize24Index);
     
     // LANG SETTING
-    m_textLangSettingTitle.SetText(StringManager::GetPCSTRById(TOUCH_BOOKSETTING_MAINTEXT_FONTSETTING));
-    m_textLangSettingTitle.SetFontSize(titleFontSize);
-    m_textLangSettingTitle.SetAlign(ALIGN_LEFT);
-    AppendChild(&m_textLangSettingTitle);
-        
     m_textLangChoices[0].SetText(StringManager::GetPCSTRById(CHINESE));
     m_textLangChoices[0].SetFontSize(tagFontSize);
     m_textLangChoices[1].SetText(StringManager::GetPCSTRById(ENGLISH));
@@ -329,11 +329,6 @@ void UIReaderSettingDlg::InitMiddleFontSettingWindows()
         AppendChild(m_btnLangChoices+i);
         AppendChild(m_textLangChoices+i);
     }
-
-    m_textFontOtherSettingTitle.SetText(StringManager::GetPCSTRById(TOUCH_BOOKSETTING_OTHER_FONTSETTING));
-    m_textFontOtherSettingTitle.SetFontSize(titleFontSize);
-    m_textFontOtherSettingTitle.SetAlign(ALIGN_LEFT);
-    AppendChild(&m_textFontOtherSettingTitle);
 
     // FONT SIZE SETTING
     m_textFontSize.SetText(StringManager::GetPCSTRById(TOUCH_BOOKSETTING_FONTSIZE));
@@ -392,12 +387,9 @@ void UIReaderSettingDlg::InitMiddleFontSettingWindows()
 void UIReaderSettingDlg::UpdateFontSettingWindows()
 {
     m_middleSizers[MID_WINDOWS_FONTSETTING]->Clear();
-    const int itemSpacing = GetWindowMetrics(UIPixelValue23Index);
     const int lineSpacing = GetWindowMetrics(UIPixelValue10Index);
     const int btnSpacing = GetWindowMetrics(UIPixelValue32Index);
     bool textValid = !m_bIsImage && !IsComicsChapter() && (!m_bIsScannedText || m_bIsPdfTextMode);
-    m_textLangSettingTitle.SetVisible(textValid);
-    m_textFontOtherSettingTitle.SetVisible(textValid);
     m_textFontStyle.SetVisible(!m_bIsScannedText);
     m_textFontSize.SetVisible(textValid);
     m_textBolden.SetVisible(textValid);
@@ -409,27 +401,25 @@ void UIReaderSettingDlg::UpdateFontSettingWindows()
         m_btnModifyFontSize[i].SetVisible(textValid);
     }
 
+    m_middleSizers[MID_WINDOWS_FONTSETTING]->AddSpacer(lineSpacing);
     if (textValid)
     {
         // LANG SETTING
-        m_middleSizers[MID_WINDOWS_FONTSETTING]->Add(&m_textLangSettingTitle, UISizerFlags().Expand().Border(dkBOTTOM, lineSpacing));
         UISizer* cnFontSizer = new UIBoxSizer(dkHORIZONTAL);
         if (cnFontSizer)
         {
             cnFontSizer->Add(m_textLangChoices, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
             cnFontSizer->Add(m_btnLangChoices, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL).Border(dkLEFT, btnSpacing));
-            m_middleSizers[MID_WINDOWS_FONTSETTING]->Add(cnFontSizer, UISizerFlags().Expand().Border(dkLEFT, btnSpacing).Border(dkBOTTOM, lineSpacing));
+            m_middleSizers[MID_WINDOWS_FONTSETTING]->Add(cnFontSizer, UISizerFlags().Expand().Border(dkBOTTOM, lineSpacing));
         }
         UISizer* enFontSizer = new UIBoxSizer(dkHORIZONTAL);
         if (enFontSizer)
         {
             enFontSizer->Add(m_textLangChoices+1, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
             enFontSizer->Add(m_btnLangChoices+1, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL).Border(dkLEFT, btnSpacing));
-            m_middleSizers[MID_WINDOWS_FONTSETTING]->Add(enFontSizer, UISizerFlags().Expand().Border(dkLEFT, btnSpacing));
+            m_middleSizers[MID_WINDOWS_FONTSETTING]->Add(enFontSizer, UISizerFlags().Expand());
         }
-        m_middleSizers[MID_WINDOWS_FONTSETTING]->AddSpacer(itemSpacing);
-
-        m_middleSizers[MID_WINDOWS_FONTSETTING]->Add(&m_textFontOtherSettingTitle, UISizerFlags().Expand().Border(dkBOTTOM, lineSpacing));
+        m_middleSizers[MID_WINDOWS_FONTSETTING]->AddSpacer(lineSpacing);
 
         if (!m_bIsScannedText)
         {
@@ -440,7 +430,7 @@ void UIReaderSettingDlg::UpdateFontSettingWindows()
                 fontStyleSizer->Add(&m_textFontStyle, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL).Border(dkRIGHT, btnSpacing));
                 fontStyleSizer->Add(m_btnModifyFontStyle, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
                 fontStyleSizer->Add(m_btnModifyFontStyle+1, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
-                m_middleSizers[MID_WINDOWS_FONTSETTING]->Add(fontStyleSizer, UISizerFlags().Expand().Border(dkLEFT, btnSpacing).Border(dkBOTTOM, lineSpacing));
+                m_middleSizers[MID_WINDOWS_FONTSETTING]->Add(fontStyleSizer, UISizerFlags().Expand().Border(dkBOTTOM, lineSpacing));
             }
         }
 
@@ -453,7 +443,7 @@ void UIReaderSettingDlg::UpdateFontSettingWindows()
             fontSizeSizer->AddSpacer(btnSpacing);
             fontSizeSizer->Add(m_btnModifyFontSize+1, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
 
-            m_middleSizers[MID_WINDOWS_FONTSETTING]->Add(fontSizeSizer, UISizerFlags().Expand().Border(dkLEFT, btnSpacing).Border(dkBOTTOM, lineSpacing));
+            m_middleSizers[MID_WINDOWS_FONTSETTING]->Add(fontSizeSizer, UISizerFlags().Expand().Border(dkBOTTOM, lineSpacing));
             RefreshFontSizeEnable(m_iCurFontSizeIndex);
         }
     }
@@ -469,7 +459,7 @@ void UIReaderSettingDlg::UpdateFontSettingWindows()
         fontBoldenSizer->AddSpacer(btnSpacing);
         fontBoldenSizer->Add(m_btnModifyEmbolden+1, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
 
-        m_middleSizers[MID_WINDOWS_FONTSETTING]->Add(fontBoldenSizer, UISizerFlags().Expand().Border(dkLEFT, btnSpacing).Border(dkBOTTOM, lineSpacing));
+        m_middleSizers[MID_WINDOWS_FONTSETTING]->Add(fontBoldenSizer, UISizerFlags().Expand().Border(dkBOTTOM, lineSpacing));
         RefreshFontBoldenEnable((m_bIsScannedText && !m_bIsPdfTextMode) ? m_iCurPdfEmBoldenLevel : m_iCurEmBoldenLevel);
     }
 }
@@ -646,11 +636,6 @@ void UIReaderSettingDlg::InitMiddleReaderSettingWindows()
     const int minHeight = GetWindowMetrics(UIPixelValue40Index);
     const int titleFontSize = GetWindowFontSize(FontSize28Index);
     const int tagFontSize = GetWindowFontSize(FontSize24Index);
-
-    m_textReaderSettingTitle.SetText(StringManager::GetPCSTRById(TOUCH_BOOKSETTING_READERSETTING));
-    m_textReaderSettingTitle.SetFontSize(titleFontSize);
-    m_textReaderSettingTitle.SetAlign(ALIGN_LEFT);    
-    AppendChild(&m_textReaderSettingTitle);
     
     m_textTurnPageCustom.SetText(StringManager::GetPCSTRById(TOUCH_BOOKSETTING_TAP_LEFT));
     if (!m_bIsScannedText)
@@ -749,9 +734,7 @@ void UIReaderSettingDlg::UpdateReaderSettingWindows()
 {
     m_middleSizers[MID_WINDOWS_READERSETTING]->Clear();
 
-    const int itemSpacing = GetWindowMetrics(UIPixelValue23Index);
     const int lineSpacing = GetWindowMetrics(UIPixelValue10Index);
-    const int btnSpacing = GetWindowMetrics(UIPixelValue32Index);
     const int titleMinWidth = GetWindowMetrics(UIReaderSettingDlgReaderSettingSubTitleWidthIndex);
     bool isPdfMode = m_bIsScannedText && !m_bIsPdfTextMode;
     m_textContentDisplay.SetVisible(isPdfMode);
@@ -761,8 +744,10 @@ void UIReaderSettingDlg::UpdateReaderSettingWindows()
     m_textProgressBar.SetVisible(isTextMode);
     m_btnProgressBar[0].SetVisible(isTextMode);
     m_btnProgressBar[1].SetVisible(isTextMode);
+    
+    m_middleSizers[MID_WINDOWS_READERSETTING]->AddSpacer(lineSpacing);
 
-    m_middleSizers[MID_WINDOWS_READERSETTING]->Add(&m_textReaderSettingTitle, UISizerFlags().Expand().Border(dkBOTTOM, itemSpacing));
+    // pdf宽度自适应
     if (isPdfMode)
     {
         UISizer* contentDisplaySizer = new UIBoxSizer(dkHORIZONTAL);
@@ -772,19 +757,7 @@ void UIReaderSettingDlg::UpdateReaderSettingWindows()
             contentDisplaySizer->Add(&m_textContentDisplay, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
             contentDisplaySizer->Add(m_btnContentDisplay, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
             contentDisplaySizer->Add(m_btnContentDisplay + 1, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
-            m_middleSizers[MID_WINDOWS_READERSETTING]->Add(contentDisplaySizer, UISizerFlags().Expand().Border(dkLEFT, btnSpacing).Border(dkBOTTOM, lineSpacing));
-        }
-    }
-    if (isTextMode)
-    {
-        UISizer* textProgressBarSizer = new UIBoxSizer(dkHORIZONTAL);
-        if (textProgressBarSizer)
-        {
-            m_textProgressBar.SetMinWidth(titleMinWidth);
-            textProgressBarSizer->Add(&m_textProgressBar, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
-            textProgressBarSizer->Add(m_btnProgressBar, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
-            textProgressBarSizer->Add(m_btnProgressBar + 1, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
-            m_middleSizers[MID_WINDOWS_READERSETTING]->Add(textProgressBarSizer, UISizerFlags().Expand().Border(dkLEFT, btnSpacing).Border(dkBOTTOM, lineSpacing));
+            m_middleSizers[MID_WINDOWS_READERSETTING]->Add(contentDisplaySizer, UISizerFlags().Expand().Border(dkBOTTOM, lineSpacing));
         }
     }
 
@@ -796,19 +769,9 @@ void UIReaderSettingDlg::UpdateReaderSettingWindows()
         textFontRenderSizer->Add(&m_textFontRender, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
         textFontRenderSizer->Add(m_btnFontRender, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
         textFontRenderSizer->Add(m_btnFontRender + 1, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
-        m_middleSizers[MID_WINDOWS_READERSETTING]->Add(textFontRenderSizer, UISizerFlags().Expand().Border(dkLEFT, btnSpacing).Border(dkBOTTOM, lineSpacing));
+        m_middleSizers[MID_WINDOWS_READERSETTING]->Add(textFontRenderSizer, UISizerFlags().Expand().Border(dkBOTTOM, lineSpacing));
     }
-
-    UISizer* turnPageCurstomSizer = new UIBoxSizer(dkHORIZONTAL);
-    if (turnPageCurstomSizer)
-    {
-        m_textTurnPageCustom.SetMinWidth(titleMinWidth);
-        turnPageCurstomSizer->Add(&m_textTurnPageCustom, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
-        turnPageCurstomSizer->Add(m_btnTurnPageCustom, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
-        turnPageCurstomSizer->Add(m_btnTurnPageCustom + 1, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
-        m_middleSizers[MID_WINDOWS_READERSETTING]->Add(turnPageCurstomSizer, UISizerFlags().Expand().Border(dkLEFT, btnSpacing).Border(dkBOTTOM, lineSpacing));
-    }
-
+    // 上下滑动
     UISizer* readingUpDownGestureCustomSizer = new UIBoxSizer(dkHORIZONTAL);
     if (readingUpDownGestureCustomSizer)
     {
@@ -816,7 +779,32 @@ void UIReaderSettingDlg::UpdateReaderSettingWindows()
         readingUpDownGestureCustomSizer->Add(&m_textReadingUpDownGestureCustom, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
         readingUpDownGestureCustomSizer->Add(m_btnReadingUpDownGestureCustom, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
         readingUpDownGestureCustomSizer->Add(m_btnReadingUpDownGestureCustom + 1, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
-        m_middleSizers[MID_WINDOWS_READERSETTING]->Add(readingUpDownGestureCustomSizer, UISizerFlags().Expand().Border(dkLEFT, btnSpacing).Border(dkBOTTOM, lineSpacing));
+        m_middleSizers[MID_WINDOWS_READERSETTING]->Add(readingUpDownGestureCustomSizer, UISizerFlags().Expand().Border(dkBOTTOM, lineSpacing));
+    }
+
+    // 进度条
+    if (isTextMode)
+    {
+        UISizer* textProgressBarSizer = new UIBoxSizer(dkHORIZONTAL);
+        if (textProgressBarSizer)
+        {
+            m_textProgressBar.SetMinWidth(titleMinWidth);
+            textProgressBarSizer->Add(&m_textProgressBar, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
+            textProgressBarSizer->Add(m_btnProgressBar, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
+            textProgressBarSizer->Add(m_btnProgressBar + 1, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
+            m_middleSizers[MID_WINDOWS_READERSETTING]->Add(textProgressBarSizer, UISizerFlags().Expand().Border(dkBOTTOM, lineSpacing));
+        }
+    }
+
+    // 轻点屏幕左侧
+    UISizer* turnPageCurstomSizer = new UIBoxSizer(dkHORIZONTAL);
+    if (turnPageCurstomSizer)
+    {
+        m_textTurnPageCustom.SetMinWidth(titleMinWidth);
+        turnPageCurstomSizer->Add(&m_textTurnPageCustom, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
+        turnPageCurstomSizer->Add(m_btnTurnPageCustom, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
+        turnPageCurstomSizer->Add(m_btnTurnPageCustom + 1, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
+        m_middleSizers[MID_WINDOWS_READERSETTING]->Add(turnPageCurstomSizer, UISizerFlags().Expand().Border(dkBOTTOM, lineSpacing));
     }
 }
 
@@ -1361,16 +1349,17 @@ void UIReaderSettingDlg::InitBottomWindows()
     m_btnsBottom.push_back(&m_bottomMidBtns[3]);
     m_btnsBottom.push_back(&m_btnSetting);
 
-    const int margin = GetWindowMetrics(UIReaderSettingDlgBottomBarButtonMarginIndex);
+    const int margin = GetWindowMetrics(UIHorizonMarginIndex);
     m_bottomSizer->Clear();
-    m_bottomSizer->Add(&m_bottomLeftBtns[0], UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
+    m_bottomSizer->Add(&m_bottomLeftBtns[0], UISizerFlags().Align(dkALIGN_CENTER_VERTICAL).Border(dkLEFT, margin));
     m_bottomSizer->Add(&m_bottomLeftBtns[1], UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
     m_bottomSizer->AddSpacer(margin);
     m_bottomSizer->Add(&m_bottomMidBtns[0], UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
     m_bottomSizer->Add(&m_bottomMidBtns[1], UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
     m_bottomSizer->Add(&m_bottomMidBtns[2], UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
     m_bottomSizer->Add(&m_bottomMidBtns[3], UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
-    m_bottomSizer->Add(&m_btnSetting, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL).Border(dkLEFT, margin));
+    m_bottomSizer->AddSpacer(margin);
+    m_bottomSizer->Add(&m_btnSetting, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL).Border(dkRIGHT, margin));
 }
 
 void UIReaderSettingDlg::InitUI()
@@ -1414,7 +1403,7 @@ void UIReaderSettingDlg::InitUI()
         //底部栏采用水平方向布局
         m_bottomSizer = new UIBoxSizer(dkHORIZONTAL);
         m_bottomSizer->SetMinHeight(GetWindowMetrics(UIReaderSettingDlgBottomBarHeightIndex));
-        mainSizer->Add(m_bottomSizer, UISizerFlags().Expand().Border(dkLEFT | dkRIGHT, GetWindowMetrics(UIHorizonMarginIndex)));
+        mainSizer->Add(m_bottomSizer, UISizerFlags().Expand());
         SetSizer(mainSizer);
     }
 
@@ -1678,10 +1667,10 @@ void UIReaderSettingDlg::ShowCNLangSettingDlg()
         dlgCNFont.SetData(m_vCNFontName, m_iSelectedCNFontIndex);
 
         int iHeight = dlgCNFont.GetTotalHeight();
-        int iTop = m_btnLangChoices[0].GetY() - iHeight;
+        int iTop = m_btnLangChoices[0].GetY() - iHeight - GetWindowMetrics(UIPixelValue5Index);
         dlgCNFont.MoveWindow(m_btnLangChoices[0].GetX(), 
             iTop,
-            GetWindowMetrics(UIReaderSettingDlgFontSettingButtonWidthIndex),
+            m_btnLangChoices[0].GetWidth(),
             iHeight);
         m_btnLangChoices[0].SetFocus(TRUE);
         AppendChild(&dlgCNFont);
@@ -1711,10 +1700,10 @@ void UIReaderSettingDlg::ShowENLangSettingDlg()
         UIButtonDlg dlgENFont(this); 
         dlgENFont.SetData(m_vENFontName, m_iSelectedENFontIndex);
         int iHeight = dlgENFont.GetTotalHeight();
-        int iTop = m_btnLangChoices[1].GetY() - iHeight;
+        int iTop = m_btnLangChoices[1].GetY() - iHeight - GetWindowMetrics(UIPixelValue5Index);
         dlgENFont.MoveWindow(m_btnLangChoices[1].GetX(), 
             iTop,
-            GetWindowMetrics(UIReaderSettingDlgFontSettingButtonWidthIndex),
+            m_btnLangChoices[1].GetWidth(),
             iHeight);
         m_btnLangChoices[1].SetFocus(TRUE);
         dlgENFont.DoModal();
@@ -2657,11 +2646,6 @@ void UIReaderSettingDlg::FontRenderChangedHandler(DWORD dwCmdId)
         RefreshFontRenderFocus();
         if (m_bIsScannedText && !m_bIsPdfTextMode)
         {
-            UIBookReaderContainer* bookReaderContainer = static_cast<UIBookReaderContainer*>(m_pContainer);
-            if (bookReaderContainer)
-            {
-                bookReaderContainer->ReaderSettingChangedHandler();
-            }
             m_btnProgressBar[0].UpdateWindow();
             m_btnProgressBar[1].UpdateWindow();
         }

@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include "KernelVersion.h"
 #include "Utility/SystemUtil.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "Utility/PathManager.h"
 
 using std::vector;
@@ -197,7 +197,7 @@ bool CPageTable::SavePageTable(const PageTable& _pageTable)
 	
 
     CDKFileManager* fileManager = CDKFileManager::GetFileManager();
-    CDKFile* file = fileManager->GetFileByPath(m_filePath);
+    PCDKFile file = fileManager->GetFileByPath(m_filePath);
     if (NULL != file)
     {
         file->SetPageCount(_pageTable.pageCount);

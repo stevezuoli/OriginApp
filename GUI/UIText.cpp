@@ -16,7 +16,7 @@
 #include "Framework/CDisplay.h"
 #include "dkColor.h"
 #include "FontManager/DKFont.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "BMPProcessor/IBMPProcessor.h"
 #include "KernelEncoding.h"
 #include "DKRAPI.h"

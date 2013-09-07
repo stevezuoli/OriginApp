@@ -1,7 +1,7 @@
 #include "Utility/ReaderUtil.h"
 #include "DKXManager/DKX/DKXBlock.h"
 #include "DKXManager/ReadingInfo/ICT_ReadingDataItem.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "KernelVersion.h"
 
 namespace dk

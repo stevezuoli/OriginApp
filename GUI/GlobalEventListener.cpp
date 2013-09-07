@@ -3,7 +3,7 @@
 #include "BookStore/BookStoreInfoManager.h"
 #include "BookStore/OfflineBookStoreManager.h"
 #include "DKXManager/DKX/DKXManager.h"
-#include "../Common/FileManager_DK.h"
+#include "Common/FileManager_DK.h"
 #include "TouchAppUI/UIBookReaderContainer.h"
 
 using namespace dk::bookstore;
