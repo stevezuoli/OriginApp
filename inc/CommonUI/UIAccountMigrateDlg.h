@@ -16,7 +16,6 @@
 class UIAccountMigrateDlg : public UIDialog
 {
 public:
-    static const char* EventMigrate;
     static const char* EventMigrateLater;
     static const char* EventLoginXiaomiAccount;
 

@@ -18,13 +18,15 @@ namespace document_model {
 const char* Node::EventChildrenIsReady = "EventChildrenIsReady";
 const char* Node::EventNodeStatusUpdated = "EventNodeStatusUpdated";
 const char* Node::EventNodeLoadingFinished = "EventNodeLoadingFinished";
-
+const char* Node::EventNodeSelectStatusUpdated = "EventNodeSelectStatusUpdated";
 const size_t Node::INVALID_ORDER = 0xffffffff;
 const string Node::DATE_FORMAT  = "yyyy-MM-dd hh:mm";
 
 Node::Node(Node*p)
     : parent_(p)
     , last_read_(0)
+    , create_time_(0)
+    , modify_time_(0)
     , type_(NODE_TYPE_NULL)
     , status_(NODE_NONE)
     , selected_(parent_ != 0 ? parent_->selected() : false) // derive the status of selecting from parent
@@ -125,18 +127,25 @@ bool Node::rename(const string& new_name, string& error_msg)
     return false;
 }
 
-bool Node::remove(bool delete_local_files_if_possible)
+bool Node::remove(bool delete_local_files_if_possible, bool exec_now)
 {
     // Do nothing by default
     return false;
 }
 
-void Node::upload()
+void Node::upload(bool exec_now)
 {
-    // Do nothing by default
+    // reset selected status
+    selected_ = false;
 }
 
-void Node::download()
+void Node::download(bool exec_now)
+{
+    // reset selected status
+    selected_ = false;
+}
+
+void Node::stopLoading()
 {
     // Do nothing by default
 }
@@ -147,9 +156,26 @@ bool Node::loadingInfo(int& progress, int& state)
     return false;
 }
 
+bool Node::satisfy(int status_filter)
+{
+    // TODO. Implement Me
+    return true;
+}
+
+bool Node::supportedCommands(std::vector<int>& command_ids,
+                             std::vector<int>& str_ids)
+{
+    // TODO. Implemen Me in derived classes
+    return false;
+}
+
 void Node::setSelected(bool selected)
 {
     selected_ = selected;
+
+    NodeSelectStatusUpdateArgs node_selected_args;
+    node_selected_args.the_node = this;
+    mutableRoot()->FireEvent(EventNodeSelectStatusUpdated, node_selected_args);
 }
 
 void Node::setStatus(int status, bool mandatory)

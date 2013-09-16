@@ -369,8 +369,9 @@ bool CAccountManager::LogoutAsync()
 {
     if (!LogoutXiaomiAccount())
     {
-        LogoutDuokanAccount();
+        return LogoutDuokanAccount();
     }
+    return true;
 }
 
 bool CAccountManager::LogoutDuokanAccount()
@@ -954,7 +955,7 @@ bool CAccountManager::LogoutXiaomiAccount()
     // Remove login file and clear user info
     if (!FileSystem::DeleteFile(PathManager::GetXiaomiAccountPath().c_str()))
     {
-        DebugPrintf(DLC_DIAGNOSTIC, "\n Delete token file failed \n");
+        DebugPrintf(DLC_DIAGNOSTIC, "\nDelete token file failed\n");
         return false;
     }
 
@@ -1278,6 +1279,7 @@ bool CAccountManager::OnLoginEvent(const EventArgs& args)
 			UIUtility::ShowAccountLoginDlg();
 		}
 	}
+    return true;
 }
 
 void CAccountManager::FetchAccountMapping()

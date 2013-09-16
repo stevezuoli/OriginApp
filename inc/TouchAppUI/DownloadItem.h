@@ -30,8 +30,8 @@ public:
     HRESULT DrawFocus(DK_IMAGE drawingImg);
     void SetFocus(BOOL bIsFocus);
     void UpdateProgress();
-	string GetDownloadStatus();
-	void UpdateButtonStatus();
+    string GetDownloadStatus();
+    void UpdateButtonStatus();
     virtual void OnCommand(DWORD dwCmdId, UIWindow * pSender, DWORD dwParam);
 
 protected:
@@ -46,12 +46,12 @@ private:
     UITextSingleLine    m_textDownLoadProgress;
     UIImage             m_imgDownLoadStatusImg;
     UIBookReaderProgressBar       m_proDownloadSeparatorbar;
-	UITouchComplexButton m_btnTaskDownload;
-	UITouchComplexButton m_btnTaskDelete;
-	UITouchComplexButton m_btnTaskPause;
-	UITextSingleLine m_textTaskDownload;
-	UITextSingleLine m_textTaskDelete;
-	UITextSingleLine m_textTaskPause;
+    UITouchComplexButton m_btnTaskDownload;
+    UITouchComplexButton m_btnTaskDelete;
+    UITouchComplexButton m_btnTaskPause;
+    UITextSingleLine m_textTaskDownload;
+    UITextSingleLine m_textTaskDelete;
+    UITextSingleLine m_textTaskPause;
     UISizer* m_pDownloadSizer;
     UISizer* m_pDeleteSizer;
     UISizer* m_pPauseSizer;

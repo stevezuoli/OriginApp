@@ -34,10 +34,15 @@ public:
 
     // cloud operations
     virtual bool rename(const string& new_name, string& error_msg);
-    virtual bool remove(bool delete_local_files_if_possible);
-    virtual void upload();
+    virtual bool remove(bool delete_local_files_if_possible, bool exec_now = true);
+    virtual bool removeFromCategory();
+    virtual void upload(bool exec_now = true);
     virtual void fetchInfo();
+    virtual void stopLoading();
     virtual bool loadingInfo(int& progress, int& state);
+
+    virtual bool satisfy(int status_filter);
+    virtual bool supportedCommands(std::vector<int>& command_ids, std::vector<int>& str_ids);
 
     // event handler
     void onInfoReturned(const EventArgs& args);
@@ -45,19 +50,13 @@ public:
     void onUploadingProgress(int progress, int state);
     void onFileCommitted(const EventArgs& args);
 
-    static bool testStatus(const string& path, int status_filter);
     static bool isOnCloud(const string& name, int64_t size);
 
 private:
-    enum MetaDataState
-    {
-        MD_INVALID = -1,
-        MD_TOSCAN,              ///< Need to scan.
-        MD_SCANNED              ///< Alaredy scanned.
-    };
+    void updateByUploadingTask();
+    void updateDisplayName();
 
 protected:
-    MetaDataState data_state_;
     PCDKFile file_info_;
     MiCloudFileSPtr cloud_file_info_;
     size_t size_;

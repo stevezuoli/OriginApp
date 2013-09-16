@@ -295,6 +295,11 @@ void InitBookStoreManagers()
     dk::bookstore::OfflineBookStoreManager::GetInstance();
 }
 
+void InitXiaoMiService()
+{
+    xiaomi::XiaoMiServiceFactory::GetMiCloudService();
+}
+
 void ScreenSaverFunc(void* data)
 {
     static bool inSaver = false;
@@ -400,6 +405,7 @@ int main(int argc, char *argv[])
 
     // Initialize BookStore Managers
     InitBookStoreManagers();
+    InitXiaoMiService();
 
     // TODO: ignoring OUTOFMEMORY errors
     PathManager::Init();
@@ -427,6 +433,7 @@ int main(int argc, char *argv[])
 
     //DebugPrintf(DLC_DIAGNOSTIC, "Start bookstore download manager");
 	dk::DownloadManager::GetInstance()->Start();
+	dk::DownloadManager::GetXiaoMiRequestInstance()->Start();
 
 
     realpath(program_invocation_name, g_szAppPath);
@@ -521,42 +528,6 @@ int main(int argc, char *argv[])
     DebugPrintf(DLC_DIAGNOSTIC, "Back to home");
     CPageNavigator::BackToHome();
 
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->GetQuota();
-    //sleep(1);
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->GetChildren("0");
-    //sleep(10);
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->DeleteDirectory("12075");
-    //sleep(1);
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->DeleteFile("12220");
-    //sleep(1);
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->GetChildren("0");
-    //sleep(1);
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateDirectory("0", "TestForKindle");
-    //sleep(10);
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateDirectory("0", "BOOKS");
-    //sleep(10);
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->GetChildren("0");
-    //sleep(10);
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateFile("49504", "/mnt/shared/cloud_test/folder1/English.txt");
-    //sleep(5);
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateFile("49504", "/mnt/shared/cloud_test/folder1/Chinese.txt");
-    //sleep(5);
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateFile("48604", "/mnt/shared/Test/pdf/Hyperlink-2test.pdf");
-    //sleep(5);
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateFile("22902", "/DuoKan/kss/log.txt");
-    //sleep(5);
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateFile("0", "/DuoKan/kss/log.txt");
-    //sleep(5);
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateFile("48604", "/mnt/shared/Test/pdf/Hyperlink-3test.pdf");
-    //sleep(5);
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateFile("48604", "/home/y/Documents/test/test2");
-    //sleep(10);
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CreateFile("0", "/home/y/Documents/test/test3");
-    //sleep(10);
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->GetChildren("22902");
-    //sleep(10);
-    //xiaomi::XiaoMiServiceFactory::GetMiCloudService()->GetChildren("30831");
-    //sleep(100);
 #if 0
     if (SystemSettingInfo::GetInstance()->GetIsAppFirstLoading())
     {

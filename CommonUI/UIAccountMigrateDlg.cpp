@@ -6,23 +6,14 @@
 #include "Utility/WebBrowserUtil.h"
 #include "CommonUI/UIUtility.h"
 #include "Framework/CDisplay.h"
+#include "Thirdparties/MiMigrationManager.h"
 
 using namespace WindowsMetrics;
 using namespace dk::utility;
+using namespace dk::thirdparties;
 
-const char* UIAccountMigrateDlg::EventMigrate = "EventMigrate";
 const char* UIAccountMigrateDlg::EventMigrateLater = "EventMigrateLater";
 const char* UIAccountMigrateDlg::EventLoginXiaomiAccount = "EventLoginXiaomiAccount";
-
-class MigrationOperationArgs: public EventArgs
-{
-public:
-    virtual EventArgs* Clone() const
-    {
-        return new MigrationOperationArgs(*this);
-    }
-    int operation_id;
-};
 
 UIAccountMigrateDlg::UIAccountMigrateDlg(UIContainer* pParent, PopupMode mode)
 	: UIDialog(pParent)
@@ -191,9 +182,11 @@ void UIAccountMigrateDlg::OnMigrationBtnClick()
 {
     CDisplay::CacheDisabler cache;
     EndDialog(0);
-    MigrationOperationArgs args;
-    args.operation_id = 0;
-    FireEvent(EventMigrate, args);
+    MiMigrationManager* pMigrationMgr = MiMigrationManager::GetInstance();
+    if (pMigrationMgr)
+    {
+        pMigrationMgr->FireMigrationEvent();
+    }
 }
 
 void UIAccountMigrateDlg::OnMigrateLaterBtnClick()

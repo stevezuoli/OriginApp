@@ -13,11 +13,12 @@ class MiCloudDownloadTaskBuilder
 {
 public:
     static DownloadTaskSPtr BuildCreateFileTask(const string& dirId, const string& name, const string& sha1,
-            const string& retry, const string& data);
+        const string& data, const string& retry = "0");
+    static DownloadTaskSPtr BuildPhonyCreateFileTask(const string& dirId, const string& filePath, const string& displayName);
     static DownloadTaskSPtr BuildCreateDirectoryTask(const string& parentDirId, const string& name);
     static DownloadTaskSPtr BuildCreateDirectoryTask(const string& dirPath);
-    static DownloadTaskSPtr BuildCommitFileTask(const string& uploadId, const string& data);
-    static DownloadTaskSPtr BuildRequestDownloadTask(const string& fileId);
+    static DownloadTaskSPtr BuildCommitFileTask(const string& uploadId, const string& data, const string& retry = "0");
+    static DownloadTaskSPtr BuildRequestDownloadTask(const string& fileId, const string& retry = "0");
     static DownloadTaskSPtr BuildDeleteFileTask(const string& fileId);
     static DownloadTaskSPtr BuildDeleteDirectoryTask(const string& dirId);
     static DownloadTaskSPtr BuildGetChildrenTask(const string& dirId,
@@ -27,6 +28,8 @@ public:
 
     static string BuildRequestDownloadUrl(const string& fileId);
     static string BuildCreateFileUrl();
+
+    static map<string, string> GenerateDefaultParams();
 private:
     static string BuildCreateDirectoryUrl();
     static string BuildCommitFileUrl();
@@ -36,7 +39,6 @@ private:
     static string BuildGetInfoUrl();
     static string BuildGetQuotaUrl();
 
-    static map<string, string> GenerateDefaultParams();
 };//MiCloudDownloadTaskBuilder
 }//xiaomi
 

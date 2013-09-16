@@ -58,6 +58,17 @@ public:
     bool succeeded;
 };//CloudFileScanFinishedArgs
 
+struct LocalFileInfo
+{
+    LocalFileInfo(const string& path = "", const string& name = "")
+        : filePath(path)
+        , bookName(name)
+    {}
+
+    string filePath;
+    string bookName;
+};
+
 class MiCloudManager
     : public EventListener
     , public EventSet
@@ -84,6 +95,10 @@ public:
     bool EraseTask(DownloadTask* task, TaskType type);
     string GetFileInfoForTask(DownloadTask* task, TaskType type) const;
 
+    bool InsertCreateFileTask(DownloadTask* task, const LocalFileInfo& localFileInfo);
+    bool EraseCreateFileTask(DownloadTask* task);
+    LocalFileInfo GetFileInfoForCreateFileTask(DownloadTask* task) const;
+
     string GetLocalDownloadDir() const
     {
         return XiaoMiConstants::s_micloudFileLocalDir;
@@ -99,6 +114,8 @@ public:
     bool OnCloudFileScanFinishedArgs(const EventArgs& args);
 
     bool IsFileExistsInCloud(const string& fileName, const int64_t fileSize, bool recursive = false) const;
+
+    virtual bool OnAccountLogInOut(const EventArgs& args);
 private:
     bool IsTypeValid(TaskType type) const
     {
@@ -109,6 +126,7 @@ private:
     MiCloudManager();
     DISALLOW_COPY_AND_ASSIGN(MiCloudManager);
     map<DownloadTask*, string> m_fileTaskMaps[TT_Count]; 
+    map<DownloadTask*, LocalFileInfo> m_createFileTaskMap;
     string m_bookRootDirID;
 };//MiCloudManager
 }//xiaomi

@@ -84,13 +84,21 @@ void LocalFileSystemTree::initialize()
             this,
             std::tr1::placeholders::_1));
 
+    CDKFileManager* file_manager = CDKFileManager::GetFileManager();
+    by_ = file_manager->GetBookSort();
 }
 
 ContainerNode * LocalFileSystemTree::setCurrentNode(ContainerNode *node)
 {
-    current_node_ = node;
-    mapFilePathToModelPath(current_node_->absolutePath(), current_path_);
-    return current_node_;
+    if (current_node_ != node)
+    {
+        current_node_ = node;
+        mapFilePathToModelPath(current_node_->absolutePath(), current_path_);
+        ModelTreeCurrentNodeChangedArgs node_changed_args;
+        node_changed_args.current_node = current_node_;
+        FireEvent(EventCurrentNodeChanged, node_changed_args);
+    }
+    return current_node_; 
 }
 
 bool LocalFileSystemTree::onCoverLoaded(const EventArgs& args)
@@ -138,66 +146,10 @@ ContainerNode * LocalFileSystemTree::containerNodeWithinTopNode(NodeType type)
     return node;
 }
 
-Field LocalFileSystemTree::sortField() const
-{
-    //return current_node_->sortField();
-    CDKFileManager* file_manager = CDKFileManager::GetFileManager();
-    DK_FileSorts sort = file_manager->GetBookSort();
-    switch (sort)
-    {
-    case RecentlyAdd:
-        return RECENTLY_ADD;
-    case RecentlyReadTime:
-        return LAST_ACCESS_TIME;
-    case Name:
-        return NAME;
-    case DIRECTORY:
-        return BY_DIRECTORY;
-    default:
-        break;
-    }
-    return NAME; // sort by name by default
-}
-
-void LocalFileSystemTree::setSortField(Field by)
-{
-    DK_FileSorts sort = RecentlyReadTime;
-    switch (by)
-    {
-    case RECENTLY_ADD:
-        sort = RecentlyAdd;
-        break;
-    case LAST_ACCESS_TIME:
-        sort = RecentlyReadTime;
-        break;
-    case NAME:
-        sort = Name;
-        break;
-    case BY_DIRECTORY:
-        sort = DIRECTORY;
-        break;
-    default:
-        break;
-    }
-    CDKFileManager* file_manager = CDKFileManager::GetFileManager();
-    file_manager->SetBookSortType(sort);
-}
-
-void LocalFileSystemTree::sort()
-{
-    CDKFileManager* file_manager = CDKFileManager::GetFileManager();
-    file_manager->SortFile(DFC_Book);
-}
-
 void LocalFileSystemTree::search(const string& keyword)
 {
     CDKFileManager* file_manager = CDKFileManager::GetFileManager();
     file_manager->SearchBook(keyword.c_str()); 
-}
-
-SortOrder LocalFileSystemTree::sortOrder() const
-{
-    return current_node_->sortOrder();
 }
 
 ContainerNode * LocalFileSystemTree::cdRootNode()
@@ -324,6 +276,36 @@ void LocalFileSystemTree::setSortCriteria(Field by, SortOrder order)
 {
     by_ = by;
     order_ = order;
+    CDKFileManager* file_manager = CDKFileManager::GetFileManager();
+    file_manager->SetBookSortType(by);
+    currentNode()->changeSortCriteria(by, order);
+}
+
+void LocalFileSystemTree::setSortField(Field by)
+{
+    by_ = by;
+    CDKFileManager* file_manager = CDKFileManager::GetFileManager();
+    file_manager->SetBookSortType(by);
+    currentNode()->changeSortCriteria(by, order_);
+}
+
+Field LocalFileSystemTree::sortField() const
+{
+    //return current_node_->sortField();
+    CDKFileManager* file_manager = CDKFileManager::GetFileManager();
+    return file_manager->GetBookSort();
+}
+
+void LocalFileSystemTree::sort()
+{
+    //CDKFileManager* file_manager = CDKFileManager::GetFileManager();
+    //file_manager->SortFile(DFC_Book);
+    current_node_->sort(by_, order_);
+}
+
+SortOrder LocalFileSystemTree::sortOrder() const
+{
+    return current_node_->sortOrder();
 }
 
 DKDisplayMode LocalFileSystemTree::displayMode()
@@ -333,8 +315,12 @@ DKDisplayMode LocalFileSystemTree::displayMode()
 
 void LocalFileSystemTree::setDisplayMode(DKDisplayMode display_mode)
 {
-    root_node_.mutableDisplayMode() = display_mode;
-    root_node_.setDirty(true);
+    root_node_.setDisplayMode(display_mode);
+    if (display_mode == EXPAND_ALL)
+    {
+        // Make sure the sorting criteria will be set correctly when quitting expanding mode.
+        root_node_.changeSortCriteria(EXPAND, root_node_.sortOrder());
+    }
 }
 
 bool LocalFileSystemTree::onFileListChanged(const EventArgs& args)
@@ -346,6 +332,7 @@ bool LocalFileSystemTree::onFileListChanged(const EventArgs& args)
         current_node->setDirty(true);
     }
     fireFileSystemChangedEvent();
+    return true;
 }
 
 // Cloud Events Slots
@@ -363,6 +350,10 @@ bool LocalFileSystemTree::onCreateFileFinished(const EventArgs& args)
             if (file_target != 0)
             {
                 file_target->onCreateFileFinished(args);
+                if (file_create_args.succeeded)
+                {
+                    dynamic_cast<CloudFileSystemTree*>(ModelTree::getModelTree(MODEL_MICLOUD))->FetchQuota();
+                }
             }
         }
     }
@@ -468,6 +459,33 @@ bool LocalFileSystemTree::onUploadingProgress(const EventArgs& args)
         }
     }
     return true;
+}
+
+NodePtrs LocalFileSystemTree::getSelectedNodesInfo(int64_t& total_size, int& number, bool& exceed)
+{
+    total_size = 0;
+    number = 0;
+    exceed = false;
+    NodePtrs selected_nodes = root()->selectedLeaves();
+    if (!selected_nodes.empty())
+    {
+        for (size_t i = 0; i < selected_nodes.size(); i++)
+        {
+            FileNode* file_node = dynamic_cast<FileNode*>(selected_nodes[i].get());
+            if (file_node != 0)
+            {
+                total_size += file_node->fileSize();
+                number++;
+            }
+        }
+    }
+
+    int cloud_available = CloudFileSystemTree::available_;
+    if (cloud_available >= 0 && total_size > cloud_available)
+    {
+        exceed = true;
+    }
+    return selected_nodes;
 }
 
 }  // namespace document_model

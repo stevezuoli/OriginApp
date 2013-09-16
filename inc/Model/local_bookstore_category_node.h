@@ -20,26 +20,23 @@ public:
     virtual ~LocalBookStoreCategoryNode();
 
 public:
-    virtual NodePtrs& updateChildrenInfo();
-
-    virtual size_t nodePosition(NodePtr node);
-    virtual size_t nodePosition(const string &name);
-
-    virtual bool search(const StringList& filters, bool recursive, bool & stop);
+    virtual NodePtrs updateChildrenInfo();
     virtual string currentPath();
 
     bool isVirtualFolder() { return virtual_folder_; }
 
     virtual bool rename(const string& new_name, string& error_msg);
-    virtual bool remove(bool delete_local_files_if_possible);
+    virtual bool remove(bool delete_local_files_if_possible, bool exec_now = true);
+    virtual bool supportedCommands(std::vector<int>& command_ids, std::vector<int>& str_ids);
+    virtual bool satisfy(int status_filter);
 
     static bool testStatus(const string& path, int status_filter);
 
 protected:
-    virtual bool updateChildren(int status_filter);
+    virtual bool updateChildren();
 
 protected:
-    virtual void scan(const string& dir, NodePtrs &result, int status_filter = NODE_NONE, bool sort_list = true);
+    virtual void scan(const string& dir, NodePtrs &result);
 
 protected:
     bool virtual_folder_;

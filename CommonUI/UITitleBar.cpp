@@ -45,9 +45,8 @@ UITitleBar::UITitleBar()
     , m_iBatteryMaxLevel(10)
     , m_iDownLoadMaxStatus(10)
     , m_iAliasUsableWidth(-1)
-    , m_imgWifiIcon()
-    , m_imgDownLoadIcon()
     , m_iDownLoadStatus(0)
+    , m_isUploadTask(false)
 {
     m_bIsVisible = true;
     m_bIsTabStop = true;
@@ -64,6 +63,7 @@ UITitleBar::UITitleBar()
     m_imgBatteryIcon = ImageManager::GetImage(IMAGE_TOUCH_ICON_STATUS_BATTERY1);
     m_imgWifiIcon = ImageManager::GetImage(IMAGE_TOUCH_ICON_STATUS_WIFI);
     m_imgDownLoadIcon = ImageManager::GetImage(IMAGE_TITLEBAR_DOWNLOADSTATUSICON);
+    m_imgUpLoadIcon = ImageManager::GetImage(IMAGE_TITLEBAR_UPLOADSTATUSICON);
     m_imgLogo = ImageManager::GetImage(IMAGE_TOUCH_ICON_STATUS_DUOKAN);
 
     m_flingGestureListener.SetTitleBar(this);
@@ -237,6 +237,8 @@ void UITitleBar::UpdateDownLoadStauts()
         {
             m_strDownLoadingProgress.clear();
         }
+
+        m_isUploadTask = BookDownloadController::GetInstance()->IsCurrenTaskDirectionUploading();
     //}
     //else
     //{
@@ -470,18 +472,19 @@ HRESULT UITitleBar::Draw(DK_IMAGE drawingImg)
     }   
     
     // 下载进度显示
-    if (m_strDownLoadingProgress.length() > 0)
+    if (m_iDownLoadStatus && m_strDownLoadingProgress.length() > 0)
     {
         RTN_HR_IF_FAILED(grf.DrawStringUtf8(m_strDownLoadingProgress.c_str(), m_elementsXCoordinate[DownloadInfo], iStringTop + m_iTopOffset, pFont));
     }
 
     // 下载显示
-    if(m_imgDownLoadIcon && m_iDownLoadStatus)
+    if(m_imgDownLoadIcon && m_imgUpLoadIcon && m_iDownLoadStatus)
     {
         const int iDownLoadWidth = m_imgDownLoadIcon->bmWidth;
         const int iDownLoadHeight = (m_imgDownLoadIcon->bmHeight) /m_iDownLoadMaxStatus;
         const int iDownLoadTop    = (m_iHeight > iDownLoadHeight) ? ((m_iHeight - iDownLoadHeight) >> 1) : 0; 
-        RTN_HR_IF_FAILED(grf.DrawImageBlend(m_imgDownLoadIcon.Get(),
+        SPtr<ITpImage> icon = m_isUploadTask ? m_imgUpLoadIcon : m_imgDownLoadIcon;
+        RTN_HR_IF_FAILED(grf.DrawImageBlend(icon.Get(),
             m_elementsXCoordinate[DownloadImage],
             iDownLoadTop,
             0,

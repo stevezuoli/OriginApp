@@ -160,7 +160,9 @@ SOURCES := \
     CommonUI/IUINodeView.cpp \
     CommonUI/UINodeViewOfLocalFile.cpp \
     CommonUI/UINodeViewOfLocalDir.cpp \
-    CommonUI/UINodeViewOfLocalfileUpload.cpp \
+    CommonUI/UINodeViewCloudFile.cpp \
+    CommonUI/UINodeViewCloudFolder.cpp \
+    CommonUI/UIButtonGroupWithFocusedLine.cpp \
     DK91Search/Curl_Post.cpp \
     DK91Search/DK_XmlPrase.cpp \
     DKXManager/BaseType/CT_RefPos.cpp \
@@ -182,6 +184,7 @@ SOURCES := \
     DownloadManager/DownloadReleaseTaskImpl.cpp \
     DownloadManager/DownloadScreenSaverTaskImpl.cpp \
     DownloadManager/DownloadTask.cpp \
+    DownloadManager/MiCloudRequestTask.cpp \
     DownloadManager/DownloadTaskFactory.cpp \
     DownloadManager/DownloadMiCloudFileTask.cpp \
     DownloadManager/IDownloadTask.cpp \
@@ -332,6 +335,8 @@ SOURCES := \
     PersonalUI/UIBookStoreListBoxOfMessages.cpp \
     PersonalUI/UIPersonalSystemMessageItem.cpp \
     PersonalUI/UIPersonalCloudUploadPage.cpp \
+    PersonalUI/UIPersonalCloudBookShelfPage.cpp \
+    PersonalUI/UIPersonalCloudDownloadPage.cpp \
     PowerManager/PowerManager.cpp \
     SQMUploader/SQMUploader.cpp \
     ScreenSaverUpdate/ScreenSaverItem.cpp \
@@ -368,7 +373,6 @@ SOURCES := \
     TouchAppUI/UIDictionaryDialog.cpp \
     TouchAppUI/UIDictionarySetDialog.cpp \
     TouchAppUI/UIModelView.cpp \
-    TouchAppUI/UINodeView.cpp \
     TouchAppUI/UIDownloadPage.cpp \
     TouchAppUI/UIFrontLightManager.cpp \
     TouchAppUI/UIHomePage.cpp \

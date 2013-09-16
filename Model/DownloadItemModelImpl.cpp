@@ -78,5 +78,27 @@ bool CDownloadItemModelImpl::CheckTaskIsExist()
 
 }
 
+bool CDownloadItemModelImpl::CanResume()
+{
+    IDownloader *_pDownloadManager = DownloaderImpl::GetInstance();
+    if (_pDownloadManager)
+    {
+        return _pDownloadManager->CanTaskResume(m_TaskUrl);
+    }
+
+    return false;
+}
+
+bool CDownloadItemModelImpl::IsUploadTask()
+{
+    IDownloader *_pDownloadManager = DownloaderImpl::GetInstance();
+    if (_pDownloadManager)
+    {
+        return _pDownloadManager->IsUploadTask(m_TaskUrl);
+    }
+
+    return false;
+}
+
 
 

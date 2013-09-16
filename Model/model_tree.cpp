@@ -8,6 +8,8 @@ namespace document_model {
 
 const char* ModelTree::EventFileSystemChanged = "EventFileSystemChanged";
 const char* ModelTree::EventCoverLoaded = "EventCoverLoaded";
+const char* ModelTree::EventCurrentNodeChanged = "EventCurrentNodeChanged";
+const char* ModelTree::EventQuotaRetrieved = "EventQuotaRetrieved";
 
 ModelTree::ModelTree()
     : current_node_(0)
@@ -38,6 +40,11 @@ ModelTree* ModelTree::getModelTree(ModelType tree_type)
         break;
     }
     return 0;
+}
+
+NodePtr ModelTree::getNodeById(const string& id)
+{
+    return NodePtr();
 }
 
 };

@@ -41,7 +41,7 @@ BookStoreDesktopNode::~BookStoreDesktopNode()
     DeletePtrContainer(&children_);
 }
 
-NodePtrs& BookStoreDesktopNode::updateChildrenInfo()
+NodePtrs BookStoreDesktopNode::updateChildrenInfo()
 {
     for (NodePtrsIter iter = children_.begin(); iter != children_.end(); ++iter)
     {
@@ -51,8 +51,7 @@ NodePtrs& BookStoreDesktopNode::updateChildrenInfo()
             dynamic_cast<FileNode *>(*iter)->update();
         }
     }
-    sort(children_, by_field_, sort_order_);
-    return children_;
+    return filterChildren(children_);
 }
 
 void BookStoreDesktopNode::search(const string& keyword, int status_filter, int start, int num)

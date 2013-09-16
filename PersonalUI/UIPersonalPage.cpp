@@ -13,10 +13,10 @@
 #include "BookStoreUI/UIBookStorePersonCenteredPage.h"
 #include "PersonalUI/UIPersonalCommentsPage.h"
 #include "PersonalUI/UIPersonalMessagesPage.h"
-//#include "PersonalUI/UIPersonalPushedMessagesPage.h"
 #include "PersonalUI/UIPersonalFavouritesPage.h"
 #include "PersonalUI/UIPersonalNotesSummaryPage.h"
 #include "PersonalUI/PushedMessagesManager.h"
+#include "PersonalUI/UIPersonalCloudBookShelfPage.h"
 #include "BookStore/BookStoreOrderManager.h"
 #include "CommonUI/UIForgetPasswordDlg.h"
 
@@ -141,6 +141,9 @@ void UIPersonalPage::OnCommand(DWORD dwCmdId, UIWindow * pSender, DWORD dwParam)
         case ID_BTN_PERSONAL_FAVOURITE:
             OnPersonalFavouriteClick();
             break;
+        case ID_BTN_PERSONAL_CLOUDBOOKSHELF:
+            OnCloudShelfClick();
+            break;
         default:
             break;
     }
@@ -197,6 +200,19 @@ void UIPersonalPage::OnPersonalFavouriteClick()
     }
 }
 
+void UIPersonalPage::OnCloudShelfClick()
+{
+    if (UIUtility::CheckAndReloginXiaomi())
+    {
+        UIPersonalCloudBookShelfPage* cloudPage = new UIPersonalCloudBookShelfPage();
+        if (cloudPage)
+        {
+            cloudPage->MoveWindow(0, 0, CDisplay::GetDisplay()->GetScreenWidth(), CDisplay::GetDisplay()->GetScreenHeight());
+            CPageNavigator::Goto(cloudPage);
+        }
+    }
+}
+
 void UIPersonalPage::OnPersonalKeyClick()
 {
 }
@@ -250,9 +266,9 @@ void UIPersonalPage::InitUI()
     m_btnLogin.Initialize(ID_BTN_PERSONAL_LOGIN, StringManager::GetPCSTRById(ACCOUNT_LOGIN), KEY_RESERVED, GetWindowFontSize(FontSize20Index), ImageManager::GetImage(IMAGE_BUTTON_HEAD_24));
 #endif
 
-    SOURCESTRINGID titelId[s_itemCount] = {PERSONAL_BOOK, PERSONAL_COMMENTSSQUARE, PERSONAL_EXPERIENCE, PERSONAL_MESSAGE, PERSONAL_NOTES, PERSONAL_FAVOURITES};
-    SOURCESTRINGID abustructId[s_itemCount] = {PERSONAL_BOOK_SUBTITLE, PERSONAL_COMMENT_SUBTITLE, PERSONAL_EXPERIENCE_SUBTITLE, PERSONAL_MESSAGE_SUBTITLE, PERSONAL_NOTES_SUBTITLE, PERSONAL_FAVOURITES_SUBTITLE};
-    DWORD wdItemId[s_itemCount] = {ID_BTN_PERSONAL_BOOK, ID_BTN_PERSONAL_COMMENT_SQUARE, ID_BTN_PERSONAL_EXPERIENCE, ID_BTN_PERSONAL_MESSAGE, ID_BTN_PERSONAL_NOTES, ID_BTN_PERSONAL_FAVOURITE};
+    SOURCESTRINGID titelId[s_itemCount] = {PERSONAL_BOOK, PERSONAL_COMMENTSSQUARE, PERSONAL_EXPERIENCE, PERSONAL_MESSAGE, PERSONAL_NOTES, PERSONAL_FAVOURITES, PERSONAL_CLOUDBOOKSHELF};
+    SOURCESTRINGID abustructId[s_itemCount] = {PERSONAL_BOOK_SUBTITLE, PERSONAL_COMMENT_SUBTITLE, PERSONAL_EXPERIENCE_SUBTITLE, PERSONAL_MESSAGE_SUBTITLE, PERSONAL_NOTES_SUBTITLE, PERSONAL_FAVOURITES_SUBTITLE, PERSONAL_CLOUDBOOKSHELF_SUBTITLE};
+    DWORD wdItemId[s_itemCount] = {ID_BTN_PERSONAL_BOOK, ID_BTN_PERSONAL_COMMENT_SQUARE, ID_BTN_PERSONAL_EXPERIENCE, ID_BTN_PERSONAL_MESSAGE, ID_BTN_PERSONAL_NOTES, ID_BTN_PERSONAL_FAVOURITE, ID_BTN_PERSONAL_CLOUDBOOKSHELF};
     
     for(int i = 0; i < s_itemCount; i++)
     {
@@ -303,8 +319,8 @@ void UIPersonalPage::InitUI()
         buttonSizer->Add(&m_btnLogin, UISizerFlags().Align(dkALIGN_CENTRE_VERTICAL));
         buttonSizer->AddStretchSpacer();
         buttonSizer->SetMinHeight(GetWindowMetrics(UIPersonalPageButtonHeightIndex));
-
-        const int loginSizerHeight = GetWindowMetrics(UIPersonalPageUserInfoHeightIndex);
+        
+        const int loginSizerHeight = GetWindowMetrics(UIPixelValue270Index);
         m_loginSizer->AddStretchSpacer();
         m_loginSizer->Add(&m_loginTip, UISizerFlags(1).Expand().Align(dkALIGN_CENTER));
         m_loginSizer->AddStretchSpacer();

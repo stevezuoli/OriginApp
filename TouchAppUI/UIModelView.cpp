@@ -78,16 +78,18 @@ void InitCoverMetrics()
 UIModelView::UIModelView(BookListUsage usage, ModelTree * model_tree)
     : UICompoundListBox(NULL, IDSTATIC)
     , m_bIsDisposed(false)
-    , items_per_page_(0)
+    , items_per_page_(9)
     , current_page_(0)
     , page_count_(0)
     , item_count_(0)
-    , display_mode_(BLM_LIST)
-    , status_filter_(NODE_NONE)
-    , m_usage(usage)
     , model_tree_(model_tree)
     , m_needClearItem(true)
 {
+    if (model_tree != 0)
+    {
+        view_ctx_.sort_field_ = model_tree->sortField();
+    }
+    view_ctx_.book_usage_ = usage;
     InitCoverMetrics();
     BookCoverLoader::GetInstance()->SetMinimumCoverSize(COVER_IMAGE_WIDTH, COVER_IMAGE_HEIGHT);
 
@@ -108,6 +110,12 @@ UIModelView::UIModelView(BookListUsage usage, ModelTree * model_tree)
         *root_node,
         std::tr1::bind(
             std::tr1::mem_fn(&UIModelView::onChildrenNodesReady),
+            this,
+            std::tr1::placeholders::_1));
+    SubscribeMessageEvent(ModelTree::EventCurrentNodeChanged,
+        *model_tree_,
+        std::tr1::bind(
+            std::tr1::mem_fn(&UIModelView::onCurrentNodeChanged),
             this,
             std::tr1::placeholders::_1));
 }
@@ -137,7 +145,7 @@ UIModelView::~UIModelView()
     item_count_ = 0;
 }
 
-IUINodeView* UIModelView::GetSelectedUIItem()
+IUINodeView* UIModelView::selectedNodeView()
 {
 	if (m_iSelectedItem < 0 || m_iSelectedItem >= m_iVisibleItemNum)
 	{
@@ -146,117 +154,23 @@ IUINodeView* UIModelView::GetSelectedUIItem()
 	return node_views_.at(m_iSelectedItem);
 }
 
+IUINodeView* UIModelView::nodeView(const string& node_path, int& index)
+{
+    for (size_t i = 0; i < node_views_.size(); i++)
+    {
+        IUINodeView* node_view = node_views_.at(i);
+        if (node_view != 0 && node_view->data()->absolutePath() == node_path)
+        {
+            index = i;
+            return node_view;
+        }
+    }
+    return 0;
+}
+
 BOOL UIModelView::OnKeyPress(INT32 iKeyCode)
 {
     return UICompoundListBox::OnKeyPress(iKeyCode);
-}
-
-bool UIModelView::OpenBookByNode(NodePtr node, int select_item)
-{
-    FileNode* file_node = dynamic_cast<FileNode*>(node.get());
-    if (file_node == 0)
-    {
-        return false;
-    }
-
-    IUINodeView* node_view = node_views_.at(select_item);
-    string filePath = node->absolutePath();
-    int file_id = file_node->fileInfo()->GetFileID();
-        
-    BookOpenManager::GetInstance()->Initialize(GetParent(), file_id, 10, m_iTop + select_item * GetItemHeight() + 10);
-    node_view->SetIsLoading(true);
-    node_view->UpdateWindow();
-
-    SNativeMessage msg;
-    msg.iType = KMessageOpenBook;
-    CNativeThread::Send(msg);
-    return true;
-}
-
-/// Upload single book
-bool UIModelView::uploadBookByNode(NodePtr node, int select_item)
-{
-    FileNode* file_node = dynamic_cast<FileNode*>(node.get());
-    if (file_node == 0)
-    {
-        return false;
-    }
-
-    file_node->setSelected(true);
-    file_node->upload();
-    IUINodeView* node_view = node_views_.at(select_item);
-    node_view->SetIsLoading(true);
-    node_view->UpdateWindow();
-    return true;
-}
-
-void UIModelView::OnNodeClicked(NodePtr node, int select_item)
-{
-    if (NULL == node)
-    {
-        return ;
-    }
-
-    NodeType type = node->type();
-    switch (type)
-    {
-    case NODE_TYPE_CATEGORY_LOCAL_BOOK_STORE:
-    case NODE_TYPE_CATEGORY_LOCAL_PUSHED:
-    case NODE_TYPE_CATEGORY_LOCAL_FOLDER:
-    case NODE_TYPE_CATEGORY_VIRTUAL_BOOK_STORE:
-    case NODE_TYPE_MICLOUD_CATEGORY:
-        gotoNode(node);
-        break;
-    case NODE_TYPE_FILE_LOCAL_DOCUMENT:
-    case NODE_TYPE_FILE_LOCAL_BOOK_STORE_BOOK:
-        if (m_usage & BLU_SELECT)
-        {
-            IUINodeView* node_view = node_views_.at(select_item);
-            if (node_view != 0 )
-            {
-                node_view->SetSelected(!node_view->IsSelected());
-                node_view->UpdateWindow();
-            }
-        }
-        else
-        {
-            OpenBookByNode(node, select_item);
-        }
-        break;
-    case NODE_TYPE_MICLOUD_BOOK:
-        // TODO. remove this testing code
-        {
-            CloudFileNode* cloud_node = dynamic_cast<CloudFileNode*>(node.get());
-            if (cloud_node->localFileInfo() != 0)
-            {
-                CloudFileNode* cloud_file_node = dynamic_cast<CloudFileNode*>(node.get());
-                if (cloud_file_node == 0)
-                {
-                    break;;
-                }
-
-                UINodeView* node_view = node_views_.at(select_item);
-                string filePath = node->absolutePath();
-                int file_id = cloud_file_node->localFileInfo()->GetFileID();
-        
-                BookOpenManager::GetInstance()->Initialize(GetParent(), file_id, 10, m_iTop + select_item * GetItemHeight() + 10);
-                node_view->SetIsLoading(true);
-                node_view->UpdateWindow();
-
-                SNativeMessage msg;
-                msg.iType = KMessageOpenBook;
-                CNativeThread::Send(msg);
-            }
-            else
-            {
-                node->download();
-            }
-            //node->remove(true);
-        }
-        break;
-    default:
-        break;
-    }
 }
 
 bool UIModelView::onChildrenNodesReady(const EventArgs& args)
@@ -271,11 +185,12 @@ bool UIModelView::onChildrenNodesReady(const EventArgs& args)
 
     // get children without rescanning.
     RetrieveChildrenResult result = RETRIEVE_FAILED;
-    NodePtrs& children = childrenNodes(false, false, result);
+    const int itemsPerPage = GetItemsPerPage();
+    NodePtrs children = childrenNodes(false, false, result);
     if (result == RETRIEVE_DONE)
     {
         item_count_ = children.size();
-        page_count_ = (item_count_ + items_per_page_ - 1) / items_per_page_;
+        page_count_ = (item_count_ + itemsPerPage - 1) / itemsPerPage;
         if(page_count_ == 0)
         {
             page_count_ = 1;
@@ -293,6 +208,64 @@ bool UIModelView::onChildrenNodesReady(const EventArgs& args)
     return true;
 }
 
+bool UIModelView::onCurrentNodeChanged(const EventArgs& args)
+{
+    // TODO. More checking is needed?
+    if (!IsDisplay())
+    {
+        return false;
+    }
+    //initNodeViews(!view_ctx_.isSelectMode());
+    initNodeViews(false);
+    return true;
+}
+
+bool UIModelView::onNodeSelected(const EventArgs& args)
+{
+    ChildSelectChangedArgs children_selected_args(GetSelectedBookCount()); 
+    FireEvent(EventChildSelectChanged, children_selected_args);
+
+    for (size_t i = 0; i < node_views_.size(); i++)
+    {
+        IUINodeView* node_view = node_views_.at(i);
+        if (node_view != 0 && node_view->IsDisplay())
+        {
+            node_view->updateSelectedStatus();
+        }
+    }
+
+    return true;
+}
+
+bool UIModelView::onNodeOpenBook(const EventArgs& args)
+{
+    const NodeOpenBookArgs& open_book_args = dynamic_cast<const NodeOpenBookArgs&>(args);
+    int index = 0;
+    IUINodeView* node_view = nodeView(open_book_args.node_path, index);
+    if (node_view != 0)
+    {
+        NodePtr node = node_view->data();
+        int file_id = -1;
+        if (node->type() == NODE_TYPE_FILE_LOCAL_DOCUMENT ||
+            node->type() == NODE_TYPE_FILE_LOCAL_BOOK_STORE_BOOK)
+        {
+            FileNode* file_node = dynamic_cast<FileNode*>(node.get());
+            file_id = file_node->fileInfo()->GetFileID();
+        }
+        else if (node->type() == NODE_TYPE_MICLOUD_BOOK)
+        {
+            CloudFileNode* cloud_file_node = dynamic_cast<CloudFileNode*>(node.get());
+            file_id = cloud_file_node->localFileInfo()->GetFileID();
+        }
+        if (file_id >= 0)
+        {
+            BookOpenManager::GetInstance()->Initialize(GetParent(), file_id, 10, m_iTop + index * GetItemHeight() + 10);
+            return true;
+        }
+    }
+    return false;
+}
+
 bool UIModelView::OnItemClick(INT32 iSelectedItem)
 {
     DebugPrintf(DLC_UIModelView, "%s, %d, %s, %s start", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
@@ -302,60 +275,52 @@ bool UIModelView::OnItemClick(INT32 iSelectedItem)
         return false;
     }
 
-    IUINodeView* node_view = node_views_.at(iSelectedItem);
-    if (node_view != 0 )
+    UICompoundListBox::OnItemClick(iSelectedItem);
+    IUINodeView* node_view = selectedNodeView();
+    if (node_view != 0)
     {
-        if (BLU_SELECT == m_usage && (rootNodeDisplayMode() != BY_FOLDER))
-        {
-            node_view->SetSelected(!node_view->IsSelected());
-            node_view->UpdateWindow();
-            ChildSelectChangedArgs args(GetSelectedBookCount()); 
-            FireEvent(EventChildSelectChanged, args);
-            return true;
-        }
-        node_view->SetHighLight(true);
-    }
-
-    //CDisplay::GetDisplay()->SetFullRepaint(true);
-    //current_page_Stack.push_back(current_page_);
-    RetrieveChildrenResult result = RETRIEVE_FAILED;
-    NodePtrs& children = childrenNodes(false, false, result);
-    if (result == RETRIEVE_DONE)
-    {
-        int itemNo = current_page_ * items_per_page_+ iSelectedItem;
-        NodePtr node = children[itemNo];
-        OnNodeClicked(node, iSelectedItem);
+        node_view->handleClicked();
     }
     return true;
 }
 
-int UIModelView::GetItemPerPageByModelDisplayMode(ModelDisplayMode mode)
+BOOL UIModelView::SetItemHeight(INT32 _iItemHeight)
 {
-    switch (mode)
+    if (UICompoundListBox::SetItemHeight(_iItemHeight))
+    {
+        m_needClearItem = true;
+        return true;
+    }
+    return false;
+}
+
+int UIModelView::GetItemsPerPage() const
+{
+    switch (view_ctx_.layout_mode_)
     {
         case BLM_LIST:
-            return 9;
+            return items_per_page_;
         case BLM_ICON:
         default:
             return ICON_COLS * ICON_ROWS;
     }
 }
 
-void UIModelView::InitListItem()
+void UIModelView::initNodeViews(bool rescan)
 {
     DebugPrintf(DLC_UIModelView, "%s, %d, %s, %s start", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
     m_needClearItem = true;
-    items_per_page_ = GetItemPerPageByModelDisplayMode(display_mode_);
+    const int itemsPerPage = GetItemsPerPage();
 
     // Rescan the children from local filesystem or cloud
     RetrieveChildrenResult result = RETRIEVE_FAILED;
 
     // Update the children but do not rescan. Make sure the children will only be scanned once if they are dirty.
-    NodePtrs& children = childrenNodes(false, true, result);
+    NodePtrs children = childrenNodes(rescan, false, result);
     if (result == RETRIEVE_DONE)
     {
         item_count_ = children.size();
-        page_count_ = (item_count_ + items_per_page_ - 1) / items_per_page_;
+        page_count_ = (itemsPerPage > 0) ? ((item_count_ + itemsPerPage - 1) / itemsPerPage) : 1;
         if(page_count_ == 0)
         {
             page_count_ = 1;
@@ -391,13 +356,13 @@ string UIModelView::currentNodePath()
 
 bool UIModelView::UpdateListItem()
 {
+    //m_needClearItem = (rootNodeDisplayMode() != BY_SORT);
     if (m_needClearItem)
     {
         ClearListItem();
     }
 
-    m_needClearItem = (rootNodeDisplayMode() != BY_SORT);
-    switch (display_mode_)
+    switch (view_ctx_.layout_mode_)
     {
         case BLM_LIST:
             return UpdateListItemForList();
@@ -420,17 +385,18 @@ bool UIModelView::UpdateListItemForIcon()
     DebugPrintf(DLC_GUI_VERBOSE, "IUINodeView::UpdateListItemForIcon, %d, %d",
                 horzSpacing, vertSpacing);
 
-    size_t viewItemIndex = 0;
-    size_t startIndex = current_page_ * items_per_page_;
-    size_t endIndex = std::min(static_cast<int>(startIndex) + items_per_page_, item_count_);
+    int viewItemIndex = 0;
+    const int itemsPerPage = GetItemsPerPage();
+    int startIndex = current_page_ * itemsPerPage;
+    int endIndex = std::min(startIndex + itemsPerPage, item_count_);
 
-    IUINodeView* pItem = 0;
+    IUINodeView* node_view = 0;
     RetrieveChildrenResult result = RETRIEVE_FAILED;
-    NodePtrs& children = childrenNodes(false, false, result);
-    for (size_t row = 0; row < ICON_ROWS; ++row)
+    NodePtrs children = childrenNodes(false, false, result);
+    for (int row = 0; row < (int)ICON_ROWS; ++row)
     {
         UISizer* rowSizer = NULL;
-        if (row >= m_rowSizers.size())
+        if (row >= (int)m_rowSizers.size())
         {
             m_rowSizers.push_back(new UIBoxSizer(dkHORIZONTAL));
             rowSizer = m_rowSizers.back();
@@ -449,28 +415,32 @@ bool UIModelView::UpdateListItemForIcon()
         
         for (size_t col = 0; col < ICON_COLS && startIndex < endIndex; ++col, ++viewItemIndex)
         {
-            if (children[startIndex])
+            if (startIndex < (int)children.size() && children[startIndex] != 0)
             {
-                if (viewItemIndex == node_views_.size())
+                if (viewItemIndex == (int)node_views_.size())
                 {
-                    pItem = CreateNodeView(this, model_tree_, children[startIndex], m_usage, COVER_ICON_WIDTH, COVER_ICON_HEIGHT);
-                    node_views_.push_back(pItem);
+                    node_view = IUINodeView::createNodeView(this,
+                        model_tree_,
+                        children[startIndex],
+                        view_ctx_.book_usage_,
+                        COVER_ICON_WIDTH,
+                        COVER_ICON_HEIGHT);
+                    node_views_.push_back(node_view);
                 }
-                else if (viewItemIndex < node_views_.size())
+                else if (viewItemIndex < (int)node_views_.size())
                 {
-                    pItem = node_views_[viewItemIndex];
+                    node_view = node_views_[viewItemIndex];
                 }
                 else
                 {
                     continue;
                 }
-                pItem->SetMinSize(iconWidth, iconHeight);
-                pItem->SetVisible(true);
-                pItem->SetSelectMode(m_usage == BLU_CLOUD_UPLOAD);
-                pItem->SetModelDisplayMode(display_mode_);
-                pItem->SetNode(children[startIndex]);
-                pItem->SetSelected(children[startIndex]->selected());
-                rowSizer->Add(pItem);
+                node_view->SetMinSize(iconWidth, iconHeight);
+                node_view->SetVisible(true);
+                node_view->SetModelDisplayMode(view_ctx_.layout_mode_);
+                node_view->SetNode(children[startIndex]);
+
+                rowSizer->Add(node_view);
                 rowSizer->AddSpacer(horzSpacing);
             }
             startIndex++;
@@ -484,9 +454,9 @@ bool UIModelView::UpdateListItemForIcon()
     int iUIItemNum = node_views_.size();
     for (int i = m_iVisibleItemNum; i < iUIItemNum; i++)
     {
-        pItem = node_views_.at(i);
-        if (pItem)
-            pItem->SetVisible(false);
+        node_view = node_views_.at(i);
+        if (node_view != 0)
+            node_view->SetVisible(false);
     }
     return true;
 }
@@ -494,32 +464,52 @@ bool UIModelView::UpdateListItemForIcon()
 bool UIModelView::UpdateListItemForList()
 {
     size_t iIndex = 0;
-    int iNextPageIndex = (current_page_ + 1) == page_count_ ? item_count_ : (current_page_ + 1) * items_per_page_;
-    int iLeftMargin = GetLeftMargin();
-    int iHeight = GetItemHeight();
-    int iWidth  = GetItemWidth() - (iLeftMargin << 1);
+    const int itemsPerPage = GetItemsPerPage();
+    const int iLeftMargin = GetLeftMargin();
+    const int iHeight = GetItemHeight();
+    const int iWidth  = GetItemWidth() - (iLeftMargin << 1);
 
-    IUINodeView* pItem = 0;
+    IUINodeView* node_view = 0;
     RetrieveChildrenResult result = RETRIEVE_FAILED;
-    NodePtrs& children = childrenNodes(false, false, result);
-    if (children.size() <= 0)
+    NodePtrs children = childrenNodes(false, false, result);
+    if (result != RETRIEVE_FAILED)
     {
-        return false;
+        item_count_ = children.size();
+        page_count_ = (itemsPerPage > 0) ? ((item_count_ + itemsPerPage - 1) / itemsPerPage) : 1;
+        if(page_count_ == 0)
+        {
+            page_count_ = 1;
+        }
+        current_page_ = (current_page_ >= (int)page_count_) ? ((int)page_count_) - 1 : current_page_;
     }
-    
-    for (int i = current_page_ * items_per_page_; i < iNextPageIndex; i++)
+
+    int startIndex = current_page_ * itemsPerPage;
+    int endIndex = std::min(startIndex + itemsPerPage, item_count_);
+
+    for (int i = startIndex; i < endIndex; i++)
     {
-        if (NULL == children[i])
+        if (i >= children.size())
+        {
+            break;
+        }
+        if (0 == children[i])
         {
             continue;
         }
+
+        NodePtr child = children[i];
         if (iIndex == node_views_.size())
         {
-            pItem = CreateNodeView(this, model_tree_, children[i], m_usage, COVER_ICON_WIDTH, COVER_ICON_HEIGHT);
-            if(pItem)
+            node_view = IUINodeView::createNodeView(this,
+                model_tree_,
+                child,
+                view_ctx_.book_usage_,
+                COVER_ICON_WIDTH,
+                COVER_ICON_HEIGHT);
+            if(node_view != 0)
             {
                 //pItem->MoveWindow(iLeftMargin, iIndex * (iHeight + m_iItemSpacing), iWidth, iHeight);
-                node_views_.push_back(pItem);
+                node_views_.push_back(node_view);
             }
             else
             {
@@ -528,22 +518,20 @@ bool UIModelView::UpdateListItemForList()
         }
         else if (iIndex < node_views_.size())
         {
-            pItem = node_views_[iIndex];
+            node_view = node_views_[iIndex];
         }
         else
         {
             continue;
         }
-        if (m_listSizer && m_listSizer->GetItem(pItem) == NULL)
+        if (m_listSizer && m_listSizer->GetItem(node_view) == NULL)
         {
-            m_listSizer->Add(pItem, UISizerFlags().Expand().Border(dkLEFT | dkRIGHT, iLeftMargin));
+            m_listSizer->Add(node_view, UISizerFlags().Expand().Border(dkLEFT | dkRIGHT, iLeftMargin));
         }
-        pItem->SetMinSize(dkSize(iWidth, iHeight));
-        pItem->SetSelectMode(m_usage == BLU_CLOUD_UPLOAD);
-        pItem->SetModelDisplayMode(display_mode_);
-        pItem->SetNode(children[i]);
-        pItem->SetSelected(children[i]->selected());
-        pItem->SetVisible(TRUE);
+        node_view->SetMinSize(dkSize(iWidth, iHeight));
+        node_view->SetModelDisplayMode(view_ctx_.layout_mode_);
+        node_view->SetNode(child);
+        node_view->SetVisible(TRUE);
         iIndex++;
     }
 
@@ -554,11 +542,29 @@ bool UIModelView::UpdateListItemForList()
     int iUIItemNum = node_views_.size();
     for (int i = m_iVisibleItemNum; i < iUIItemNum; i++)
     {
-        pItem = node_views_.at(i);
-        if (pItem)
-            pItem->SetVisible(false);
+        node_view = node_views_.at(i);
+        if (node_view)
+            node_view->SetVisible(false);
     }
     return true;
+}
+
+void UIModelView::updateModelByContext(ModelTree* model_tree)
+{
+    model_tree->setDisplayMode(view_ctx_.display_mode_);
+    model_tree->setSortCriteria(view_ctx_.sort_field_, view_ctx_.sort_order_);
+
+    // TODO. add more restore options
+}
+
+void UIModelView::setBookUsage(BookListUsage usage)
+{
+    if (view_ctx_.book_usage_ != usage)
+    {
+        view_ctx_.book_usage_ = usage;
+        UpdateListItem();
+        Layout();
+    }
 }
 
 bool UIModelView::PageDown()
@@ -633,7 +639,7 @@ bool UIModelView::ShouldShowContextMenuForItem(NodePtr node) const
 
 BOOL UIModelView::HandleLongTap(INT32 selectedItem)
 {
-    if (m_usage != BLU_BROWSE)
+    if (view_ctx_.book_usage_ != BLU_BROWSE)
     {
         // in select mode, doesn't support context menu
         return false;
@@ -643,275 +649,53 @@ BOOL UIModelView::HandleLongTap(INT32 selectedItem)
         return false;
     }
 
+    UICompoundListBox::OnItemClick(selectedItem);
     NodePtr node = selectedNode(selectedItem);
-    bool showMenu = ShouldShowContextMenuForItem(node);;
-
-    if (showMenu)
+    if (ShouldShowContextMenuForItem(node))
     {
-    	IUINodeView* node_view = node_views_.at(selectedItem);
+    	IUINodeView* node_view = selectedNodeView();
 		if (node_view)
         {
             node_view->SetHighLight(true);
 	        m_iSelectedItem = selectedItem;
-	        UICompoundListBox::OnItemClick(selectedItem);
-	        LongTap();
-			node_view->SetHighLight(false);
-		}
+	          
+            NodePtr node = node_view->data();
+            CDisplay* pDisplay = CDisplay::GetDisplay();
+            std::vector<int> command_ids;
+            std::vector<int> str_ids;
+            if (node->supportedCommands(command_ids, str_ids))
+            {
+		        UIBookMenuDlg dlgMenu(this, command_ids, str_ids);
+		        int dlgWidth = dlgMenu.GetWidth();
+		        int dlgHeight = dlgMenu.GetHeight();
+		        dlgMenu.MoveWindow((pDisplay->GetScreenWidth() - dlgWidth)/2,
+                                   (pDisplay->GetScreenHeight() - dlgHeight)/2 - m_iTop,
+                                   dlgWidth,
+                                   dlgHeight);
+                if (dlgMenu.DoModal() == IDOK)
+                {
+                    node_view->execute(dlgMenu.GetCommandId());
+                }
+		    }
+            node_view->SetHighLight(false);
+        }
     }
     return true;
-}
-
-bool UIModelView::LongTap()
-{
-    DebugPrintf(DLC_UIModelView, "%s, %d, %s, %s start", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
-    NodePtr node = firstSelectedNode();
-    if (node)
-    {
-    	CDisplay* pDisplay = CDisplay::GetDisplay();
-        UIBookMenuDlg::BookMenuType type = UIBookMenuDlg::BMT_BOOK;
-        if(node->type() == NODE_TYPE_CATEGORY_LOCAL_FOLDER)
-		{
-            type = UIBookMenuDlg::BMT_FOLDER;
-		}
-        else if (node->type() == NODE_TYPE_CATEGORY_VIRTUAL_BOOK_STORE)
-        {
-            type = UIBookMenuDlg::BMT_DUOKAN_CATEGORY;
-        }
-        else
-        {
-            FileNode* file_node = dynamic_cast<FileNode*>(node.get());
-            if (file_node != 0 && file_node->isDuokanBook())
-            {
-                type = UIBookMenuDlg::BMT_DUOKAN_BOOK;
-            }
-        }
-		UIBookMenuDlg dlgMenu(this, type);
-		int dlgWidth = dlgMenu.GetWidth();
-		int dlgHeight = dlgMenu.GetHeight();
-		dlgMenu.MoveWindow((pDisplay->GetScreenWidth() - dlgWidth)/2, (pDisplay->GetScreenHeight() - dlgHeight)/2 - m_iTop, dlgWidth, dlgHeight);
-        if (dlgMenu.DoModal() == IDOK)
-        {
-            OnCommand(dlgMenu.GetCommandId(), NULL, 0);
-        }
-    }
-    DebugPrintf(DLC_UIModelView, "%s, %d, %s, %s end", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
-    return true;
-}
-
-void UIModelView::OnRenameFolder()
-{
-    if (m_pParent)
-    {
-        NodePtr node = firstSelectedNode();
-        if(node != 0)
-        {
-            UIAddCategoryDlg dlg(this, UIAddCategoryDlg::CAT_RENAME);
-            if (IDOK == dlg.DoModal())
-            {
-                //string sPath(pSelectedItem->GetItemPath());
-                string path = node->absolutePath();
-                if (!path.empty())
-                {
-                    //sPath.append("/");
-                    //sPath.append(pSelectedItem->GetItemName());
-                    std::string newName = dlg.GetInputText();
-                    std::string errorMessage;
-                    if (!RenameDirectoryOnUI(node, newName, errorMessage))
-                    {
-                        UIMessageBox msgBox(this,
-                            errorMessage.c_str(),
-                            MB_OK);
-                        msgBox.DoModal();
-                    }
-                }
-            }
-        }
-    }
-}
-
-void UIModelView::OnDelete()
-{
-    DebugPrintf(DLC_UIBOOKLISTBOX, "%s, %d, %s, %s ID_BTN_DELETE", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
-    if (m_pParent)
-    {
-        NodePtr node = firstSelectedNode();
-        if(node != 0)
-        {
-            bool is_folder = (node->type() == NODE_TYPE_CATEGORY_VIRTUAL_BOOK_STORE ||
-                              node->type() == NODE_TYPE_CATEGORY_LOCAL_FOLDER);
-            UIMessageBox messagebox(m_pParent,
-                StringManager::GetStringById(is_folder ? SURE_DELETE_DIRECTORY : SURE_DELETE_BOOK),
-                MB_OK | MB_CANCEL);
-            if(MB_OK == messagebox.DoModal())
-            {
-                /*string sPath(pSelectedItem->GetItemPath());
-                sPath.append("/");
-                sPath.append(pSelectedItem->GetItemName());*/
-                if(!is_folder)
-                {
-                    DeleteFileOnUI(node);
-                }
-                else
-                {
-                    DeleteDirectoryOnUI(node);
-                }
-            }
-        }
-        //Layout();
-        //m_pParent->UpdateWindow();
-    }
 }
 
 void UIModelView::OnCommand(DWORD _dwCmdId, UIWindow* _pSender, DWORD _dwParam)
 {
-    DebugPrintf(DLC_UIBOOKLISTBOX, "%s, %d, %s, %s start", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
-    switch(_dwCmdId)
+    IUINodeView* node_view = selectedNodeView();
+    if (node_view != 0)
     {
-    case ID_BTN_OPEN_FOLDER:
-    case ID_BTN_READ_BOOK:
-        {
-            DebugPrintf(DLC_UIBOOKLISTBOX, "%s, %d, %s, %s ID_BTN_READ_BOOK", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
-            OnItemClick(m_iSelectedItem);
-        }
-        break;
-    case ID_BTN_RENAME_FOLDER:
-        {
-            OnRenameFolder();
-        }
-        break;
-    case ID_BTN_DELETE_FOLDER:
-    case ID_BTN_DELETE:
-        OnDelete();
-        break;
-    case ID_BTN_SINAWEIBO_SHARE:
-        {
-            if (m_pParent)
-            {
-                NodePtr node = firstSelectedNode();
-                FileNode* file_node = dynamic_cast<FileNode*>(node.get());
-                if(file_node != 0)
-                {
-                    string displayText = StringManager::GetPCSTRById(ELEGANT_READING_TIME);
-                    displayText.append(StringManager::GetPCSTRById(SHAREWEIBO_HINT));
-                    char buf[1024] = {0};
-                    snprintf(buf, sizeof(buf)/sizeof(char), displayText.c_str(), file_node->name().c_str());
-                    UIWeiboSharePage* pPage = new UIWeiboSharePage(buf);
-                    if (pPage)
-                    {
-                        CPageNavigator::Goto(pPage);
-                    }
-                }
-            }
-        }
-        break;
-    case ID_BTN_ADD_FILES_TO_CATEGORY:
-        {
-            NodePtr node = firstSelectedNode();
-            LocalBookStoreCategoryNode* cat_node = dynamic_cast<LocalBookStoreCategoryNode*>(node.get());
-            if (0 != cat_node)
-            {
-                UIAddBookToCategoryPage* addBookPage(new UIAddBookToCategoryPage(cat_node->name().c_str(), model_tree_));
-                addBookPage->MoveWindow(0, 0, DeviceInfo::GetDisplayScreenWidth(), DeviceInfo::GetDisplayScreenHeight());
-                addBookPage->Layout();
-                CPageNavigator::Goto(addBookPage);
-            }
-        }
-
-        break;
-    case ID_BTN_RENAME_CATEGORY:
-        {
-            OnRenameCategory();
-        }
-        break;
-    case ID_BTN_DELETE_FROM_CATEGORY:
-        {
-            NodePtr node = firstSelectedNode();
-            FileNode* file_node = dynamic_cast<FileNode*>(node.get());
-            if (0 != file_node)
-            {
-                Node* parent_node = file_node->mutableParent();
-                LocalBookStoreCategoryNode* cat_node = dynamic_cast<LocalBookStoreCategoryNode*>(parent_node);
-                if (cat_node != 0)
-                {
-                    // TODO. Move it to local filesystem tree
-                    LocalCategoryManager::RemoveBookFromCategory(
-                            cat_node->name().c_str(),
-                            PathManager::GetFileNameWithoutExt(file_node->name().c_str()).c_str());
-                    InitListItem();
-                }
-            }
-        }
-        break;
-    case ID_BTN_DELETE_CATEGORY:
-        OnDeleteCategory();
-        break;
-    default:
-        break;
-    }
-    DebugPrintf(DLC_UIBOOKLISTBOX, "%s, %d, %s, %s END", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
-}
-
-void UIModelView::OnRenameCategory()
-{
-    NodePtr node = firstSelectedNode();
-    LocalBookStoreCategoryNode* cat_node = dynamic_cast<LocalBookStoreCategoryNode*>(node.get());
-    if (cat_node == 0)
-    {
-        return;
-    }
-    
-    UIAddCategoryDlg dlg(this, UIAddCategoryDlg::CAT_RENAME);
-    if (IDOK == dlg.DoModal())
-    {
-        std::string newName = dlg.GetInputText();
-        std::string errorMessage;
-        if (!cat_node->rename(newName, errorMessage))
-        {
-            UIMessageBox msgBox(this,
-                    errorMessage.c_str(),
-                    MB_OK);
-            msgBox.DoModal();
-        }
+        node_view->execute(_dwCmdId);
     }
 }
 
-void UIModelView::OnDeleteCategory()
+void UIModelView::SetModelDisplayMode(ModelDisplayMode layout_mode)
 {
-    UIDeleteCategoryConfirmDlg dlg(this);
-    if (IDOK == dlg.DoModal())
-    {
-        NodePtr node = firstSelectedNode();
-        LocalBookStoreCategoryNode* cat_node = dynamic_cast<LocalBookStoreCategoryNode*>(node.get());
-        if (0 == cat_node)
-        {
-            return;
-        }
-        cat_node->remove(dlg.ShouldDeleteBooks());
-    }
-}
-
-void UIModelView::DeleteFileOnUI(NodePtr node)
-{
-    node->remove(true);
-}
-
-bool UIModelView::RenameDirectoryOnUI(NodePtr node, const std::string& newName, std::string& errMessage)
-{
-    return node->rename(newName, errMessage);
-}
-
-void UIModelView::DeleteDirectoryOnUI(NodePtr node)
-{
-    node->remove(true);
-}
-
-void UIModelView::SetModelDisplayMode(ModelDisplayMode ModelDisplayMode)
-{
-    int startItemIndex = current_page_ * items_per_page_;
-    int newItemPerPage = GetItemPerPageByModelDisplayMode(ModelDisplayMode);
-    current_page_ = startItemIndex  / newItemPerPage;
-    display_mode_ = ModelDisplayMode;
-    if (BLM_LIST == display_mode_)
+    view_ctx_.layout_mode_ = layout_mode;
+    if (BLM_LIST == view_ctx_.layout_mode_)
     {
         m_windowSizer->Hide(m_iconSizer);
         m_windowSizer->Show(m_listSizer);
@@ -927,7 +711,7 @@ size_t UIModelView::GetSelectedBookCount()
 {
     size_t selected = 0;
     RetrieveChildrenResult result = RETRIEVE_FAILED;
-    NodePtrs& children = childrenNodes(false, false, result);
+    NodePtrs children = childrenNodes(false, false, result);
     if (result == RETRIEVE_DONE)
     {
         for (DK_AUTO(cur, children.begin()); cur != children.end(); ++cur)
@@ -945,7 +729,7 @@ std::vector<std::string> UIModelView::GetSelectedBookIds()
 {
     std::vector<std::string> results;
     RetrieveChildrenResult result = RETRIEVE_FAILED;
-    NodePtrs& children = childrenNodes(false, false, result);
+    NodePtrs children = childrenNodes(false, false, result);
     if (result == RETRIEVE_DONE)
     {
         for (DK_AUTO(cur, children.begin()); cur != children.end(); ++cur)
@@ -961,23 +745,10 @@ std::vector<std::string> UIModelView::GetSelectedBookIds()
 }
 
 // added functions
-NodePtr UIModelView::firstVisibleNode()
-{
-    RetrieveChildrenResult result = RETRIEVE_FAILED;
-    NodePtrs & ref = childrenNodes(false, false, result);
-    if (result == RETRIEVE_DONE &&
-        first_visible_ >= 0 &&
-        first_visible_ < static_cast<int>(ref.size()))
-    {
-        return ref[first_visible_];
-    }
-    return NodePtr();
-}
-
 NodePtr UIModelView::firstSelectedNode()
 {
     RetrieveChildrenResult result = RETRIEVE_FAILED;
-    NodePtrs & ref = childrenNodes(false, false, result);
+    NodePtrs ref = childrenNodes(false, false, result);
     if (result == RETRIEVE_DONE &&
         m_iSelectedItem >= 0 &&
         m_iSelectedItem < static_cast<int>(ref.size()))
@@ -990,7 +761,7 @@ NodePtr UIModelView::firstSelectedNode()
 NodePtr UIModelView::selectedNode(const int selected_index)
 {
     RetrieveChildrenResult result = RETRIEVE_FAILED;
-    NodePtrs & ref = childrenNodes(false, false, result);
+    NodePtrs ref = childrenNodes(false, false, result);
     if (result == RETRIEVE_DONE &&
         selected_index >= 0 &&
         selected_index < static_cast<int>(ref.size()))
@@ -1000,14 +771,14 @@ NodePtr UIModelView::selectedNode(const int selected_index)
     return NodePtr();
 }
 
-NodePtrs& UIModelView::childrenNodes(bool scan, bool update, RetrieveChildrenResult& result)
+NodePtrs UIModelView::childrenNodes(bool scan, bool update, RetrieveChildrenResult& result)
 {
     if (update && !model_tree_->currentNode()->isDirty())
     {
         result = RETRIEVE_DONE;
         return model_tree_->currentNode()->updateChildrenInfo();
     }
-    return model_tree_->currentNode()->mutableChildren(result, scan, status_filter_);
+    return model_tree_->currentNode()->children(result, scan, view_ctx_.status_filter_);
 }
 
 bool UIModelView::cdPath(const string& path)
@@ -1023,17 +794,55 @@ bool UIModelView::cdRoot()
 
 DKDisplayMode UIModelView::rootNodeDisplayMode()
 {
-    return model_tree_->displayMode();
+    return view_ctx_.display_mode_;
 }
 
 void UIModelView::setRootNodeDisplayMode(DKDisplayMode mode)
 {
+    view_ctx_.display_mode_ = mode;
     model_tree_->setDisplayMode(mode);
 }
 
 void UIModelView::setStatusFilter(int status_filter)
 {
-    status_filter_ = status_filter;
+    view_ctx_.status_filter_ = status_filter;
+}
+
+Field UIModelView::sortField()
+{
+    return view_ctx_.sort_field_;
+}
+
+void UIModelView::sort(Field by, SortOrder order, int status_filter)
+{
+    setStatusFilter(status_filter);
+    view_ctx_.sort_field_ = by;
+    view_ctx_.sort_order_ = order;
+    model_tree_->setSortCriteria(by, order);
+    model_tree_->sort();
+
+    // get children without rescanning.
+    RetrieveChildrenResult result = RETRIEVE_FAILED;
+    NodePtrs children = childrenNodes(false, false, result);
+    if (result == RETRIEVE_DONE)
+    {
+        const int itemsPerPage = GetItemsPerPage();
+        item_count_ = children.size();
+        page_count_ = (item_count_ + itemsPerPage - 1) / itemsPerPage;
+        if(page_count_ == 0)
+        {
+            page_count_ = 1;
+        }
+        current_page_ = 0;
+
+        // Notify parent UI
+        NodesUpdatedArgs nodes_update_args;
+        nodes_update_args.children_num = children.size();
+        FireEvent(EventNodesUpdated, nodes_update_args);
+
+        UpdateListItem();
+        Layout();
+    }
 }
 
 bool UIModelView::gotoNode(NodePtr node)
@@ -1041,7 +850,8 @@ bool UIModelView::gotoNode(NodePtr node)
     ContainerNode* goto_node = model_tree_->cd(node);
     if (goto_node != 0)
     {
-        InitListItem();
+        //initNodeViews(!view_ctx_.isSelectMode());
+        initNodeViews(false);
         return true;
     }
     return false;
@@ -1064,9 +874,15 @@ bool UIModelView::gotoUp()
             m_iSelectedItem = model_tree_->currentNode()->nodePosition(name);
 
             // Refresh children
-            InitListItem();
+            //initNodeViews(!view_ctx_.isSelectMode());
+            initNodeViews(false);
             return true;
         }
     }
     return false;
+}
+
+void UIModelView::InitListItem()
+{
+    initNodeViews(true);
 }

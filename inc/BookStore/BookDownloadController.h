@@ -84,7 +84,10 @@ public:
     int GetWaitingDownloads();
     int GetAllActiveDownloads();
     int GetCurrentDownloadingProgress() const { return downloading_progress_; }
+    bool IsCurrenTaskDirectionUploading() const { return is_upload_task; }
     // Event handlers
+
+    void UpdateDownloadTasksOverview();
 
 private:
     bool OnDownloadStatusUpdated(const EventArgs& args);
@@ -104,6 +107,7 @@ private:
     BookInfoSPtr             current_book_for_queue_downloading_;
     AllDownloadTaskNums      download_tasks_overview_;
     std::string              current_downloading_id_;
+    bool                     is_upload_task;
     int                      downloading_progress_;
 };
 

@@ -29,6 +29,16 @@ namespace dk
 namespace thirdparties
 {
 
+    class MigrationOperationArgs: public EventArgs
+    {
+    public:
+        virtual EventArgs* Clone() const
+        {
+            return new MigrationOperationArgs(*this);
+        }
+        int operation_id;
+    };
+
 //class MigrateStateForRegisterArgs: public EventArgs
 //{
 //public:
@@ -64,11 +74,14 @@ public:
 
     void FetchMigrateStage(const std::string& accountID, const std::string& userData);
     string GetMigrateStage(const std::string& accountID, const std::string& type);
-	bool StartMigrate();
+    bool StartMigrate();
     void ShowOptionsForDuokanLoginClosed();
     void ShowOptionsForDuokanRegisterClosed();
 
+    void FireMigrationEvent();
+
 private:
+    static const char* EventMigrate;
     static const char* EventAskForMigratingToXiaomi;
     static const char* EventShowMigrationDialog;
 

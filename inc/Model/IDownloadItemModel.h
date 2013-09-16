@@ -30,6 +30,8 @@ public:
     virtual void ResumeFromPauseUrl() = 0;
     virtual void DeleteDownloadUrl() = 0;
     virtual bool CheckTaskIsExist() = 0;
+    virtual bool CanResume() = 0;
+    virtual bool IsUploadTask() = 0;
 };
 
 

@@ -38,6 +38,8 @@ public:
     virtual EventArgs* Clone() const {
         return new NodeChildenReadyArgs(*this);
     }
+
+public:
     bool succeeded;
     string reason;
     string current_node_path;
@@ -60,6 +62,8 @@ public:
     virtual EventArgs* Clone() const {
         return new NodeLoadingFinishedArgs(*this);
     }
+
+public:
     bool succeeded;
     LoadingType type;  
     string reason;
@@ -73,8 +77,22 @@ public:
     virtual EventArgs* Clone() const {
         return new NodeStatusUpdated(*this);
     }
+
+public:
     string current_node_path;
     int new_status;
+};
+
+class NodeSelectStatusUpdateArgs: public EventArgs
+{
+public:
+    NodeSelectStatusUpdateArgs() {}
+    virtual EventArgs* Clone() const {
+        return new NodeSelectStatusUpdateArgs(*this);
+    }
+
+public:
+    Node* the_node;
 };
 
 class NodeUploadContext
@@ -104,6 +122,7 @@ public:
     static const char* EventChildrenIsReady;
     static const char* EventNodeStatusUpdated;
     static const char* EventNodeLoadingFinished;
+    static const char* EventNodeSelectStatusUpdated;
 
 public:
     Node(Node* parent);
@@ -130,6 +149,9 @@ public:
     /// Metadata or title for display.
     const string & displayName() const { return display_name_; }
     string & mutableDisplayName() { return display_name_; }
+
+    const string & gbkName() const { return gbk_name_; }
+    string & mutableGbkName() { return gbk_name_; }
 
     const string & description() const { return description_; }
     string & mutableDescription() { return description_; }
@@ -171,12 +193,25 @@ public:
     int status() const { return status_; }
     virtual void setStatus(int status, bool mandatory = false);
 
+    /// create & modify time
+    int64_t createTime() const { return create_time_; }
+    int64_t& mutableCreateTime() { return create_time_; }
+    int64_t modifyTime() const { return modify_time_; }
+    int64_t& mutableModifyTime() { return modify_time_; }
+
     /// cloud operations
     virtual bool rename(const string& new_name, string& error_msg);
-    virtual bool remove(bool delete_local_files_if_possible);
-    virtual void upload();
-    virtual void download();
+    virtual bool remove(bool delete_local_files_if_possible, bool exec_now);
+    virtual void upload(bool exec_now);
+    virtual void download(bool exec_now);
+    virtual void stopLoading();
     virtual bool loadingInfo(int& progress, int& state);
+
+    virtual bool satisfy(int status_filter);
+
+    // supported commands
+    virtual bool supportedCommands(std::vector<int>& command_ids,
+                                   std::vector<int>& str_ids);
 
 public:
     static const size_t INVALID_ORDER;
@@ -186,11 +221,14 @@ protected:
     Node*  parent_;
     string name_;
     string display_name_;
+    string gbk_name_;
     string absolute_path_;
     string description_;
     string cover_path_;
     string id_;
     long last_read_;
+    int64_t create_time_;
+    int64_t modify_time_;
     NodeType type_;
     int status_; // for filter
     bool selected_;

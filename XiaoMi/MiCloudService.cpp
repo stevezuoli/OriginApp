@@ -9,8 +9,10 @@
 #include "Utility/EncodeUtil.h"
 #include "Utility/JsonObject.h"
 #include "Utility/StringUtil.h"
+#include "Utility/FileSystem.h"
 #include "XMLDomDocument.h"
 #include "Common/Defs.h"
+#include "Common/CAccountManager.h"
 #include "DownloadManager/DownloadManager.h"
 #include "DownloadManager/DownloaderImpl.h"
 #include "DownloadManager/DownloadTaskFactory.h"
@@ -18,7 +20,10 @@
 #include "interface.h"
 #include "Thirdparties/KSSManager/DKKSSManager.h"
 
+#include <unistd.h>
+#include <sys/stat.h>
 using namespace dk::utility;
+using dk::account::CAccountManager;
 
 std::tr1::shared_ptr<KSSMaster::IKSSMaster> g_testKssMaster(new DKKSSMaster::CKSSMaster()); 
 
@@ -69,21 +74,51 @@ string MiCloudService::DataForCreateFile(const string& filePath)
     return dataJsonObj->GetJsonString();
 }
 
-bool MiCloudService::CreateFile(const string& dirId, const string& filePath)
+void MiCloudService::flushPendingTasks()
 {
+}
+
+bool MiCloudService::CreateFile(const string& dirId, const string& filePath, const string& displayName, bool /*exec_now*/)
+{
+    if (!IsPassportValid() || !CAccountManager::GetInstance()->IsLoggedIn())
+    {
+        return false;
+    }
+#if 1
+    struct stat buf;
+    if (lstat(filePath.c_str(), &buf) < 0)
+    {
+        DebugPrintf(DLC_DIAGNOSTIC, "lstat error: %s, %s, %s", filePath.c_str(), displayName.c_str(), strerror(errno));
+        return false;
+    }
+    if (!S_ISREG(buf.st_mode))
+    {
+        DebugPrintf(DLC_DIAGNOSTIC, "Not a regular file: %s, %d", filePath.c_str(), buf.st_mode);
+        return false;
+    }
+    DownloadTaskSPtr task = MiCloudDownloadTaskBuilder::BuildPhonyCreateFileTask(dirId, filePath, displayName);
+#else
     string name = PathManager::GetFileName(filePath.c_str());
     string sha1 = EncodeUtil::SHA_160(filePath.c_str());
-    string retry = "1";
+    string retry = "0";
     string data = DataForCreateFile(filePath);
 
-    DownloadTaskSPtr task = MiCloudDownloadTaskBuilder::BuildCreateFileTask(dirId, name, sha1, retry, data);
+    DownloadTaskSPtr task = MiCloudDownloadTaskBuilder::BuildCreateFileTask(dirId, name, sha1, data, retry);
+#endif
     if (!task)
     {
         return false;
     }
     CONNECT(*task.get(), DownloadTask::EventDownloadTaskFinished, this, MiCloudService::OnCreateFileFinished)
-    MiCloudManager::GetInstance()->InsertTask(task.get(), filePath, MiCloudManager::TT_CreateFile);
-    DownloadManager::GetInstance()->AddTask(task);
+    LocalFileInfo localFileInfo(filePath, displayName);
+    if (displayName.empty())
+    {
+        std::string fileName = dk::utility::PathManager::GetFileName(filePath);
+		localFileInfo.bookName = dk::utility::PathManager::GetFileNameWithoutExt(fileName.c_str());
+    }
+    MiCloudManager::GetInstance()->InsertCreateFileTask(task.get(), localFileInfo);
+
+    DownloadManager::GetXiaoMiRequestInstance()->AddTask(task);
     return true;
 }
 
@@ -91,16 +126,16 @@ bool MiCloudService::OnCreateFileFinished(const EventArgs& args)
 {
     const DownloadTaskFinishArgs& downloadTaskFinishedArgs = (const DownloadTaskFinishArgs&)args;
     DownloadTask* task = downloadTaskFinishedArgs.downloadTask;
-    string filePath = MiCloudManager::GetInstance()->GetFileInfoForTask(task, MiCloudManager::TT_CreateFile);
-    if (filePath.empty())
+    LocalFileInfo localFileInfo = MiCloudManager::GetInstance()->GetFileInfoForCreateFileTask(task);
+    if (localFileInfo.filePath.empty())
     {
         DebugPrintf(DLC_DIAGNOSTIC, "no file found for task: %x", task);
     }
     MiCloudManager::GetInstance()->EraseTask(task, MiCloudManager::TT_CreateFile);
-    DebugPrintf(DLC_DIAGNOSTIC, "FILEPATH: %s", filePath.c_str());
+    DebugPrintf(DLC_DIAGNOSTIC, "FILEPATH: %s", localFileInfo.filePath.c_str());
 
     FileCreatedArgs file_create_args;
-    file_create_args.local_file_path = filePath;
+    file_create_args.local_file_path = localFileInfo.filePath;
     if (downloadTaskFinishedArgs.succeeded)
     {
         std::string result  = SecureRequest::ParseStringResponse(task->GetString(), m_security);
@@ -124,17 +159,28 @@ bool MiCloudService::OnCreateFileFinished(const EventArgs& args)
                 {
                     IDownloadTask *pTask = DownloadTaskFactory::CreateMiCloudFileUploadTask(
                         GetRequestUploadUrl(),
-                        filePath,
+                        localFileInfo.filePath,
+                        localFileInfo.bookName,
                         kssData,
                         createFileResult->GetKSSInfo()->uploadId,
-                        0
-                        );
+                        0);
                     IDownloader * downloadManager = DownloaderImpl::GetInstance();
                     if (downloadManager)
                     {
                         downloadManager->AddTask(pTask);
                         file_create_args.succeeded = true;
                     }
+                }
+            }
+            else
+            {
+                int retryIntervalTime = createFileResult->GetRetryIntervalTime();
+                if (retryIntervalTime > 0)
+                {
+                    DebugPrintf(DLC_DIAGNOSTIC, "=====================================================");
+                    DebugPrintf(DLC_DIAGNOSTIC, "retryAfter: %d, %s, %s", retryIntervalTime,
+                        localFileInfo.filePath.c_str(), localFileInfo.bookName.c_str());
+                    DebugPrintf(DLC_DIAGNOSTIC, "=====================================================");
                 }
             }
         }
@@ -150,18 +196,26 @@ bool MiCloudService::OnCreateFileFinished(const EventArgs& args)
 
 bool MiCloudService::CreateDirectory(const string& parentDirId, const string& dirName)
 {
+    if (!IsPassportValid() || !CAccountManager::GetInstance()->IsLoggedIn())
+    {
+        return false;
+    }
     DownloadTaskSPtr task = MiCloudDownloadTaskBuilder::BuildCreateDirectoryTask(parentDirId, dirName);
     if (!task)
     {
         return false;
     }
     CONNECT(*task.get(), DownloadTask::EventDownloadTaskFinished, this, MiCloudService::OnCreateDirectoryFinished)
-    DownloadManager::GetInstance()->AddTask(task);
+    DownloadManager::GetXiaoMiRequestInstance()->AddTask(task);
     return true;
 }
 
 bool MiCloudService::CreateDirectory(const string& filePath)
 {
+    if (!IsPassportValid() || !CAccountManager::GetInstance()->IsLoggedIn())
+    {
+        return false;
+    }
     DebugPrintf(DLC_DIAGNOSTIC, "CreateDirectory: %s, %d", filePath.c_str(), StringUtil::CountsOfChar(filePath, string(1, '/')));
     DownloadTaskSPtr task = MiCloudDownloadTaskBuilder::BuildCreateDirectoryTask(filePath);
     if (!task)
@@ -170,7 +224,7 @@ bool MiCloudService::CreateDirectory(const string& filePath)
     }
     CONNECT(*task.get(), DownloadTask::EventDownloadTaskFinished, this, MiCloudService::OnCreateDirectoryFinished)
     MiCloudManager::GetInstance()->InsertTask(task.get(), filePath, MiCloudManager::TT_CreateDir);
-    DownloadManager::GetInstance()->AddTask(task);
+    DownloadManager::GetXiaoMiRequestInstance()->AddTask(task);
     return true;
 }
 
@@ -243,6 +297,10 @@ string MiCloudService::DataForCommitFile(const string& fileMeta, const vector<st
 
 bool MiCloudService::CommitFile(const string& uploadPath, const string& upload, const string& fileMeta, const vector<string>& commitMetas)
 {
+    if (!IsPassportValid() || !CAccountManager::GetInstance()->IsLoggedIn())
+    {
+        return false;
+    }
     DownloadTaskSPtr task = MiCloudDownloadTaskBuilder::BuildCommitFileTask(upload, DataForCommitFile(fileMeta, commitMetas));
     if (!task)
     {
@@ -250,7 +308,7 @@ bool MiCloudService::CommitFile(const string& uploadPath, const string& upload, 
     }
     CONNECT(*task.get(), DownloadTask::EventDownloadTaskFinished, this, MiCloudService::OnCommitFileFinished)
     MiCloudManager::GetInstance()->InsertTask(task.get(), uploadPath, MiCloudManager::TT_CommitUpload);
-    DownloadManager::GetInstance()->AddTask(task);
+    DownloadManager::GetXiaoMiRequestInstance()->AddTask(task);
     return true;
 }
 
@@ -293,12 +351,27 @@ bool MiCloudService::OnCommitFileFinished(const EventArgs& args)
         CheckIfHttpErrorExists(task);
     }
 
+    IDownloader * downloadManager = DownloaderImpl::GetInstance();
+    if (downloadManager)
+    {
+        //for upload task, local filePath has been setted to  the OrigUrlId
+        IDownloadTask* pTask = downloadManager->GetTaskInfoByUrlId(filePath.c_str());
+        if (pTask)
+        {
+            pTask->SetState(file_create_args.succeeded ? IDownloadTask::CURL_DONE : IDownloadTask::FAILED);
+            pTask->FireDownloadProgressUpdateEvent();
+        }
+    }
     FireEvent(EventFileCreated, file_create_args);
     return true;
 }
 
-bool MiCloudService::RequestDownload(const string& fileId, const string& fileName)
+bool MiCloudService::RequestDownload(const string& fileId, const string& fileName, bool /*exec_now*/)
 {
+    if (!IsPassportValid() || !CAccountManager::GetInstance()->IsLoggedIn())
+    {
+        return false;
+    }
     DownloadTaskSPtr task = MiCloudDownloadTaskBuilder::BuildRequestDownloadTask(fileId);
     if (!task || fileId.empty() || fileName.empty())
     {
@@ -308,7 +381,8 @@ bool MiCloudService::RequestDownload(const string& fileId, const string& fileNam
     //hack:use space to join the fileId and fileName
     //TODO:store the fileId and fileName in struct
     MiCloudManager::GetInstance()->InsertTask(task.get(), fileId + " " + fileName, MiCloudManager::TT_RequestDownload);
-    DownloadManager::GetInstance()->AddTask(task);
+
+    DownloadManager::GetXiaoMiRequestInstance()->AddTask(task);
     return true;
 }
 
@@ -350,13 +424,10 @@ bool MiCloudService::OnRequestDownloadFinished(const EventArgs& args)
                 IDownloadTask *pTask = DownloadTaskFactory::CreateMiCloudFileDownloadTask(
                         GetRequestDownloadUrl(fileId),
                         fileId,
-                        //TODO: use filename instead
                         fileName,
                         kssInfo,
                         MiCloudManager::GetInstance()->GetLocalDownloadDir() + fileName,
-                        //TODO: user real fileSize
-                        0
-                        );
+                        0);
 
                 IDownloader * downloadManager = DownloaderImpl::GetInstance();
                 if (downloadManager)
@@ -364,7 +435,16 @@ bool MiCloudService::OnRequestDownloadFinished(const EventArgs& args)
                     downloadManager->AddTask(pTask);
                     request_download_args.succeeded = true;
                 }
-                //DKKSSManager::GetInstance()->Download(kssInfo, "/DuoKan/dota.txt", fastdelegate::MakeDelegate(&prog, &progress::logProgress));
+            }
+            else
+            {
+                int retryIntervalTime = downloadResult->GetRetryIntervalTime();
+                if (retryIntervalTime > 0)
+                {
+                    DebugPrintf(DLC_DIAGNOSTIC, "=====================================================");
+                    DebugPrintf(DLC_DIAGNOSTIC, "retryAfter: %d, %s, %s", retryIntervalTime, fileId.c_str(), fileName.c_str());
+                    DebugPrintf(DLC_DIAGNOSTIC, "=====================================================");
+                }
             }
         }
     }
@@ -376,8 +456,12 @@ bool MiCloudService::OnRequestDownloadFinished(const EventArgs& args)
     return true;
 }
 
-bool MiCloudService::DeleteFile(const string& fileId)
+bool MiCloudService::DeleteFile(const string& fileId, bool /*exec_now*/)
 {
+    if (!IsPassportValid() || !CAccountManager::GetInstance()->IsLoggedIn())
+    {
+        return false;
+    }
     DownloadTaskSPtr task = MiCloudDownloadTaskBuilder::BuildDeleteFileTask(fileId);
     if (!task)
     {
@@ -385,7 +469,8 @@ bool MiCloudService::DeleteFile(const string& fileId)
     }
     CONNECT(*task.get(), DownloadTask::EventDownloadTaskFinished, this, MiCloudService::OnDeleteFileFinished)
     MiCloudManager::GetInstance()->InsertTask(task.get(), fileId, MiCloudManager::TT_DeleteFile);
-    DownloadManager::GetInstance()->AddTask(task);
+
+    DownloadManager::GetXiaoMiRequestInstance()->AddTask(task);
     return true;
 }
 
@@ -422,6 +507,10 @@ bool MiCloudService::OnDeleteFileFinished(const EventArgs& args)
 
 bool MiCloudService::DeleteDirectory(const string& dirId)
 {
+    if (!IsPassportValid() || !CAccountManager::GetInstance()->IsLoggedIn())
+    {
+        return false;
+    }
     DownloadTaskSPtr task = MiCloudDownloadTaskBuilder::BuildDeleteDirectoryTask(dirId);
     if (!task)
     {
@@ -429,7 +518,7 @@ bool MiCloudService::DeleteDirectory(const string& dirId)
     }
     CONNECT(*task.get(), DownloadTask::EventDownloadTaskFinished, this, MiCloudService::OnDeleteDirectoryFinished)
     MiCloudManager::GetInstance()->InsertTask(task.get(), dirId, MiCloudManager::TT_DeleteDir);
-    DownloadManager::GetInstance()->AddTask(task);
+    DownloadManager::GetXiaoMiRequestInstance()->AddTask(task);
     return true;
 }
 
@@ -468,6 +557,10 @@ bool MiCloudService::OnDeleteDirectoryFinished(const EventArgs& args)
 
 bool MiCloudService::GetChildren(const string& dirId, const string& offset, const string& limit)
 {
+    if (!IsPassportValid() || !CAccountManager::GetInstance()->IsLoggedIn())
+    {
+        return false;
+    }
     DownloadTaskSPtr task = MiCloudDownloadTaskBuilder::BuildGetChildrenTask(dirId, offset, limit);
     if (!task)
     {
@@ -476,7 +569,7 @@ bool MiCloudService::GetChildren(const string& dirId, const string& offset, cons
 
     CONNECT(*task.get(), DownloadTask::EventDownloadTaskFinished, this, MiCloudService::OnGetChildrenFinished)
     MiCloudManager::GetInstance()->InsertTask(task.get(), dirId, MiCloudManager::TT_GetChildren);
-    DownloadManager::GetInstance()->AddTask(task);
+    DownloadManager::GetXiaoMiRequestInstance()->AddTask(task);
     return true;
 }
 
@@ -522,6 +615,10 @@ bool MiCloudService::OnGetChildrenFinished(const EventArgs& args)
 
 bool MiCloudService::GetInfo(const string& filePath)
 {
+    if (!IsPassportValid() || !CAccountManager::GetInstance()->IsLoggedIn())
+    {
+        return false;
+    }
     DownloadTaskSPtr task = MiCloudDownloadTaskBuilder::BuildGetInfoTask(filePath);
     if (!task)
     {
@@ -529,7 +626,7 @@ bool MiCloudService::GetInfo(const string& filePath)
     }
     CONNECT(*task.get(), DownloadTask::EventDownloadTaskFinished, this, MiCloudService::OnGetInfoFinished)
     MiCloudManager::GetInstance()->InsertTask(task.get(), filePath, MiCloudManager::TT_GetInfo);
-    DownloadManager::GetInstance()->AddTask(task);
+    DownloadManager::GetXiaoMiRequestInstance()->AddTask(task);
     return true;
 }
 
@@ -575,13 +672,17 @@ bool MiCloudService::OnGetInfoFinished(const EventArgs& args)
 
 bool MiCloudService::GetQuota()
 {
+    if (!IsPassportValid() || !CAccountManager::GetInstance()->IsLoggedIn())
+    {
+        return false;
+    }
     DownloadTaskSPtr task = MiCloudDownloadTaskBuilder::BuildGetQuotaTask();
     if (!task)
     {
         return false;
     }
     CONNECT(*task.get(), DownloadTask::EventDownloadTaskFinished, this, MiCloudService::OnGetQuotaFinished)
-    DownloadManager::GetInstance()->AddTask(task);
+    DownloadManager::GetXiaoMiRequestInstance()->AddTask(task);
     return true;
 }
 
@@ -658,7 +759,7 @@ bool MiCloudService::Init()
             m_cookies["serviceToken"] = serviceToken;
         }
     }
-
+    DKKSSManager::GetInstance()->SetTempFolder(PathManager::GetKSSTempPath());
     return !userId.empty() && !m_security.empty() && !serviceToken.empty();
 }
 
@@ -675,5 +776,15 @@ string MiCloudService::GetRequestDownloadUrl(const string& fileId) const
 string MiCloudService::GetRequestUploadUrl() const
 {
     return MiCloudDownloadTaskBuilder::BuildCreateFileUrl();
+}
+
+bool MiCloudService::Destory()
+{
+    bool deleteFileResult = FileSystem::DeleteFile(PathManager::GetMiCloudServiceTokenPath());
+    DebugPrintf(DLC_DIAGNOSTIC, "delete micloud file: %d", deleteFileResult);
+    m_security.clear();
+    m_cookies.clear();
+
+    return true;
 }
 }///xiaomi

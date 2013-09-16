@@ -47,6 +47,7 @@ class MiCloudServiceResultBase : public IXiaoMiServiceResult
 public:
     MiCloudServiceResultBase()
         : m_code(-1)
+        , m_retryIntervalTime(-1)
     {
     }
 
@@ -63,6 +64,11 @@ public:
     string GetDescription() const
     {
         return m_description;
+    }
+
+    int GetRetryIntervalTime() const
+    {
+        return m_retryIntervalTime;
     }
 protected:
     /**
@@ -83,6 +89,7 @@ protected:
     string m_errorReason;
     //right data:
     JsonObjectSPtr m_dataJsonObj;
+    int m_retryIntervalTime;
 };//MiCloudServiceResult
 
 class MiCloudServiceResultGetQuota : public MiCloudServiceResultBase

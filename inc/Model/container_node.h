@@ -3,7 +3,9 @@
 
 #include "Model/node.h"
 #include "Model/local_doc_node.h"
+#include "Utility/CharUtil.h"
 
+using namespace dk::utility;
 using namespace std;
 
 namespace dk {
@@ -15,6 +17,18 @@ enum RetrieveChildrenResult
     RETRIEVE_FAILED = 0,
     RETRIEVE_PENDING,
     RETRIEVE_DONE
+};
+
+class NodeKeywordMatcher
+{
+public:
+    NodeKeywordMatcher(const char* keyword);
+    virtual ~NodeKeywordMatcher(){};
+    virtual bool operator()(const NodePtr node) const;
+private:
+    const char* keyword_;
+    bool match_by_first_letters_;
+    std::wstring  wide_keyword_;
 };
 
 /// Container node represents a virtual container contains nodes.
@@ -29,20 +43,30 @@ public:
 public:
     virtual NodePtr node(const string &name, bool recursive = false);
     virtual NodePtr node(NodeType type);
+    virtual NodePtr getNodeById(const string& id, bool recursive = false);
 
-    virtual const NodePtrs& children(RetrieveChildrenResult& result, bool rescan = false, int status_filter = NODE_NONE);
-    virtual NodePtrs& mutableChildren(RetrieveChildrenResult& result, bool rescan = false, int status_filter = NODE_NONE);
-    virtual NodePtrs& updateChildrenInfo();
+    virtual NodePtrs children(RetrieveChildrenResult& result,
+                              bool rescan = false,
+                              int status_filter = NODE_NONE,
+                              const string& keyword = string());
 
-    virtual int filterPosterity(NodePtrs& nodes, int status_filter, bool recursive = true);
+    //virtual NodePtrs& mutableChildren(RetrieveChildrenResult& result, bool rescan = false, int status_filter = NODE_NONE);
+    virtual NodePtrs updateChildrenInfo();
+
+    virtual int filterPosterity(NodePtrs& nodes,
+                                bool rescan = false,
+                                int status_filter = NODE_NONE,
+                                bool recursive = true,
+                                const string& keyword = string());
 
     virtual size_t nodePosition(NodePtr node);
     virtual size_t nodePosition(const string &name);
 
     virtual void changeSortCriteria(Field by, SortOrder order);
+    virtual void changeStatusFilter(int status_filter);
+    virtual void changeNameFilter(const string& keyword);
     virtual bool sort(Field by, SortOrder order = ASCENDING);
-    virtual bool search(const StringList& filters, bool recursive, bool & stop);
-    virtual void clearNameFilters();
+    virtual void clearNameFilter();
 
     // CRUD
     virtual void createFile(const string& file_path);
@@ -50,38 +74,48 @@ public:
     virtual void deleteFile(const string& file_id);
     virtual void deleteDirectory(const string& dir_id);
 
+    // Get all selected nodes
+    virtual NodePtrs selectedLeaves(bool recursive = true);
+
     // Select
     virtual void setSelected(bool selected);
 
     // Status Filter
+    virtual NodePtrs filterChildren(NodePtrs& source, bool sort_results = true);
     int statusFilter() const { return status_filter_; }
     int& mutableStatusFilter() { return status_filter_; }
 
     // dirty
-    void setDirty(bool dirty) { dirty_ = dirty; }
+    void setDirty(bool dirty);
     bool isDirty() const { return dirty_; }
 
+    // all of the posterities are busy
+    bool arePosteritiesBusy();
+
+    // clear all children
+    void clearChildren();
+
 public:
-    const StringList & name_filters() { return name_filters_; }
+    const string & nameFilter() { return name_filter_; }
     Field sortField() const { return by_field_; }
     SortOrder sortOrder() const { return sort_order_; }
 
 protected:
-    virtual void scan(const string& dir, NodePtrs &result, int status_filter = NODE_NONE, bool sort_list = true) = 0;
-    virtual bool updateChildren(int status_filter);
+    virtual void scan(const string& dir, NodePtrs &result) = 0;
+    virtual bool updateChildren();
     virtual bool sort(NodePtrs &result, Field by, SortOrder order = ASCENDING);
-
-protected:
-    void clearChildren();
+    virtual NodePtrs search(NodePtrs& source, const string& name_filter);
 
 protected:
     Field by_field_;
     SortOrder sort_order_;
-    StringList name_filters_;
     NodePtrs children_;
+    NodePtrs filtered_children_;
 
+    string name_filter_;
     int status_filter_;
     bool dirty_;
+    bool filtered_children_dirty_;
 };
 
 /// Define simple sort type for all nodes.
@@ -89,7 +123,8 @@ struct LessByName
 {
     bool operator()( const NodePtr a, const NodePtr b ) const
     {
-        return (a->name().compare(b->name()) < 0);
+        //return (a->name().compare(b->name()) < 0);
+        return CharUtil::StringCompareByDisplay(a->gbkName().c_str(), b->gbkName().c_str()) < 0;
     }
 };
 
@@ -97,7 +132,8 @@ struct GreaterByName
 {
     bool operator()( const NodePtr a, const NodePtr b ) const
     {
-        return (a->name().compare(b->name()) > 0);
+        //return (a->name().compare(b->name()) > 0);
+        return CharUtil::StringCompareByDisplay(a->gbkName().c_str(), b->gbkName().c_str()) > 0;
     }
 };
 
@@ -117,7 +153,7 @@ struct GreaterByLastRead
     }
 };
 
-struct LessByNodetype
+struct LessByNodeType
 {
     bool operator()( NodePtr a, NodePtr b ) const
     {
@@ -130,6 +166,54 @@ struct GreaterByNodeType
     bool operator()( NodePtr a, NodePtr b ) const
     {
         return (a->type() > b->type());
+    }
+};
+
+struct GreaterByCreateTime
+{
+    bool operator()( NodePtr a, NodePtr b ) const
+    {
+        return (a->createTime() > b->createTime());
+    }
+};
+
+struct LessByCreateTime
+{
+    bool operator()( NodePtr a, NodePtr b ) const
+    {
+        return (a->createTime() < b->createTime());
+    }
+};
+
+struct GreaterByModifyTime
+{
+    bool operator()( NodePtr a, NodePtr b ) const
+    {
+        return (a->modifyTime() > b->modifyTime());
+    }
+};
+
+struct LessByModifyTime
+{
+    bool operator()( NodePtr a, NodePtr b ) const
+    {
+        return (a->modifyTime() < b->modifyTime());
+    }
+};
+
+struct GreaterByNodeStatus
+{
+    bool operator()( NodePtr a, NodePtr b ) const
+    {
+        return (a->status() > b->status());
+    }
+};
+
+struct LessByNodeStatus
+{
+    bool operator()( NodePtr a, NodePtr b ) const
+    {
+        return (a->status() < b->status());
     }
 };
 
@@ -146,13 +230,17 @@ struct LessBySize
             return dynamic_cast<const FileNode *>(a.get())->fileSize() <
                    dynamic_cast<const FileNode *>(b.get())->fileSize();
         }
-        else if (a->type() == NODE_TYPE_FILE_LOCAL_DOCUMENT &&
-                 b->type() == NODE_TYPE_CATEGORY_LOCAL_FOLDER)
+        else if ((a->type() == NODE_TYPE_FILE_LOCAL_DOCUMENT ||
+                  a->type() == NODE_TYPE_MICLOUD_BOOK) &&
+                 (b->type() == NODE_TYPE_CATEGORY_LOCAL_FOLDER ||
+                  b->type() == NODE_TYPE_MICLOUD_CATEGORY))
         {
             return false;
         }
-        else if (a->type() == NODE_TYPE_CATEGORY_LOCAL_FOLDER &&
-                 b->type() == NODE_TYPE_FILE_LOCAL_DOCUMENT)
+        else if ((a->type() == NODE_TYPE_CATEGORY_LOCAL_FOLDER ||
+                  a->type() == NODE_TYPE_MICLOUD_CATEGORY) &&
+                  (b->type() == NODE_TYPE_FILE_LOCAL_DOCUMENT ||
+                   b->type() == NODE_TYPE_MICLOUD_BOOK))
         {
             return true;
         }

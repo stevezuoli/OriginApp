@@ -125,6 +125,11 @@ void CPageNavigator::BackToEntryPageOnType(UINT32 iParam1, UINT32 iParam2, UINT3
     UIPage* pPage = CreateEntryPageForType(type);
     if(pPage && pDisplay)
     {
+        UIBottomBar* pBottomBar = UIBottomBar::GetInstance();
+        if (pBottomBar)
+        {
+            pBottomBar->SetFocusedIndex(type);
+        }
         pPage->MoveWindow(0, 0, pDisplay->GetScreenWidth(), pDisplay->GetScreenHeight());
         Goto(pPage);
     }

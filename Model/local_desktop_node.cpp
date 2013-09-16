@@ -23,7 +23,7 @@ namespace dk {
 
 namespace document_model {
 
-static const char* CLOUD_DESKTOP_NAME = "BOOKS";
+//static const char* CLOUD_DESKTOP_NAME = "BOOKS";
 
 /// Put all initial directories here.
 /// Get Last access location.
@@ -61,17 +61,16 @@ DesktopNode::DesktopNode(Node * p)
 
 DesktopNode::~DesktopNode()
 {
-    clearChildren();
 }
 
-NodePtr DesktopNode::createBookStoreNode(const string& path, int status_filter)
+NodePtr DesktopNode::createBookStoreNode(const string& path)
 {
-    if (LocalBookStoreNode::testStatus(path, status_filter))
-    {
+    //if (LocalBookStoreNode::testStatus(path, status_filter))
+    //{
         NodePtr bookstore(new LocalBookStoreNode(this, path));
         return bookstore;
-    }
-    return NodePtr();
+    //}
+    //return NodePtr();
 }
 
 Node* DesktopNode::getNodeByModelPath(const ModelPath &path)
@@ -106,24 +105,21 @@ Node* DesktopNode::getNodeByModelPath(const ModelPath &path)
     return node;
 }
 
-NodePtr DesktopNode::createPushedMessageNode(const string& path, int status_filter)
+NodePtr DesktopNode::createPushedMessageNode(const string& path)
 {
-    if (LocalFolderNode::testStatus(path, status_filter))
-    {
+    //if (LocalFolderNode::testStatus(path, status_filter))
+    //{
         NodePtr bookstore(new LocalFolderNode(this, path));
         bookstore->mutableType() = NODE_TYPE_CATEGORY_LOCAL_PUSHED;
         bookstore->mutableName() = nodeName(path);
         bookstore->mutableDisplayName() = nodeDisplayName(path);
         return bookstore;
-    }
-    return NodePtr();
+    //}
+    //return NodePtr();
 }
 
 // copied from local folder node
-void DesktopNode::scan(const string& dir,
-                       NodePtrs &result,
-                       int status_filter,
-                       bool sort_list)
+void DesktopNode::scan(const string& dir, NodePtrs &result)
 {
     StringList current_dirs = PathManager::GetDirsInPath(dir.c_str());
     StringList current_books = PathManager::GetFilesInPath(dir.c_str());
@@ -137,13 +133,13 @@ void DesktopNode::scan(const string& dir,
         NodePtr folder_node;
         if (PathManager::IsBookStorePath(folder_path)) // Do NOT filter
         {
-            folder_node = createBookStoreNode(folder_path, status_filter);
+            folder_node = createBookStoreNode(folder_path);
         }
         else if (PathManager::IsNewsPath(folder_path.c_str())) // Do Not filter
         {
-            folder_node = createPushedMessageNode(folder_path, status_filter);
+            folder_node = createPushedMessageNode(folder_path);
         }
-        else if (LocalFolderNode::testStatus(folder_path, status_filter))
+        else// if (LocalFolderNode::testStatus(folder_path, status_filter))
         {
             folder_node.reset(new LocalFolderNode(this, folder_path));
         }
@@ -156,28 +152,34 @@ void DesktopNode::scan(const string& dir,
     for (size_t i = 0; i < current_books.size(); i++)
     {
         string book_path = PathManager::ConcatPath(dir.c_str(), current_books[i].c_str());
-        if (FileNode::testStatus(book_path, status_filter))
+        PCDKFile file = file_manager->GetFileByPath(book_path);
+        if (file != 0)
         {
-            PCDKFile file = file_manager->GetFileByPath(book_path);
-            if (file != 0)
-            {
-                NodePtr book_node(new FileNode(this, file));
-                result.push_back(book_node);
-            }
+            NodePtr book_node(new FileNode(this, file));
+            result.push_back(book_node);
         }
-    }
-
-    // Sort.
-    if (sort_list)
-    {
-        sort(result, by_field_, sort_order_);
     }
 }
 
-bool DesktopNode::updateChildren(int status_filter)
+/// This is a ugly deriving of filterChildren because of expanding all mode
+NodePtrs DesktopNode::filterChildren(NodePtrs& source, bool sort_results)
 {
-    if ((status_filter & NODE_NOT_ON_CLOUD) &&
-        !checkCloudCacheOrUpdate())
+    if (current_display_mode_ == EXPAND_ALL)
+    {
+        if (!filtered_children_dirty_)
+        {
+            return filtered_children_;
+        }
+        // filtered_children_ == children_
+        filtered_children_ = filterPosterity(true);
+        return filtered_children_;
+    }
+    return ContainerNode::filterChildren(source, sort_results);
+}
+
+bool DesktopNode::updateChildren()
+{
+    if ((status_filter_ & NODE_NOT_ON_CLOUD) && !checkCloudCacheOrUpdate())
     {
         // pending scaning until cloud info is retrieved
         pending_scan_ = true;
@@ -187,42 +189,50 @@ bool DesktopNode::updateChildren(int status_filter)
     switch (current_display_mode_)
     {
         case BY_FOLDER:
-            updateChildrenByFolder(status_filter);
+            updateChildrenByFolder();
             break;
         case BY_SORT:
-            updateChildrenBySort(status_filter);
+            updateChildrenBySort();
             break;
         case EXPAND_ALL:
-            updateChildrenByExpandingAll(status_filter);
+            updateChildrenByExpandingAll();
             break;
         default:
             return false;
     }
-    dirty_ = false;
+    setDirty(false);
 
     NodeChildenReadyArgs children_ready_args;
     children_ready_args.current_node_path = absolutePath();
     children_ready_args.succeeded = true;
-    children_ready_args.children = children_;
+    children_ready_args.children = filterChildren(children_);
     FireEvent(EventChildrenIsReady, children_ready_args);
     return true;
 }
 
-void DesktopNode::updateChildrenByFolder(int status_filter)
+void DesktopNode::updateChildrenByFolder()
 {
-    DeletePtrContainer(&children_);
-    scan(absolutePath(), children_, status_filter, true);
+    clearChildren();
+    scan(absolutePath(), children_);
 }
 
-void DesktopNode::updateChildrenBySort(int status_filter)
+bool DesktopNode::sort(Field by, SortOrder order)
 {
-    DeletePtrContainer(&children_);
+    changeSortCriteria(by, order);
+    setDirty(true); // need rescan the children
+    return true;
+}
+
+void DesktopNode::updateChildrenBySort()
+{
+    clearChildren();
     CDKFileManager* file_manager = CDKFileManager::GetFileManager();
-    int sort_num = file_manager->GetBookCurSortNum();
-    for (size_t i = 0; i < sort_num; ++i)
+    const DKFileList& all_files = file_manager->allFiles();
+    DKFileList::const_iterator itr = all_files.begin();
+    for (; itr != all_files.end(); itr++)
     {
-        PCDKFile file = file_manager->GetBookbyListIndex(i);
-        if (file != 0 && FileNode::testStatus(file->GetFilePath(), status_filter))
+        PCDKFile file = *itr;
+        if (file != 0)// && FileNode::testStatus(file->GetFilePath(), status_filter))
         {
             NodePtr book_node(new FileNode(this, file));
             children_.push_back(book_node);
@@ -230,14 +240,24 @@ void DesktopNode::updateChildrenBySort(int status_filter)
     }
 }
 
-void DesktopNode::updateChildrenByExpandingAll(int status_filter)
+void DesktopNode::setDisplayMode(DKDisplayMode display_mode)
 {
-    DeletePtrContainer(&children_);
-    filterPosterity(status_filter, true);
+    if (current_display_mode_ != display_mode)
+    {
+        // need re-filter children
+        filtered_children_dirty_ = true;
+        current_display_mode_ = display_mode;
+    }
+}
+
+void DesktopNode::updateChildrenByExpandingAll()
+{
+    //clearChildren();
+    filterPosterity(true);
 }
 
 /// Update children node but does not re-generate the child list.
-NodePtrs& DesktopNode::updateChildrenInfo()
+NodePtrs DesktopNode::updateChildrenInfo()
 {
     for (NodePtrsIter iter = children_.begin(); iter != children_.end(); ++iter)
     {
@@ -249,24 +269,19 @@ NodePtrs& DesktopNode::updateChildrenInfo()
         }
     }
 
-    if (current_display_mode_ != EXPAND_ALL)
-    {
-        sort(children_, by_field_, sort_order_);
-    }
-    return children_;
+    return filterChildren(children_);
 }
 
 /// filter all posterities by status filter and replace current children
 /// Do not check whether the cloud data is ready because directory mode is displayed by default
-const NodePtrs& DesktopNode::filterPosterity(int status_filter, bool recursive)
+NodePtrs DesktopNode::filterPosterity(bool recursive)
 {
     NodePtrs result;
-    if (ContainerNode::filterPosterity(result, status_filter, recursive))
+
+    // do not rescan
+    if (ContainerNode::filterPosterity(result, false, statusFilter(), recursive) > 0)
     {
-        DeletePtrContainer(&children_);
-        children_ = result;
-        dirty_ = false;
-        return children_;
+        return result;
     }
 
     static NodePtrs empty_result;
@@ -300,10 +315,33 @@ bool DesktopNode::onCloudRootScanned(const EventArgs& args)
         if (path == cloud_root_node->absolutePath())
         {
             pending_scan_ = false;
-            updateChildren(statusFilter());
+            updateChildren();
         }
     }
     return true;
+}
+
+NodePtrs DesktopNode::selectedLeaves(bool recursive)
+{
+//     if (current_display_mode_ == EXPAND_ALL)
+//     {
+//         NodePtrs result;
+//         NodePtrs& ref = children_;
+//         for (int i = 0; i < ref.size(); i++)
+//         {
+//             NodePtr child = ref[i];
+//             if (child->selected())
+//             {
+//                 FileNode* file_node = dynamic_cast<FileNode*>(child.get());
+//                 if (file_node != 0)
+//                 {
+//                     result.push_back(child);
+//                 }
+//             }
+//         }
+//         return result;
+//     }
+    return ContainerNode::selectedLeaves(recursive);
 }
 
 /// Not use now
@@ -328,7 +366,7 @@ void DesktopNode::onInfoReturned(const EventArgs& args)
     // TODO. Error handling
 }
 
-void DesktopNode::upload()
+void DesktopNode::upload(bool exec_now)
 {
     if (id().empty())
     {
@@ -340,31 +378,36 @@ void DesktopNode::upload()
         upload_done_args.current_node_path = absolutePath();
         FireEvent(EventNodeLoadingFinished, upload_done_args);
     }
-    uploadChildren();
-}
 
-void DesktopNode::uploadChildren()
-{
-    //NodePtrs waiting_children = filterChildren(NODE_LOCAL | NODE_NOT_ON_CLOUD, true);
     RetrieveChildrenResult ret = RETRIEVE_FAILED;
     NodePtrs waiting_children = children(ret, false, statusFilter());
-    for (size_t i = 0; i < waiting_children.size(); i++)
+    if (ret == RETRIEVE_DONE)
     {
-        NodePtr child = waiting_children[i];
-        NodeType child_type = child->type();
-        if (child_type != NODE_TYPE_FILE_LOCAL_DOCUMENT &&
-            child_type != NODE_TYPE_FILE_LOCAL_BOOK_STORE_BOOK)
+        for (size_t i = 0; i < waiting_children.size(); i++)
         {
-            child->upload();
-        }
-        else
-        {
-            if (child->selected() && child_type == NODE_TYPE_FILE_LOCAL_DOCUMENT)
+            NodePtr child = waiting_children[i];
+            NodeType child_type = child->type();
+            if (child_type != NODE_TYPE_FILE_LOCAL_DOCUMENT &&
+                child_type != NODE_TYPE_FILE_LOCAL_BOOK_STORE_BOOK)
             {
-                child->upload();
+                child->upload(exec_now);
+            }
+            else
+            {
+                if (child->selected() && child_type == NODE_TYPE_FILE_LOCAL_DOCUMENT)
+                {
+                    child->upload(exec_now);
+                }
             }
         }
     }
+
+    if (!exec_now)
+    {
+        MiCloudService* cloud_service = XiaoMiServiceFactory::GetMiCloudService();
+        cloud_service->flushPendingTasks();
+    }
+    return;
 }
 
 bool DesktopNode::checkCloudCacheOrUpdate()

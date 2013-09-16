@@ -4,6 +4,7 @@
 #include "XiaoMi/XiaoMiServiceFactory.h"
 #include "XiaoMi/XiaoMiConstants.h"
 #include "KernelDef.h"
+#include "DownloadManager/MiCloudRequestTask.h"
 
 namespace xiaomi
 {
@@ -114,8 +115,8 @@ namespace xiaomi
         return url;
     }
 
-    DownloadTaskSPtr MiCloudDownloadTaskBuilder::BuildCreateFileTask(const string& dirId, const string& name, const string& sha1,
-            const string& retry, const string& data)
+    DownloadTaskSPtr MiCloudDownloadTaskBuilder::BuildCreateFileTask(const string& dirId, const string& name, const string& sha1
+            , const string& data, const string& retry)
     {
         map<string, string> params = GenerateDefaultParams();
         params["parent_id"] = dirId;
@@ -130,6 +131,16 @@ namespace xiaomi
                 XiaoMiServiceFactory::GetMiCloudService()->GetCookies(), 
                 XiaoMiServiceFactory::GetMiCloudService()->GetSecurity(), 
                 DownloadTask::POST);
+    }
+
+    DownloadTaskSPtr MiCloudDownloadTaskBuilder::BuildPhonyCreateFileTask(const string& dirId, 
+        const string& filePath, const string& displayName)
+    {
+       DownloadTaskSPtr task(new MiCloudCreateFileRequestTask(dirId, filePath, displayName)); 
+       task->SetMethod(DownloadTask::POST);
+       task->SetUrl(BuildCreateFileUrl().c_str());
+
+       return task;
     }
 
     DownloadTaskSPtr MiCloudDownloadTaskBuilder::BuildCreateDirectoryTask(const string& parentDirId, const string& name)
@@ -160,11 +171,11 @@ namespace xiaomi
                 DownloadTask::POST);
     }
 
-    DownloadTaskSPtr MiCloudDownloadTaskBuilder::BuildCommitFileTask(const string& uploadId, const string& data)
+    DownloadTaskSPtr MiCloudDownloadTaskBuilder::BuildCommitFileTask(const string& uploadId, const string& data, const string& retry)
     {
         map<string, string> params = GenerateDefaultParams();
         params["upload_id"] = uploadId;
-        params["retry"] = "1";
+        params["retry"] = retry;
         params["data"] = data;
 
         return SecureRequest::BuildDownloadTask(
@@ -176,11 +187,11 @@ namespace xiaomi
                 );
     }
 
-    DownloadTaskSPtr MiCloudDownloadTaskBuilder::BuildRequestDownloadTask(const string& fileId)
+    DownloadTaskSPtr MiCloudDownloadTaskBuilder::BuildRequestDownloadTask(const string& fileId, const string& retry)
     {
         map<string, string> params = GenerateDefaultParams();
         params["fileId"] = fileId;
-        params["retry"] = "1";
+        params["retry"] = retry;
 
         return SecureRequest::BuildDownloadTask(
                 BuildRequestDownloadUrl(fileId),

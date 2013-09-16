@@ -111,6 +111,7 @@ private:
     SPtr<ITpImage>  m_imgBatteryIcon ;
     SPtr<ITpImage>  m_imgWifiIcon;
     SPtr<ITpImage>  m_imgDownLoadIcon;
+    SPtr<ITpImage>  m_imgUpLoadIcon;
     SPtr<ITpImage>  m_imgMails;
     SPtr<ITpImage>  m_imgLogo;
     string          m_strTime;
@@ -124,6 +125,7 @@ private:
     // download info
     int             m_iDownLoadStatus;
     string          m_currentDownloadTaskID;
+    bool            m_isUploadTask;
 
 };
 

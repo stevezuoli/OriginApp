@@ -239,22 +239,24 @@ public:
     static const char* EventInfoGot;
 
 public:
-    bool CreateFile(const string& dirId, const string& filePath);
+    bool CreateFile(const string& dirId, const string& filePath, const string& displayName = "", bool exec_now = true);
     bool CreateDirectory(const string& parentDirId, const string& dirName);
     bool CreateDirectory(const string& filePath);
     bool CommitFile(const string& uploadPath, const string& upload, const string& fileMeta, const vector<string>& commitMetas);
-    bool RequestDownload(const string& fileId, const string& fileName = "");
-    bool DeleteFile(const string& fileId);
+    bool RequestDownload(const string& fileId, const string& fileName = "", bool exec_now = true);
+    bool DeleteFile(const string& fileId, bool exec_now = true);
     bool DeleteDirectory(const string& dirId);
     bool GetChildren(const string& dirId = "0", const string& offset = "0", const string& limit = "1000");
     bool GetInfo(const string& filePath);
     bool GetQuota();
 
+    void flushPendingTasks();
+
     // file delegater
     FileOperationDelegate* fileOperationDelegate() { return &file_delegate_; }
 
-protected:
     virtual bool Init();
+    virtual bool Destory();
 
 private:
     bool OnGetQuotaFinished(const EventArgs& args);

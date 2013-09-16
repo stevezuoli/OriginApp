@@ -96,7 +96,7 @@ string CloudCoder::EncodeString(const string& security, const string& data)
     if (!key.empty())
     {
         unsigned char iv[] = "0102030405060708";
-        string cipherText = EncodeUtil::AESEncode(strKey.c_str(), data.c_str(), iv);
+        string cipherText = EncodeUtil::AESEncode(strKey, data, iv);
         std::vector<unsigned char> result = EncodeUtil::Base64Encode(cipherText.c_str(), cipherText.length());
         return string(result.begin(), result.end());
     }
@@ -112,7 +112,7 @@ string CloudCoder::DecodeString(const string& security, const string& data)
     if (!key.empty())
     {
         unsigned char iv[] = "0102030405060708";
-        string plainText = EncodeUtil::AESDecode(strKey.c_str(), data.c_str(), data.size(), iv);
+        string plainText = EncodeUtil::AESDecode(strKey, data, data.size(), iv);
         return plainText;
         //std::vector<unsigned char> result = EncodeUtil::Base64Encode(plainText.c_str(), plainText.length());
         //return string(result.begin(), result.end());

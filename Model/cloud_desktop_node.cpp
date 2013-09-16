@@ -3,6 +3,7 @@
 #include "Model/cloud_category_node.h"
 #include "Model/cloud_filesystem_tree.h"
 
+#include "Utility/SystemUtil.h"
 #include <tr1/functional>
 #include "XiaoMi/MiCloudService.h"
 #include "XiaoMi/XiaoMiServiceFactory.h"
@@ -20,6 +21,7 @@ static const char* CLOUD_DESKTOP_NAME = "BOOKS";
 CloudDesktopNode::CloudDesktopNode(Node * parent)
     : ContainerNode(parent)
     , current_display_mode_(BY_FOLDER)
+    , last_update_time_(0)
 {
     status_ = NODE_NONE;
     mutableType() = NODE_TYPE_MICLOUD_DESKTOP;
@@ -33,16 +35,22 @@ CloudDesktopNode::CloudDesktopNode(Node * parent)
             std::tr1::mem_fn(&CloudDesktopNode::onCloudRootCreated),
                 this,
                 std::tr1::placeholders::_1));
-    cloud_manager->FetchBookRootDirID();
+    fetchRootID();
 }
 
 CloudDesktopNode::~CloudDesktopNode()
 {
-    CloudFileSystemTree::removeNodeFromGlobalMap(id());
-    DeletePtrContainer(&children_);
+    //CloudFileSystemTree::removeNodeFromGlobalMap(id());
+    CloudFileSystemTree::removeNodeFromCloudLocalMap(id());
 }
 
-NodePtrs& CloudDesktopNode::updateChildrenInfo()
+void CloudDesktopNode::fetchRootID()
+{
+    MiCloudManager* cloud_manager = MiCloudManager::GetInstance();
+    cloud_manager->FetchBookRootDirID();
+}
+
+NodePtrs CloudDesktopNode::updateChildrenInfo()
 {
     for (NodePtrsIter iter = children_.begin(); iter != children_.end(); ++iter)
     {
@@ -56,29 +64,45 @@ NodePtrs& CloudDesktopNode::updateChildrenInfo()
             dynamic_cast<CloudCategoryNode*>((*iter).get())->updateChildrenInfo();
         }
     }
-    sort(children_, by_field_, sort_order_);
-    return children_;
+    return filterChildren(children_);
 }
 
-void CloudDesktopNode::search(const string& keyword)
+bool CloudDesktopNode::updateChildren()
 {
-    // TODO.
-}
-
-bool CloudDesktopNode::updateChildren(int status_filter)
-{
+    setDirty(false);
     if (!id().empty())
     {
-        scan(id(), children_, status_filter, true);
-        return true;
+        scan(id(), children_);
     }
-    return false;
+    else
+    {
+        MiCloudManager* cloud_manager = MiCloudManager::GetInstance();
+        cloud_manager->FetchBookRootDirID();
+    }
+    return true;
 }
 
-void CloudDesktopNode::scan(const string& dir, NodePtrs &result, int status_filter, bool sort_list)
+void CloudDesktopNode::scan(const string& dir, NodePtrs &result)
 {
+    static const int UPDATE_OVERDUE = 20000;
+
     // fetch the category tree from mi cloud service.
     // the caller should wait until results returns and Nodes are ready
+    time_t current_time = SystemUtil::GetUpdateTimeInMs();
+    if (!children_.empty() && last_update_time_ != 0)
+    {
+        if (current_time - last_update_time_ < UPDATE_OVERDUE) // too short to fetch the children
+        {
+            NodeChildenReadyArgs children_ready_args;
+            children_ready_args.succeeded = true;
+            setDirty(false);
+            children_ready_args.current_node_path = absolutePath();
+            children_ready_args.children = filterChildren(children_);
+            FireEvent(EventChildrenIsReady, children_ready_args);
+            return;
+        }
+    }
+    last_update_time_ = current_time;
     MiCloudService* cloud_service = XiaoMiServiceFactory::GetMiCloudService();
     cloud_service->GetChildren(dir);
 }
@@ -107,11 +131,11 @@ void CloudDesktopNode::deleteDirectory(const string& dir_id)
     cloud_service->DeleteDirectory(dir_id);
 }
 
-bool CloudDesktopNode::remove(bool delete_local_files_if_possible)
+bool CloudDesktopNode::remove(bool delete_local_files_if_possible, bool exec_now)
 {
     RetrieveChildrenResult result = RETRIEVE_FAILED;
-    NodePtrs waiting_children = children(result, false);
-    if (result = RETRIEVE_DONE)
+    NodePtrs waiting_children = children(result, false, statusFilter());
+    if (result == RETRIEVE_DONE)
     {
         for (size_t i = 0; i < waiting_children.size(); i++)
         {
@@ -119,29 +143,35 @@ bool CloudDesktopNode::remove(bool delete_local_files_if_possible)
             NodeType child_type = child->type();
             if (child_type != NODE_TYPE_MICLOUD_BOOK)
             {
-                child->remove(delete_local_files_if_possible);
+                child->remove(delete_local_files_if_possible, exec_now);
             }
             else
             {
                 if (child->selected()) // remove thie file only if it's selected in multi-selection mode
                 {
-                    child->remove(delete_local_files_if_possible);
+                    child->remove(delete_local_files_if_possible, exec_now);
                 }
             }
         }
+    }
+
+    if (!exec_now)
+    {
+        MiCloudService* cloud_service = XiaoMiServiceFactory::GetMiCloudService();
+        cloud_service->flushPendingTasks();
     }
     return true;
 }
 
 void CloudDesktopNode::updateChildren(const MiCloudFileSPtrList& cloud_file_list)
 {
-    DeletePtrContainer(&children_);
+    clearChildren();
     for (size_t i = 0; i < cloud_file_list.size(); ++i)
     {
         MiCloudFileSPtr cloud_file = cloud_file_list[i];
         if (cloud_file->type == MiCloudFile::FT_Dir)
         {
-            if (CloudCategoryNode::testStatus(cloud_file, statusFilter()))
+            //if (CloudCategoryNode::testStatus(cloud_file, statusFilter()))
             {
                 NodePtr dir_node(new CloudCategoryNode(this, cloud_file));
                 children_.push_back(dir_node);
@@ -149,7 +179,7 @@ void CloudDesktopNode::updateChildren(const MiCloudFileSPtrList& cloud_file_list
         }
         else if (cloud_file->type == MiCloudFile::FT_File)
         {
-            if (CloudFileNode::testStatus(cloud_file, statusFilter()))
+            //if (CloudFileNode::testStatus(cloud_file, statusFilter()))
             {
                 NodePtr file_node(new CloudFileNode(this, cloud_file));
                 children_.push_back(file_node);
@@ -164,16 +194,19 @@ bool CloudDesktopNode::onCloudRootCreated(const EventArgs& args)
     int stat = status();
     if (root_dir_args.succeeded)
     {
-        mutableId() = root_dir_args.id;
+        if (mutableId() != root_dir_args.id)
+        {
+            mutableId() = root_dir_args.id;
+            RetrieveChildrenResult result = RETRIEVE_FAILED;
+            children(result, true); //fetch nodes at the first time
+        }
+
         mutableAbsolutePath() = MiCloudManager::GetInstance()->GetBookRootPath();
         mutableName() = CLOUD_DESKTOP_NAME;
         stat |= NODE_CLOUD;
         
         // add this node to global map
-        CloudFileSystemTree::addNodeToGlobalMap(this);
-
-        RetrieveChildrenResult result = RETRIEVE_FAILED;
-        children(result, true); //fetch nodes at the first time
+        //CloudFileSystemTree::addNodeToGlobalMap(this);
     }
     else
     {
@@ -183,16 +216,11 @@ bool CloudDesktopNode::onCloudRootCreated(const EventArgs& args)
     return true;
 }
 
-void CloudDesktopNode::download()
-{
-    downloadChildren();
-}
-
-void CloudDesktopNode::downloadChildren()
+void CloudDesktopNode::download(bool exec_now)
 {
     RetrieveChildrenResult result = RETRIEVE_FAILED;
-    NodePtrs waiting_children = children(result, false, NODE_CLOUD | NODE_NOT_ON_LOCAL);
-    if (result = RETRIEVE_DONE)
+    NodePtrs waiting_children = children(result, false, statusFilter());
+    if (result == RETRIEVE_DONE)
     {
         for (size_t i = 0; i < waiting_children.size(); i++)
         {
@@ -200,16 +228,22 @@ void CloudDesktopNode::downloadChildren()
             NodeType child_type = child->type();
             if (child_type != NODE_TYPE_MICLOUD_BOOK)
             {
-                child->download();
+                child->download(exec_now);
             }
             else
             {
                 if (child->selected())
                 {
-                    child->download();
+                    child->download(exec_now);
                 }
             }
         }
+    }
+
+    if (!exec_now)
+    {
+        MiCloudService* cloud_service = XiaoMiServiceFactory::GetMiCloudService();
+        cloud_service->flushPendingTasks();
     }
 }
 
@@ -228,9 +262,9 @@ void CloudDesktopNode::onChildrenReturned(const EventArgs& args)
         children_ready_args.reason = children_args.result->GetErrorReason();
     }
 
-    dirty_ = !children_ready_args.succeeded;
+    setDirty(!children_ready_args.succeeded);
     children_ready_args.current_node_path = absolutePath();
-    children_ready_args.children = children_;
+    children_ready_args.children = filterChildren(children_);
     FireEvent(EventChildrenIsReady, children_ready_args);
 }
 
@@ -242,13 +276,16 @@ void CloudDesktopNode::onFileCreated(const EventArgs& args)
     {
         MiCloudServiceResultCreateFileSPtr create_info = file_create_args.result;
         MiCloudFileSPtr cloud_file_info = create_info->GetFileInfo();
-        if (CloudFileNode::testStatus(cloud_file_info, statusFilter()))
+        NodePtr existing_node = node(cloud_file_info->name);
+        if (existing_node != 0)
         {
-            children_ready_args.succeeded = true;
-            NodePtr file_node(new CloudFileNode(this, cloud_file_info));
-            children_.push_back(file_node);
-            sort(children_, by_field_, sort_order_);
+            // do not create duplicate node
+            return;
         }
+        children_ready_args.succeeded = true;
+        NodePtr file_node(new CloudFileNode(this, cloud_file_info));
+        children_.push_back(file_node);
+        filtered_children_dirty_ = true; // ask for re-filter the children
     }
     else
     {
@@ -257,7 +294,7 @@ void CloudDesktopNode::onFileCreated(const EventArgs& args)
     }
 
     children_ready_args.current_node_path = absolutePath();
-    children_ready_args.children = children_;
+    children_ready_args.children = filterChildren(children_);
     FireEvent(EventChildrenIsReady, children_ready_args);
 }
 
@@ -269,13 +306,10 @@ void CloudDesktopNode::onDirectoryCreated(const EventArgs& args)
     {
         MiCloudServiceResultCreateDirSPtr create_info = dir_create_args.result;
         MiCloudFileSPtr cloud_dir_info = create_info->GetDirInfo();
-        if (CloudCategoryNode::testStatus(cloud_dir_info, statusFilter()))
-        {
-            children_ready_args.succeeded = true;
-            NodePtr dir_node(new CloudCategoryNode(this, cloud_dir_info));
-            children_.push_back(dir_node);
-            sort(children_, by_field_, sort_order_);
-        }
+        children_ready_args.succeeded = true;
+        NodePtr dir_node(new CloudCategoryNode(this, cloud_dir_info));
+        children_.push_back(dir_node);
+        filtered_children_dirty_ = true; // ask for re-filter the children
     }
     else
     {
@@ -284,7 +318,7 @@ void CloudDesktopNode::onDirectoryCreated(const EventArgs& args)
     }
 
     children_ready_args.current_node_path = absolutePath();
-    children_ready_args.children = children_;
+    children_ready_args.children = filterChildren(children_);
     FireEvent(EventChildrenIsReady, children_ready_args);
 }
 
@@ -295,25 +329,22 @@ void CloudDesktopNode::onFileDeleted(const EventArgs& args)
     if (file_delete_args.succeeded)
     {
         string delete_file_id = file_delete_args.file_id;
-        RetrieveChildrenResult ret = RETRIEVE_FAILED;
-        NodePtrs& all = mutableChildren(ret, false, statusFilter());
-        if (ret == RETRIEVE_DONE)
+        NodePtrs& all = children_; //mutableChildren(ret, false, statusFilter());
+        for(NodePtrs::iterator it = all.begin(); it != all.end(); ++it)
         {
-            for(NodePtrs::iterator it = all.begin(); it != all.end(); ++it)
+            if ((*it)->id() == delete_file_id)
             {
-                if ((*it)->id() == delete_file_id)
-                {
-                    // delete the node in cache
-                    all.erase(it);
-                    children_ready_args.succeeded = true;
-                    break;
-                }
+                // delete the node in cache
+                all.erase(it);
+                children_ready_args.succeeded = true;
+                filtered_children_dirty_ = true; // ask for re-filter the children
+                break;
             }
         }
     }
 
     children_ready_args.current_node_path = absolutePath();
-    children_ready_args.children = children_;
+    children_ready_args.children = filterChildren(children_);
     FireEvent(EventChildrenIsReady, children_ready_args);
 }
 
@@ -324,25 +355,22 @@ void CloudDesktopNode::onDirectoryDeleted(const EventArgs& args)
     if (dir_delete_args.succeeded)
     {
         string delete_dir_id = dir_delete_args.directory_id;
-        RetrieveChildrenResult ret = RETRIEVE_FAILED;
-        NodePtrs& all = mutableChildren(ret, false, statusFilter());
-        if (ret == RETRIEVE_DONE)
+        NodePtrs& all = children_; //mutableChildren(ret, false, statusFilter());
+        for(NodePtrs::iterator it = all.begin(); it != all.end(); ++it)
         {
-            for(NodePtrs::iterator it = all.begin(); it != all.end(); ++it)
+            if ((*it)->id() == delete_dir_id)
             {
-                if ((*it)->id() == delete_dir_id)
-                {
-                    // delete the node in cache
-                    all.erase(it);
-                    children_ready_args.succeeded = true;
-                    break;
-                }
+                // delete the node in cache
+                all.erase(it);
+                children_ready_args.succeeded = true;
+                filtered_children_dirty_ = true; // ask for re-filter the children
+                break;
             }
         }
     }
 
     children_ready_args.current_node_path = absolutePath();
-    children_ready_args.children = children_;
+    children_ready_args.children = filterChildren(children_);
     FireEvent(EventChildrenIsReady, children_ready_args);
 }
 

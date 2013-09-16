@@ -7,7 +7,8 @@ void IDownloadTask::FireDownloadProgressUpdateEvent()
     IDownloader::GetInstance()->FireDownloadProgressUpdateEvent(GetType(),
                                                                 GetState(),
                                                                 GetPercentage(),
-                                                                GetOrigUrlID());
+                                                                GetOrigUrlID(),
+                                                                IsUploadTask());
 }
 
 void IDownloadTask::OnProgressUpdate(unsigned int downloadTotal, unsigned downloadNow)

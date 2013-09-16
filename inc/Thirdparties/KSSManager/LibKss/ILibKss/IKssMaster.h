@@ -21,6 +21,7 @@ namespace KSSMaster
 {
     KSS_INTERFACE IBlockMetaList
     {
+        virtual ~IBlockMetaList() {}
         virtual UInt32      count()                     = 0;
         virtual const char* blockMeta(UInt32 index)     = 0;
         virtual bool        existed(UInt32 index)       = 0;
@@ -31,6 +32,7 @@ namespace KSSMaster
 
     KSS_INTERFACE IBlockDownloadInfoList
     {
+        virtual ~IBlockDownloadInfoList() {}
         virtual UInt32      count()                                     = 0;
         virtual const char* SHA1(UInt32 index)                          = 0;
         virtual UInt32      size(UInt32 index)                          = 0;
@@ -42,12 +44,14 @@ namespace KSSMaster
 
     KSS_INTERFACE IOutputString
     {
+        virtual ~IOutputString() {}
         virtual const char* c_str()   = 0;
         virtual void        release() = 0;
     };
 
     KSS_INTERFACE IStringList
     {
+        virtual ~IStringList() {}
         virtual UInt32      count()            = 0;
         virtual const char* item(UInt32 index) = 0;
 
@@ -56,6 +60,7 @@ namespace KSSMaster
 
     KSS_INTERFACE IKSSMaster
     {
+        virtual ~IKSSMaster() {}
         virtual ErrorNo requestUpload(
             // IN
             LibcURL::CancelDelegate         cancel,

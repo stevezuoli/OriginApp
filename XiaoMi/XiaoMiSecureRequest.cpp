@@ -36,6 +36,16 @@ string SecureRequest::ParseStringResponse(const string& response, const string& 
     return DecryptResponse(response, security);
 }
 
+map<string, string> SecureRequest::EncryptParams(DownloadTask::HTTP_METHOD method, const string& url,
+            map<string, string> params, const string& security)
+{
+    if (method < 0 || method >= DownloadTask::METHOD_COUNT)
+    {
+        return map<string, string>();
+    }
+
+    return EncryptParams(s_methodName[method], url, params, security);
+}
 
 map<string, string> SecureRequest::EncryptParams(const string& method, const string& url,
             map<string, string> params, const string& security)

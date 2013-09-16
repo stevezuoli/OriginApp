@@ -121,6 +121,10 @@ void ImageManager::FreeCachedImages()
 
 std::string ImageManager::GetImagePath(INT32 iImageId)
 {
+    if (iImageId < 0 || iImageId >= IMAGE_COUNT)
+    {
+        return string();
+    }
     std::string str1(g_szAppPath);
     if (DeviceInfo::IsKPW())
     {

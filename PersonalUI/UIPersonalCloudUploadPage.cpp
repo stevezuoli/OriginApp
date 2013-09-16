@@ -7,68 +7,62 @@
 #include "Utility/PathManager.h"
 #include "BookStore/LocalCategoryManager.h"
 #include <tr1/functional>
+#include "CommonUI/UIUtility.h"
+#include "Model/cloud_filesystem_tree.h"
 
 using namespace WindowsMetrics;
 using namespace dk::bookstore;
 using namespace dk::utility;
 
 UIPersonalCloudUploadPage::UIPersonalCloudUploadPage(ModelTree* model_tree)
-    : UISelectPage(BLU_CLOUD_UPLOAD, model_tree)
-    , m_btnBack(this)
+    : UISelectPage(BLU_SELECT_EXPAND, model_tree)
+    , m_pageInfoSizer(NULL)
 {
-    m_modelView.setRootNodeDisplayMode(BY_FOLDER);
-    m_modelView.setStatusFilter(NODE_LOCAL | NODE_NOT_ON_CLOUD | NODE_SELF_OWN);
-    AppendChild(&m_titleBar);
+    m_txtTitle.SetText(CLOUD_SCANNING);
+    ContainerNode* root_node = model_tree->root();
+    SubscribeMessageEvent(Node::EventNodeSelectStatusUpdated,
+        *root_node,
+        std::tr1::bind(
+        std::tr1::mem_fn(&UIPersonalCloudUploadPage::onNodeSelectStatusUpdated),
+        this,
+        std::tr1::placeholders::_1));
 }
 
-UISizer* UIPersonalCloudUploadPage::CreateTopSizer()
+bool UIPersonalCloudUploadPage::onNodeSelectStatusUpdated(const EventArgs& args)
 {
-    if (NULL == m_pTopSizer)
+    int64_t total_size = 0;
+    int number = 0;
+    bool exceed = false;
+    NodePtrs selectedChildren = m_model->getSelectedNodesInfo(total_size, number, exceed);
+    char text[64] = {0};
+    if (total_size <= 0)
     {
-        m_pTopSizer = new UIBoxSizer(dkHORIZONTAL);
-        if (m_pTopSizer)
-        {
-            m_txtTitle.SetText(CLOUD_SCANNING);
-            m_txtTitle.SetFontSize(GetWindowFontSize(FontSize22Index));
-            UpdateModelView(false);
-
-            AppendChild(&m_btnBack);
-            AppendChild(&m_txtTitle);
-
-            const int horzSpacing = GetWindowMetrics(UIPixelValue15Index);
-            const int vertSpacing = GetWindowMetrics(UIPixelValue5Index);
-            m_imageMode.SetText("image");
-            m_imageMode.SetFontSize(GetWindowFontSize(FontSize20Index));
-            m_imageMode.SetInternalHorzSpacing(horzSpacing);
-            m_imageMode.SetInternalVertSpacing(vertSpacing);
-
-            m_expandMode.SetText("expand");
-            m_expandMode.SetFontSize(GetWindowFontSize(FontSize20Index));
-            m_expandMode.SetInternalHorzSpacing(horzSpacing);
-            m_expandMode.SetInternalVertSpacing(vertSpacing);
-
-            m_selectAll.SetText(SELECT_ALL);
-            m_selectAll.SetFontSize(GetWindowFontSize(FontSize20Index));
-            m_selectAll.SetInternalHorzSpacing(horzSpacing);
-            m_selectAll.SetInternalVertSpacing(vertSpacing);
-
-            m_btnGroup.AddButton(&m_imageMode, UISizerFlags().Expand().Center());
-            m_btnGroup.AddButton(&m_expandMode, UISizerFlags().Expand().Center());
-            m_btnGroup.AddButton(&m_selectAll, UISizerFlags().Expand().Center());
-            AppendChild(&m_btnGroup);
-            m_btnGroup.SetTopLinePixel(0);
-            m_btnGroup.SetBottomLinePixel(0);
-            m_btnGroup.SetSplitLineHeight(GetWindowMetrics(UIPixelValue20Index));
-
-            const int margin = GetWindowMetrics(UIPixelValue10Index);
-            const int rightMargin = GetWindowMetrics(UIPixelValue30Index) - horzSpacing;
-            m_pTopSizer->SetMinHeight(GetWindowMetrics(UIBackButtonHeightIndex));
-            m_pTopSizer->Add(&m_btnBack, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
-            m_pTopSizer->Add(&m_txtTitle, UISizerFlags(1).Expand().Border(dkLEFT | dkRIGHT, margin));
-            m_pTopSizer->Add(&m_btnGroup, UISizerFlags().Expand().Align(dkALIGN_RIGHT | dkALIGN_CENTER_VERTICAL).Border(dkRIGHT, rightMargin));
-        }
+        snprintf(text, DK_DIM(text), StringManager::GetPCSTRById(CLOUD_UPLOAD));
     }
-    return m_pTopSizer;
+    else if (total_size < 1048576)
+    {
+        snprintf(text, DK_DIM(text), "%s | %d%s | %.2fK",
+            StringManager::GetPCSTRById(CLOUD_UPLOAD),
+            number, StringManager::GetPCSTRById(CLOUD_UPLOAD_FILE_NUM),
+            total_size / 1024.0);
+    }
+    else
+    {
+        snprintf(text, DK_DIM(text), "%s | %d%s | %.2fM",
+            StringManager::GetPCSTRById(CLOUD_UPLOAD),
+            number, StringManager::GetPCSTRById(CLOUD_UPLOAD_FILE_NUM),
+            total_size / 1048576.0);
+    }
+    m_btnUpload.SetText(text);
+    UpdateModelView(true);
+    return true;
+}
+
+void UIPersonalCloudUploadPage::InitModelView()
+{
+    UISelectPage::InitModelView();
+    m_modelView.setRootNodeDisplayMode(EXPAND_ALL);
+    m_modelView.setStatusFilter(NODE_LOCAL | NODE_NOT_ON_CLOUD | NODE_SELF_OWN);
 }
 
 UISizer* UIPersonalCloudUploadPage::CreateModelTreeSizer()
@@ -80,20 +74,21 @@ UISizer* UIPersonalCloudUploadPage::CreateModelTreeSizer()
         m_sepHorz.SetMinHeight(1);
         AppendChild(&m_sepHorz);
 
-        UISizer* pageNumSizer = new UIBoxSizer(dkHORIZONTAL);
-        if (pageNumSizer)
+        m_pageInfoSizer = new UIBoxSizer(dkHORIZONTAL);
+        if (m_pageInfoSizer)
         {
-            m_txtTotalBook.SetForeColor(ColorManager::GetColor(COLOR_MENUITEM_INACTIVE));
-            m_txtTotalBook.SetFont(0, 0, 18);
-            m_txtPageNo.SetFont(0, 0, 18);
+            const int fontSize = GetWindowFontSize(FontSize18Index);
+            m_txtSpace.SetFontSize(fontSize);
+            m_txtSpace.SetEnglishGothic();
+            m_txtPageNo.SetFontSize(fontSize);
             m_txtPageNo.SetEnglishGothic();
-            AppendChild(&m_txtTotalBook);
+            AppendChild(&m_txtSpace);
             AppendChild(&m_txtPageNo);
 
-            pageNumSizer->Add(&m_txtTotalBook, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
-            pageNumSizer->AddStretchSpacer();
-            pageNumSizer->Add(&m_txtPageNo, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
-            m_pModelTreeSizer->Add(pageNumSizer, UISizerFlags().Expand().Border(dkLEFT | dkRIGHT, GetWindowMetrics(UIPixelValue30Index)));
+            m_pageInfoSizer->Add(&m_txtSpace, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
+            m_pageInfoSizer->AddStretchSpacer();
+            m_pageInfoSizer->Add(&m_txtPageNo, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
+            m_pModelTreeSizer->Add(m_pageInfoSizer, UISizerFlags().Expand().Border(dkLEFT | dkRIGHT, GetWindowMetrics(UIPixelValue30Index)));
         }
         m_pModelTreeSizer->AddSpacer(GetWindowMetrics(UIHomePageSpaceOverBottomBarIndex));
         m_pModelTreeSizer->Add(&m_sepHorz, UISizerFlags().Expand());
@@ -113,24 +108,11 @@ UISizer* UIPersonalCloudUploadPage::CreateBottomSizer()
             m_btnUpload.SetFontSize(GetWindowFontSize(FontSize20Index));
             m_btnUpload.SetLeftMargin(GetWindowMetrics(UIButtonLeftPaddingIndex));
             m_btnUpload.SetTopMargin(GetWindowMetrics(UIButtonTopPaddingIndex));
-            m_btnUpload.SetMinSize(GetWindowMetrics(UIAddBookToCategoryPageSaveButtonWidthIndex), bottomHeight - 1);
             m_btnUpload.ShowBorder(false);
             AppendChild(&m_btnUpload);
 
-            int vertSepHeight = GetWindowMetrics(UIAddBookToCategoryPageVertSepHeightIndex);
-            m_sepVert1.SetMinSize(1, vertSepHeight);
-            m_sepVert1.SetDirection(UISeperator::SD_VERT);
-            AppendChild(&m_sepVert1);
-
-            m_sepVert2.SetMinSize(1, vertSepHeight);
-            m_sepVert2.SetDirection(UISeperator::SD_VERT);
-            AppendChild(&m_sepVert2);
-
-            m_pBottomSizer->AddStretchSpacer();
-            m_pBottomSizer->Add(&m_sepVert1, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
-            m_pBottomSizer->Add(&m_btnUpload, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
-            m_pBottomSizer->Add(&m_sepVert2, UISizerFlags().Align(dkALIGN_CENTER_VERTICAL));
-            m_pBottomSizer->AddStretchSpacer();
+            m_pBottomSizer->SetMinHeight(bottomHeight - 1);
+            m_pBottomSizer->Add(&m_btnUpload, UISizerFlags(1).Expand());
         }
     }
     return m_pBottomSizer;
@@ -141,6 +123,7 @@ void UIPersonalCloudUploadPage::UpdateModelView(bool layout)
     int bookNum = m_modelView.GetItemNum();
     int curPage = m_modelView.GetCurPageIndex();
     int totalPage = m_modelView.GetTotalPageCount();
+    m_btnUpload.SetEnable(TRUE);
     if (bookNum)
     {
         char bufPageNum[32] = {0};
@@ -149,7 +132,6 @@ void UIPersonalCloudUploadPage::UpdateModelView(bool layout)
         snprintf(bufTitle, DK_DIM(bufTitle), StringManager::GetPCSTRById(CLOUD_SCAN_SUCCESSED), bookNum);
         m_txtPageNo.SetText(bufPageNum);
         m_txtTitle.SetText(bufTitle);
-        m_btnUpload.SetEnable(TRUE);
     }
     else
     {
@@ -158,9 +140,29 @@ void UIPersonalCloudUploadPage::UpdateModelView(bool layout)
         m_btnUpload.SetEnable(FALSE);
     }
 
-    char buf[32] = {0};
-    snprintf(buf, DK_DIM(buf), "%s %d %s", StringManager::GetPCSTRById(BOOK_TOTAL), bookNum, StringManager::GetPCSTRById(BOOK_BEN));
-    m_txtTotalBook.SetText(buf);
+    SystemSettingInfo* systemSettingInfo = SystemSettingInfo::GetInstance();
+    if (systemSettingInfo)
+    {
+        int64_t total_size = 0;
+        int number = 0;
+        bool exceed = false;
+        NodePtrs selectedChildren = m_model->getSelectedNodesInfo(total_size, number, exceed);
+        double totalSizeM = UIUtility::ConvertByteTo(total_size, "MB");
+        char space[32] = {0};
+        int64_t freeSize = (int64_t)systemSettingInfo->GetDiskSpace().GetFreeSize();
+        if (totalSizeM >= (double)freeSize)
+        {
+            m_btnUpload.SetEnable(FALSE);
+            snprintf(space, DK_DIM(space), StringManager::GetPCSTRById(CLOUD_UPLOAD_SPACE_TOO_SMALL), (float)freeSize);
+        }
+        else
+        {
+            double ns_used = 0, total = 0, available = 0;
+            UIUtility::GetCloudSpaceInfo(total, available, ns_used);
+            snprintf(space, DK_DIM(space), StringManager::GetPCSTRById(CLOUD_LEFTSPACE), available, total);
+        }
+        m_txtSpace.SetText(space);
+    }
     
     if (layout)
     {
@@ -189,81 +191,12 @@ bool UIPersonalCloudUploadPage::OnListTurnPage(const EventArgs&)
 
 bool UIPersonalCloudUploadPage::OnChildClick(UIWindow* child)
 {
-    if(child == &m_btnBack)
-    {
-        return OnBackClick();
-    }
-    else if (child == &m_imageMode)
-    {
-        return OnImageModeClick();
-    }
-    else if (child == &m_expandMode)
-    {
-        return OnExpandModeClick();
-    }
-    else if (child == &m_selectAll)
-    {
-        return OnSelectedAllClick();
-    }
-    else if (child == &m_btnUpload)
+    if (child == &m_btnUpload)
     {
         return OnUploadClicked();
     }
-    return false;
-}
 
-bool UIPersonalCloudUploadPage::OnBackClick()
-{
-    if (m_modelView.rootNodeDisplayMode() == BY_FOLDER && m_modelView.BackToUpperFolder())
-    {
-        UpdateModelView(true);
-    }
-    else
-    {
-        CPageNavigator::BackToPrePage();
-    }
-    return true;
-}
-
-bool UIPersonalCloudUploadPage::OnSelectedAllClick()
-{
-    if (m_model)
-    {
-        ContainerNode* node = m_model->currentNode();
-        if (node)
-        {
-            node->setSelected(!node->selected());
-            Repaint();
-        }
-    }
-    return true;
-}
-
-bool UIPersonalCloudUploadPage::OnExpandModeClick()
-{
-    DKDisplayMode mode = (m_modelView.rootNodeDisplayMode() == BY_FOLDER) ? EXPAND_ALL : BY_FOLDER;
-    if (mode == EXPAND_ALL)
-    {
-        m_modelView.cdRoot();
-    }
-    m_modelView.setRootNodeDisplayMode(mode);
-    m_modelView.InitListItem();
-    Repaint();
-    return true;
-}
-
-bool UIPersonalCloudUploadPage::OnImageModeClick()
-{
-    ModelDisplayMode newMode = BLM_ICON;
-    if (BLM_ICON == SystemSettingInfo::GetInstance()->GetModelDisplayMode())
-    {
-        newMode = BLM_LIST;
-    }
-    SystemSettingInfo::GetInstance()->SetModelDisplayMode(newMode);
-    m_modelView.SetModelDisplayMode(newMode);
-    m_modelView.InitListItem();
-    Repaint();
-    return true;
+    return UISelectPage::OnChildClick(child);
 }
 
 bool UIPersonalCloudUploadPage::OnUploadClicked()
@@ -273,9 +206,19 @@ bool UIPersonalCloudUploadPage::OnUploadClicked()
         ContainerNode* rootNode = m_model->root();
         if (rootNode)
         {
-            rootNode->upload();
+            rootNode->upload(false);
         }
     }
     return true;
+}
+
+void UIPersonalCloudUploadPage::OnEnter()
+{
+    DebugPrintf(DLC_UIHOMEPAGE, "%s, %d, %s, %s", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
+    UIPage::OnEnter();
+
+    m_modelView.updateModelByContext(m_model);
+    m_modelView.InitListItem();
+    UpdateWindow();
 }
 

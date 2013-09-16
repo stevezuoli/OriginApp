@@ -43,6 +43,8 @@ using namespace std;
     MACRO_NAME(DELETE_BOOKMARK,                         "去书签")\
     MACRO_NAME(DOWNLOAD_FINISH,                         "下载完成")\
     MACRO_NAME(DOWNLOADING,                             "正在下载")\
+    MACRO_NAME(UPLOAD_FINISH,                         "上传完成")\
+    MACRO_NAME(UPLOADING,                             "正在上传")\
     MACRO_NAME(WAITING,                                 "正在等待")\
     MACRO_NAME(PAUSE,                                   "暂停")\
     MACRO_NAME(NOT_SUPPORT,                             "暂不支持")\
@@ -144,6 +146,7 @@ using namespace std;
     MACRO_NAME(PASSWORD_WITH_COLON,                     "密码：")\
     MACRO_NAME(CONTINUE_READ_BOOK,                      "继续阅读")\
     MACRO_NAME(DOWNLOAD_FAILED,                         "下载失败")\
+    MACRO_NAME(UPLOAD_FAILED,                         "上传失败")\
     MACRO_NAME(BOOKSTORE_LOADING_INFO,                  "载入中...")\
     MACRO_NAME(OPEN_WORKING_IN,                         "正在打开...")\
     MACRO_NAME(CLOSE_WORKING_IN,                        "正在关闭...")\
@@ -461,6 +464,7 @@ using namespace std;
     MACRO_NAME(TOUCH_GOTO_COMMENTORDIGEST,               "查看书摘批注")\
     MACRO_NAME(TOUCH_COMMENTITEM,                        "注：")\
     MACRO_NAME(TOUCH_DOWNLOAD,							 "下载")\
+    MACRO_NAME(TOUCH_UPLOAD,							 "上传到我的云盘")\
     MACRO_NAME(BOOKSTORE_LOADINGDATAFAILED,				 "加载数据失败")\
 	MACRO_NAME(TOUCH_DISCOUNT,							 "特价")\
 	MACRO_NAME(TOUCH_TODAYDISCOUNT,						 "今日特价")\
@@ -787,6 +791,8 @@ using namespace std;
     MACRO_NAME(PERSONAL_FAVOURITES, "我的收藏")\
     MACRO_NAME(PERSONAL_FAVOURITES_SUBTITLE, "感兴趣的书籍")\
     MACRO_NAME(PERSONAL_FAVOURITES_NO_ELEMENT_NOTICE, "没有发现藏书，到书城逛逛有惊喜呦~~")\
+    MACRO_NAME(PERSONAL_CLOUDBOOKSHELF, "云书架")\
+    MACRO_NAME(PERSONAL_CLOUDBOOKSHELF_SUBTITLE, "上传下载文档")\
     MACRO_NAME(PERSONAL_CART_NO_ELEMENT_NOTICE, "购书车是空的，到书城逛逛有惊喜呦~~")\
     MACRO_NAME(PERSONAL_CART_NO_ELEMENT_STROLL, "到书城逛逛")\
     MACRO_NAME(PERSONAL_GOTO_CART, "去购物车")\
@@ -893,9 +899,34 @@ using namespace std;
     MACRO_NAME(CLOUD_SCAN_SUCCESSED, "扫描结果(%d)")\
     MACRO_NAME(CLOUD_SCAN_NOBOOK, "没有要上传的书籍")\
     MACRO_NAME(CLOUD_UPLOAD, "上传")\
+    MACRO_NAME(CLOUD_UPLOAD_FILE_NUM, "个文件")\
     MACRO_NAME(CLOUD_LOGININFO_TITLE, "云书架登录")\
     MACRO_NAME(CLOUD_LOGININFO, "云书架是小米账号的特色服务，提供云端存储空间供大家免费享用")\
+    MACRO_NAME(CLOUD_NOPUCHASED, "您还没有购买过书籍")\
+    MACRO_NAME(CLOUD_NOUPLOAD_NOT_ON_LOCAL, "云书架书籍已全部下载至本地，尽享阅读时光")\
+    MACRO_NAME(CLOUD_NOUPLOAD1, "您还没有上传过书籍")\
+    MACRO_NAME(CLOUD_NOUPLOAD2, "体验云端书籍随行的感觉")\
+    MACRO_NAME(CLOUD_GOTOBOOKSTORE, "到书城逛逛，好书等你拿")\
+    MACRO_NAME(CLOUD_UPLOAD_INFO, "体验云端书籍随行的感觉")\
+    MACRO_NAME(CLOUD_GOTOUPLOAD, "立即上传书籍")\
+    MACRO_NAME(CLOUD_LEFTSPACE, "%.2fG可用/%.2fG")\
+    MACRO_NAME(CLOUD_UPLOADTIME, "上传日期: %s")\
+    MACRO_NAME(CLOUD_ALREADY_PUSHASED, "已购买")\
+    MACRO_NAME(CLOUD_ALREADY_UPLOADED, "已上传")\
+    MACRO_NAME(CLOUD_UPLOADBOOK, "上传书籍")\
     MACRO_NAME(SELECT_ALL, "全选")\
+    MACRO_NAME(CLOUD_UPLOAD_SORTBYAUTHOR, "作者名")\
+    MACRO_NAME(CLOUD_PURCHARSED_SORTBYBUYDATE, "购买日期")\
+    MACRO_NAME(CLOUD_PURCHARSED_SORTBYUPDATE, "待更新")\
+    MACRO_NAME(CLOUD_PURCHARSED_SORTBYNOREAD, "未读书籍")\
+    MACRO_NAME(CLOUD_PURCHARSED_SORTBYREADCOMPLETE, "阅读完毕")\
+    MACRO_NAME(CLOUD_SPACE_TOO_SMALL, "云端可用空间不足10%，请及时清理文件释放空间。")\
+    MACRO_NAME(CLOUD_SPACE_IS_FULL, "云端可用空间已满，暂时无法上传新书籍，请清理文件释放空间。")\
+    MACRO_NAME(CLOUD_DOWNLOAD_SPACE_TOO_SMALL, "本地空间剩余%.2fM，请返回编辑，“忽略”则逐个下载，空间不足时自动断开。")\
+    MACRO_NAME(CLOUD_UPLOAD_SPACE_TOO_SMALL, "云端剩余空间为%.2fM，容量不足")\
+    MACRO_NAME(CLOUD_IGNORE, "忽略")\
+    MACRO_NAME(CLOUD_FETCHING, "正在获取云端数据")\
+
 
 // TODO: 将该部分改为从文件读取。
 #define LAYOUT_DEMO_FILEPATH "/DuoKan/LayoutDemo.txt"

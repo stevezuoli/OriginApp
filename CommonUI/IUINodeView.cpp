@@ -7,6 +7,7 @@
 ////////////////////////////////////////////////////////////////////////
 
 #include "CommonUI/IUINodeView.h"
+#include <tr1/functional>
 #include "DkSPtr.h"
 #include "Public/Base/TPDef.h"
 #include "I18n/StringManager.h"
@@ -21,69 +22,30 @@
 #include "Utility/StringUtil.h"
 #include "Utility/RenderUtil.h"
 #include "drivers/DeviceInfo.h"
-#include <tr1/functional>
 #include "Model/container_node.h"
 #include "Model/local_doc_node.h"
 #include "Model/cloud_file_node.h"
 #include "CommonUI/UINodeViewOfLocalDir.h"
 #include "CommonUI/UINodeViewOfLocalFile.h"
-#include "CommonUI/UINodeViewOfLocalfileUpload.h"
+#include "CommonUI/UINodeViewCloudFile.h"
+#include "CommonUI/UINodeViewCloudFolder.h"
+#include "TouchAppUI/UIModelView.h"
 
 using namespace WindowsMetrics;
 using namespace dk::utility;
 using namespace dk::document_model;
 
-IUINodeView* CreateNodeView(
-    UICompoundListBox* pParent, 
-    ModelTree* model_tree, 
-    NodePtr node, 
-    BookListUsage usage, 
-    int iconWidth, 
-    int iconHeight)
-{
-    IUINodeView* nodeView = NULL;
-    if (node)
-    {
-        printf("-------------------------%d/%d---------------------\n", node->type(), usage);
-        switch(node->type())
-        {
-        case NODE_TYPE_CATEGORY_LOCAL_BOOK_STORE:
-        case NODE_TYPE_CATEGORY_LOCAL_PUSHED:
-        case NODE_TYPE_CATEGORY_LOCAL_DOCUMENTS:
-        case NODE_TYPE_CATEGORY_LOCAL_FOLDER:
-        case NODE_TYPE_CATEGORY_VIRTUAL_BOOK_STORE:
-            nodeView = new UINodeViewOfLocalDir(pParent, model_tree, usage, iconWidth, iconHeight);
-            break;
-        case NODE_TYPE_FILE_LOCAL_DOCUMENT:
-        case NODE_TYPE_FILE_LOCAL_BOOK_STORE_BOOK:
-            if (usage == BLU_CLOUD_UPLOAD)
-            {
-                nodeView = new UINodeViewOfLocalfileUpload(pParent, model_tree, usage, iconWidth, iconHeight);
-            }
-            else if (usage == BLU_BROWSE)
-            {
-                nodeView = new UINodeViewOfLocalFile(pParent, model_tree, usage, iconWidth, iconHeight);
-            }
-            break;
-        default:
-            {
-                printf("-------------------------error---------------------\n");
-                //nodeView = new UINodeView(pParent, model_tree, usage, iconWidth, iconHeight);
-            }
-            break;
-        }
-    }
-    return nodeView;
-}
+const char* IUINodeView::EventNodeSelected = "EventNodeSelected";
+const char* IUINodeView::EventNodeOpenBook = "EventNodeOpenBook";
 
 IUINodeView::IUINodeView(
-        UICompoundListBox* pParent,
+        UIModelView* pParent,
         ModelTree* model_tree,
         BookListUsage usage,
         int iconWidth,
         int iconHeight)
         : UIListItemBase(pParent, IDSTATIC)
-        , m_selectMode(false)
+        , m_usage(usage)
         , m_modelDisplayMode(BLM_LIST)
         , m_coverViewSizer(NULL)
         , m_listViewSizer(NULL)
@@ -114,15 +76,62 @@ IUINodeView::IUINodeView(
     m_imgSelect.SetAutoSize(true);
     m_imgSelect.SetImage(ImageManager::GetImage(IMAGE_ICON_COVER_UNSELECTED));
     m_imgSelect.SetMinSize(dkSize(GetWindowMetrics(UIHomePageImageMaxWidthIndex), m_imgSelect.GetMinHeight()));
+
+    SubscribeMessageEvent(IUINodeView::EventNodeSelected,
+        *this,
+        std::tr1::bind(
+        std::tr1::mem_fn(&UIModelView::onNodeSelected),
+            pParent,
+            std::tr1::placeholders::_1));
+    SubscribeEvent(IUINodeView::EventNodeOpenBook,
+        *this,
+        std::tr1::bind(
+        std::tr1::mem_fn(&UIModelView::onNodeOpenBook),
+            pParent,
+            std::tr1::placeholders::_1));
 }
 
 IUINodeView::~IUINodeView()
 {
 }
 
-void IUINodeView::SetSelectMode(bool showSelect)
+IUINodeView* IUINodeView::createNodeView(UIModelView* pParent, 
+                                         ModelTree* model_tree, 
+                                         NodePtr node, 
+                                         BookListUsage usage, 
+                                         int iconWidth, 
+                                         int iconHeight)
 {
-    m_selectMode = showSelect;
+    IUINodeView* node_view = 0;
+    if (node)
+    {
+        switch(node->type())
+        {
+        case NODE_TYPE_CATEGORY_LOCAL_BOOK_STORE:
+        case NODE_TYPE_CATEGORY_LOCAL_PUSHED:
+        case NODE_TYPE_CATEGORY_LOCAL_DOCUMENTS:
+        case NODE_TYPE_CATEGORY_LOCAL_FOLDER:
+        case NODE_TYPE_CATEGORY_VIRTUAL_BOOK_STORE:
+            node_view = new UINodeViewOfLocalDir(pParent, model_tree, usage, iconWidth, iconHeight);
+            break;
+        case NODE_TYPE_FILE_LOCAL_DOCUMENT:
+        case NODE_TYPE_FILE_LOCAL_BOOK_STORE_BOOK:
+            node_view = new UINodeViewOfLocalFile(pParent, model_tree, usage, iconWidth, iconHeight);
+            break;
+        case NODE_TYPE_MICLOUD_CATEGORY:
+            node_view = new UINodeViewCloudFolder(pParent, model_tree, usage, iconWidth, iconHeight);
+            break;
+        case NODE_TYPE_MICLOUD_BOOK:
+            node_view = new UINodeViewCloudFile(pParent, model_tree, usage, iconWidth, iconHeight);
+            break;
+        default:
+            {
+                //nodeView = new UINodeView(pParent, model_tree, usage, iconWidth, iconHeight);
+            }
+            break;
+        }
+    }
+    return node_view;
 }
 
 void IUINodeView::MoveWindow(INT32 iLeft, INT32 iTop, INT32 iWidth, INT32 iHeight)
@@ -134,8 +143,8 @@ void IUINodeView::MoveWindow(INT32 iLeft, INT32 iTop, INT32 iWidth, INT32 iHeigh
         UISizer* mainSizer = new UIBoxSizer(dkVERTICAL);
         if (mainSizer)
         {
-            CreateListViewSizer();
-            CreateCoverViewSizer();
+            getListViewSizer();
+            getCoverViewSizer();
             if (m_listViewSizer)
             {
                 mainSizer->Add(m_listViewSizer, UISizerFlags(1).Expand());
@@ -174,7 +183,6 @@ void IUINodeView::SetFocus(bool bIsFocus)
 void IUINodeView::SetNode(NodePtr node)
 {
     m_node = node;
-    updateByNode();
     SubscribeMessageEvent(Node::EventChildrenIsReady,
         *m_node,
         std::tr1::bind(
@@ -185,8 +193,15 @@ void IUINodeView::SetNode(NodePtr node)
         *m_node,
         std::tr1::bind(
         std::tr1::mem_fn(&IUINodeView::onStatusUpdated),
-        this,
-        std::tr1::placeholders::_1));
+            this,
+            std::tr1::placeholders::_1));
+    SubscribeMessageEvent(Node::EventNodeLoadingFinished,
+        *m_node,
+        std::tr1::bind(
+            std::tr1::mem_fn(&IUINodeView::onLoadingFinished),
+            this,
+            std::tr1::placeholders::_1));
+    update();
 }
 
 void IUINodeView::SetHighLight(bool isHighLight)
@@ -202,14 +217,14 @@ void IUINodeView::SetHighLight(bool isHighLight)
     }
 }
 
-UISizer* IUINodeView::CreateListViewSizer()
+UISizer* IUINodeView::getListViewSizer()
 {
-    return NULL;
+    return 0;
 }
 
-UISizer* IUINodeView::CreateCoverViewSizer()
+UISizer* IUINodeView::getCoverViewSizer()
 {
-    if (NULL == m_coverViewSizer)
+    if (0 == m_coverViewSizer)
     {
         m_coverViewSizer = new UIBoxSizer(dkVERTICAL);
         if (m_coverViewSizer)
@@ -221,11 +236,10 @@ UISizer* IUINodeView::CreateCoverViewSizer()
     return m_coverViewSizer;
 }
 
-void IUINodeView::updateByNode()
+void IUINodeView::update()
 {
-//     m_imgSelect.SetVisible(m_selectMode);
-//     Layout();
-//     Repaint();
+    // TODO. Implement Me
+    updateSelectedStatus();
 }
 
 void IUINodeView::SetModelDisplayMode(ModelDisplayMode mode)
@@ -243,31 +257,62 @@ void IUINodeView::SetModelDisplayMode(ModelDisplayMode mode)
         case BLM_LIST:
             m_windowSizer->Hide(m_coverViewSizer);
             m_windowSizer->Show(m_listViewSizer);
-            m_imgSelect.SetVisible(m_selectMode);
+            m_imgSelect.SetVisible(isSelectMode());
             break;
         }
     }
 }
 
+bool IUINodeView::onChildrenReady(const EventArgs& args)
+{
+    return onChildrenReadyAction(args);
+}
+
+bool IUINodeView::onChildrenReadyAction(const EventArgs& args)
+{
+    // TODO. Implement me in children
+    return false;
+}
 
 bool IUINodeView::onStatusUpdated(const EventArgs& args)
+{
+    return onStatusUpdatedAction(args);
+}
+
+bool IUINodeView::isSelectMode() const
+{
+    return m_usage != BLU_BROWSE;
+}
+
+bool IUINodeView::onStatusUpdatedAction(const EventArgs& args)
 {
     const NodeStatusUpdated& status_update_args = dynamic_cast<const NodeStatusUpdated&>(args);
     if (status_update_args.current_node_path == m_node->absolutePath())
     {
-        updateByNode();
+        update();
     }
     return true;
 }
 
+bool IUINodeView::onLoadingFinished(const EventArgs& args)
+{
+    return onLoadingFinishedAction(args);
+}
+
+bool IUINodeView::onLoadingFinishedAction(const EventArgs& args)
+{
+    // TODO. Implement me in children
+    return false;
+}
+
 bool IUINodeView::IsSelected() const
 {
-    return m_selectMode ? m_node->selected() : false;
+    return isSelectMode() ? m_node->selected() : false;
 }
 
 void IUINodeView::SetSelected(bool selected)
 {
-    if (m_selectMode)
+    if (isSelectMode())
     {
         m_node->setSelected(selected);
         m_cover.SetSelected(selected);
@@ -278,3 +323,44 @@ void IUINodeView::SetSelected(bool selected)
     }
 }
 
+void IUINodeView::updateSelectedStatus()
+{
+    if (isSelectMode())
+    {
+        m_cover.SetSelected(m_node->selected());
+        m_imgSelect.SetImage(ImageManager::GetImage(
+            m_node->selected() 
+            ? IMAGE_ICON_COVER_SELECTED 
+            : IMAGE_ICON_COVER_UNSELECTED));
+        UpdateWindow();
+    }
+}
+
+void IUINodeView::execute(unsigned long command_id)
+{
+    // TODO. Implement Me in children
+}
+
+void IUINodeView::handleClicked()
+{
+    // TODO. Implement Me in children
+}
+
+std::vector<int> IUINodeView::getSupportedNodeTypes()
+{
+    return std::vector<int>();
+}
+
+bool IUINodeView::support(NodePtr node)
+{
+    int type = node->type();
+    std::vector<int> supported_types = getSupportedNodeTypes();
+    for (int i = 0; i < supported_types.size(); ++i)
+    {
+        if (supported_types[i] == type)
+        {
+            return true;
+        }
+    }
+    return false;
+}

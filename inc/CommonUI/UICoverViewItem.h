@@ -59,6 +59,8 @@ public:
 #endif
     bool OnCoverLoadeded(const EventArgs& args);
 
+    BookListUsage usage() const { return m_usage; }
+
 private:
 #ifdef KINDLE_FOR_TOUCH
     bool IsHighlight() const;

@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 
+using namespace std;
+
 namespace dk
 {
 namespace utility
@@ -44,8 +46,8 @@ public:
                             std::vector<std::string>* md5vec,
                             std::vector<int>* sizeVec);
 //USE PKCS5Padding, mehtod in Thirdparties/AES.h, TODO: merge with AesDecode
-    static std::string AESEncode(const char* key, const char* plain, unsigned char* ivec = NULL);
-    static std::string AESDecode(const char* key, const char* cipher, const unsigned int cipherlen, unsigned char* ivec = NULL);
+    static std::string AESEncode(const string& key, const string& plain, unsigned char* ivec = NULL);
+    static std::string AESDecode(const string& key, const string& cipher, const unsigned int cipherlen, unsigned char* ivec = NULL);
 
     //4bytes as a unit, get hex string
     static std::string LongArrayToString(unsigned long* array, const int length);

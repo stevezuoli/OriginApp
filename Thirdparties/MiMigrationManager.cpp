@@ -27,6 +27,7 @@ namespace dk
 namespace thirdparties
 {
 
+const char* MiMigrationManager::EventMigrate = "EventMigrate";
 const char* MiMigrationManager::EventAskForMigratingToXiaomi = "EventAskForMigratingToXiaomi";
 const char* MiMigrationManager::EventShowMigrationDialog = "EventShowMigrationDialog";
 
@@ -64,6 +65,13 @@ MiMigrationManager::MiMigrationManager()
         std::tr1::mem_fn(&MiMigrationManager::OnWebBrowserClosed),
         this,
         std::tr1::placeholders::_1));
+    SubscribeEvent(MiMigrationManager::EventMigrate,
+        *this,
+        std::tr1::bind(
+        std::tr1::mem_fn(&MiMigrationManager::OnMigrate),
+        this,
+        std::tr1::placeholders::_1));
+
     LoadPromptTime();
 }
 
@@ -204,12 +212,6 @@ bool MiMigrationManager::OnShowMigrationDialog(const EventArgs& args)
 void MiMigrationManager::ShowAccountMigrateDlg(UIAccountMigrateDlg::PopupMode popupMode)
 {
 	UIAccountMigrateDlg accountDlg(GUISystem::GetInstance()->GetTopFullScreenContainer(), popupMode);
-    SubscribeEvent(UIAccountMigrateDlg::EventMigrate,
-            accountDlg,
-            std::tr1::bind(
-                std::tr1::mem_fn(&MiMigrationManager::OnMigrate),
-                this,
-                std::tr1::placeholders::_1));
     SubscribeEvent(UIAccountMigrateDlg::EventMigrateLater,
             accountDlg,
             std::tr1::bind(
@@ -290,6 +292,13 @@ bool MiMigrationManager::OnWebBrowserClosed(const EventArgs& args)
 	}
 	msgBox.DoModal();
 	return false;
+}
+
+void MiMigrationManager::FireMigrationEvent()
+{
+    MigrationOperationArgs args;
+    args.operation_id = 0;
+    FireEvent(MiMigrationManager::EventMigrate, args);
 }
 
 bool MiMigrationManager::OnMigrate(const EventArgs& args)

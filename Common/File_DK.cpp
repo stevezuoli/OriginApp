@@ -55,20 +55,17 @@ CDKFile::CDKFile()
         : m_id(0)
         , m_size(0)
         , m_playProgress(0)
+        , m_pageCount(-1)
         , m_lastReadTime(0)
         , m_readingOrder(0)
         , m_addOrder(0)
-        , m_path()
-        , m_name()
-        , m_artist()
-        , m_password()
         , m_category(DFC_Unknown)
         , m_format(DFF_Unknown)
         , m_source(UnknowSource)
+        , m_bSync(false)
+        , m_bCrash(false)
         , m_image(NULL)
         , m_abstract(NULL)
-        , m_bSync(false)
-        , m_pageCount(-1)
 {
 }
 
@@ -1073,7 +1070,7 @@ bool FileKeywordMatcher::operator()(const PCDKFile file) const
     if (!file->IsDuoKanBook())
     {
         CDKFileManager* fileManager = CDKFileManager::GetFileManager();
-        if (fileManager->GetBookSort() == DIRECTORY)
+        if (fileManager->GetBookSort() == BY_DIRECTORY)
         {
             wPath = StringUtil::ToLower(EncodeUtil::ToWString(file->GetFilePath()).c_str() + 7);
         }

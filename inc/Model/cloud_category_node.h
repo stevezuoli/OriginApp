@@ -25,22 +25,18 @@ public:
     MiCloudFileSPtr directoryInfo() { return category_info_; }
 
     virtual SPtr<ITpImage> getInitialImage();
-    virtual NodePtrs& updateChildrenInfo();
-
-    virtual size_t nodePosition(NodePtr node);
-    virtual size_t nodePosition(const string &name);
-
-    virtual bool search(const StringList& filters, bool recursive, bool & stop);
-
+    virtual NodePtrs updateChildrenInfo();
     virtual string currentPath();
 
     // CRUD
-    virtual bool remove(bool delete_local_files_if_possible);
-    virtual void download();
+    virtual bool remove(bool delete_local_files_if_possible, bool exec_now = true);
+    virtual void download(bool exec_now = true);
     virtual void createFile(const string& file_path);
     virtual void createDirectory(const string& dir_name);
     virtual void deleteFile(const string& file_id);
     virtual void deleteDirectory(const string& dir_id);
+
+    virtual bool supportedCommands(std::vector<int>& command_ids, std::vector<int>& str_ids);
 
     void onChildrenReturned(const EventArgs& args);
     void onFileCreated(const EventArgs& args);
@@ -51,20 +47,20 @@ public:
     static bool testStatus(MiCloudFileSPtr category, int status_filter);
 
 protected:
-    virtual bool updateChildren(int status_filter);
+    virtual bool updateChildren();
 
 protected:
-    virtual void scan(const string& dir, NodePtrs &result, int status_filter = NODE_NONE, bool sort_list = true);
+    virtual void scan(const string& dir, NodePtrs &result);
     void collectDirectories(const string &dir, StringList & result);
 
 private:
-    void downloadChildren();
     void updateChildren(const MiCloudFileSPtrList& cloud_file_list);
 
     // Event Handler
 
 protected:
     MiCloudFileSPtr category_info_;
+    time_t last_update_time_;
 };
 
 // Report current path.

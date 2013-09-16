@@ -27,7 +27,7 @@ using namespace WindowsMetrics;
 SINGLETON_CPP(UIBottomBar)
     
 UIBottomBar::UIBottomBar()
-    : UIButtonGroup(NULL)
+    : UIButtonGroupWithFocusedLine(NULL)
 {
     InitUI();
 }
@@ -98,16 +98,4 @@ void UIBottomBar::OnCommand(DWORD dwCmdId, UIWindow * pSender, DWORD dwParam)
         CPageNavigator::ChangePageStackToType((PageAncestorType)m_currentFocusedIndex);
     }
 }
-  
-HRESULT UIBottomBar::DrawFocusedSymbol(DK_IMAGE& image)
-{
-    HRESULT hr(S_OK);
-    UISizerItem* focusedItem = m_pBtnListSizer->GetItem(m_currentFocusedIndex);
-    if (focusedItem)
-    {
-        CTpGraphics grfButton(image);
-        hr = grfButton.DrawLine(focusedItem->GetPosition().x, 0, focusedItem->GetSize().GetWidth(), GetWindowMetrics(UIBottomBarFocusedLinePixelIndex), SOLID_STROKE);
-    }
 
-    return hr;
-}

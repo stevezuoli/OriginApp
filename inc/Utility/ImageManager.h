@@ -33,6 +33,7 @@ using  DkFormat::SPtr;
     MACRO_NAME(TITLEBAR_WIFIICON,           "status_wifi.bmp", "")\
     MACRO_NAME(TITLEBAR_BATTERYICON ,       "status_battery.bmp", "")\
     MACRO_NAME(TITLEBAR_DOWNLOADSTATUSICON, "touch/status_download.bmp", "touch/status_download@kp.bmp")\
+    MACRO_NAME(TITLEBAR_UPLOADSTATUSICON, "touch/status_upload.bmp", "touch/status_upload@kp.bmp")\
     MACRO_NAME(KEY_0,                       "key_0.bmp", "")\
     MACRO_NAME(KEY_1,                       "key_1.bmp", "")\
     MACRO_NAME(KEY_2,                       "key_2.bmp", "")\
@@ -278,6 +279,8 @@ using  DkFormat::SPtr;
     MACRO_NAME(ICON_COVER_UNSELECTED_TRANSPARENT,           "icon_cover_unselected.png", "")\
     MACRO_NAME(ICON_CLOUD, "touch/2013/icon_cloud.bmp", "touch/2013/icon_cloud@kp.bmp")\
     MACRO_NAME(ICON_CLOUD_BIG, "touch/2013/icon_cloud_big.bmp", "touch/2013/icon_cloud_big@kp.bmp")\
+    MACRO_NAME(ICON_CLOSEFOLDER, "touch/2013/icon_closefolder.bmp", "touch/2013/icon_closefolder@kp.bmp")\
+    MACRO_NAME(ICON_OPENFOLDER, "touch/2013/icon_openfolder.bmp", "touch/2013/icon_openfolder@kp.bmp")\
     MACRO_NAME(ICON_BOOKLIST_COVER,           "touch/2013/icon_booklist_cover.bmp", "touch/2013/icon_booklist_cover@kp.bmp")\
     MACRO_NAME(ICON_BOOKLIST_LIST,           "touch/2013/icon_booklist_list.bmp", "touch/2013/icon_booklist_list@kp.bmp")\
     MACRO_NAME(TOUCH_ARROW_UP,                "touch/arrow_up.bmp", "touch/arrow_up@kp.bmp")\

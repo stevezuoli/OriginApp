@@ -21,7 +21,7 @@ public:
         return "UIBookStorePresonalPage";
     }
 
-    static const int s_itemCount = 6;
+    static const int s_itemCount = 7;
     static const int s_itemCol = 2;
 
     UIPersonalPage();
@@ -47,6 +47,7 @@ private:
     void OnPersonalKeyClick();
     void OnPersonalNotesClick();
     void OnPersonalFavouriteClick();
+    void OnCloudShelfClick();
 
     // Account Manager
     bool LogDataChanged(const EventArgs& args);

@@ -46,12 +46,17 @@ public:
 
     virtual DKDisplayMode displayMode();
     virtual void setDisplayMode(DKDisplayMode display_mode);
-
     virtual void search(const string& keyword);
 
+    virtual NodePtrs getSelectedNodesInfo(int64_t& total_size, int& number, bool& exceed);
+    virtual NodePtr getNodeById(const string& id);
+
+    void FetchQuota();
+
 public:
-    static bool addNodeToGlobalMap(Node* node);
-    static bool removeNodeFromGlobalMap(const string& id);
+    //static bool addNodeToGlobalMap(Node* node);
+    //static bool removeNodeFromGlobalMap(const string& id);
+    static bool removeNodeFromCloudLocalMap(const string& id);
     static Node* getNodeFromGlobalMap(const string& id);
 
     static bool isCloudFileInLocalStorage(const string& cloud_id,
@@ -62,6 +67,10 @@ public:
                                    const int64_t size,
                                    MiCloudFileSPtr& cloud_file);
     static bool isLocalCacheInitialized() { return local_cache_inited_; }
+    //static void clearCloudNodesCache() { all_nodes_.clear(); }
+    static void clearCloudLocalMap() { cloud_local_map_.clear(); }
+    static void setCacheInitialized(bool initialized) { local_cache_inited_ = initialized; }
+    static bool cacheInitialized() { return local_cache_inited_; }
 
 protected:
     virtual void initialize();
@@ -86,6 +95,9 @@ private:
     // local file system
     bool onLocalFileSystemChanged(const EventArgs& args);
 
+    // account event
+    bool onAccountEvent(const EventArgs& args);
+
 public:
     static int64_t total_size_;
     static int64_t available_;
@@ -94,7 +106,7 @@ public:
 private:
     CloudDesktopNode root_node_;
     static bool local_cache_inited_;
-    static CloudNodes all_nodes_;
+    //static CloudNodes all_nodes_;
     static CloudLocalMap cloud_local_map_;
 };
 

@@ -40,7 +40,7 @@
 #include "Utility/StringUtil.h"
 #include "BookStore/LocalCategoryManager.h"
 #include "TouchAppUI/UIAddBookToCategoryPage.h"
-#include "PersonalUI/UIPersonalCloudUploadPage.h"
+#include "PersonalUI/UIPersonalCloudBookShelfPage.h"
 #include "CommonUI/UIAddCategoryDlg.h"
 #include "GUI/UITextBoxOnlyDlg.h"
 
@@ -62,7 +62,7 @@ UIHomePage::UIHomePage(HomePageStyle Style)
     , m_btnUpperFolder(this)
     , m_bIsDisposed(FALSE)
     , m_pageStyle(Style)
-    , m_sortField(BY_DIRECTORY)
+    , m_sortField(m_model->sortField())
     , m_topButtonSizer(NULL)
     , m_topUpLevelSizer(NULL)
     , m_titleLeftSizer(NULL)
@@ -103,25 +103,25 @@ void UIHomePage::OnDispose(BOOL bIsDisposed)
     Finalize();
 }
 
-CString UIHomePage::GetSortString()
+string UIHomePage::GetSortString()
 {
     DebugPrintf(DLC_UIHOMEPAGE, "%s, %d, %s, %s start", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
-    CString strSortText;
+    string strSortText;
 
-    Field sort_field = m_model->sortField();
+    Field sort_field = m_modelView.sortField();
     switch(sort_field)
     {
         case RECENTLY_ADD:            //最近加入
-            strSortText = StringManager::GetStringById(RECENT_ADDED);
+            strSortText = StringManager::GetPCSTRById(RECENT_ADDED);
             break;
         case LAST_ACCESS_TIME:      //最近阅读
-            strSortText = StringManager::GetStringById(RECENT_READING);
+            strSortText = StringManager::GetPCSTRById(RECENT_READING);
             break;
         case NAME:                   //书名关键字
-            strSortText = StringManager::GetStringById(BY_BOOK_TITLE);
+            strSortText = StringManager::GetPCSTRById(BY_BOOK_TITLE);
             break;
         case BY_DIRECTORY:           //目录
-            strSortText = StringManager::GetStringById(BY_BOOK_DIRECTORY);
+            strSortText = StringManager::GetPCSTRById(BY_BOOK_DIRECTORY);
             break;
         default:
             break;
@@ -253,7 +253,7 @@ HRESULT UIHomePage::Init()
     const int horizonMargin = GetWindowMetrics(UIHorizonMarginIndex);
     const int btnHMargin = GetWindowMetrics(UIPixelValue19Index);
     const int btnVMargin = GetWindowMetrics(UIPixelValue11Index);
-    m_modelView.SetLeftMargin(horizonMargin);
+//     m_modelView.SetLeftMargin(horizonMargin);
     m_modelView.SetItemHeight(listItemHeight);
     m_modelView.SetItemSpacing(listItemSpacing);
 
@@ -395,9 +395,10 @@ bool UIHomePage::OnSortClick()
             }
             else
             {
-                m_modelView.setRootNodeDisplayMode(EXPAND_ALL);
-                //m_modelView.setStatusFilter(NODE_LOCAL | NODE_NOT_ON_CLOUD | NODE_SELF_OWN);
+                m_modelView.setRootNodeDisplayMode(BY_SORT);
             }
+            SortOrder order = (LAST_ACCESS_TIME == sort_field) ? DESCENDING : ASCENDING;
+            m_modelView.sort(sort_field, order, NODE_NONE);
             RefreshUI();
         }
         if(m_pageStyle == SEARCHPAGE)
@@ -416,11 +417,8 @@ bool UIHomePage::OnUpperFolderClick()
         CPageNavigator::BackToPrePage();
         return true;
     }
-    if (BY_DIRECTORY == m_sortField)
-    {
-        m_modelView.BackToUpperFolder();
-        RefreshUI();
-    }
+    m_modelView.BackToUpperFolder();
+    RefreshUI();
     return true;
 }
 
@@ -505,22 +503,16 @@ std::string UIHomePage::GetDirectoryViewTitle(const std::string& path)
 
 void UIHomePage::UpdateTopBox()
 {
+    NodeType nodeType = m_modelView.currentNodeType();
     string strPath = m_modelView.currentNodePath();
-    Field sort_field = m_model->sortField();
+    Field sort_field = m_modelView.sortField();
     bool showNewCategory = false;
     bool showAddBook = false;
     if (m_pageStyle != SEARCHPAGE && 
-            (BY_DIRECTORY == sort_field && 
-             PathManager::IsBookStorePath(strPath.c_str())))
+            (BY_DIRECTORY == sort_field))
     {
-        if (m_modelView.currentNodeType() == NODE_TYPE_CATEGORY_VIRTUAL_BOOK_STORE)
-        {
-            showAddBook = true;
-        }
-        else
-        {
-            showNewCategory = true;
-        }
+        showNewCategory = (nodeType == NODE_TYPE_CATEGORY_LOCAL_BOOK_STORE);
+        showAddBook = (nodeType == NODE_TYPE_CATEGORY_VIRTUAL_BOOK_STORE);
     }
     bool showUpLevelSizer = false;
     if (((BY_DIRECTORY == sort_field) && (m_model->currentNode() != m_model->root() && !strPath.empty()))
@@ -584,12 +576,11 @@ HRESULT UIHomePage::UpdateBookList()
 {
     DebugPrintf(DLC_UIHOMEPAGE, "%s, %d, %s, %s start", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
 
+    m_btnSort.SetText(GetSortString().c_str());
     if (SEARCHPAGE == m_pageStyle)
     {
         Layout();
         m_modelView.setRootNodeDisplayMode(BY_SORT);
-        m_modelView.InitListItem();
-        m_btnSort.SetText(GetSortString());
     }
     else if (m_sortField != m_model->sortField())
     {
@@ -598,21 +589,17 @@ HRESULT UIHomePage::UpdateBookList()
         Layout();
         if (m_sortField != BY_DIRECTORY)
         {
-            m_modelView.setRootNodeDisplayMode(EXPAND_ALL);
+            m_modelView.setRootNodeDisplayMode(BY_SORT);
         }
         else
         {
-            //m_modelView.cdPath(PathManager::GetRootPath());
             m_modelView.cdRoot();
         }
         m_modelView.SetCurPageIndex(0);
-        m_modelView.InitListItem();
-        m_btnSort.SetText(GetSortString());
     }
-    else
-    {
-        m_modelView.InitListItem();
-    }
+
+    //m_modelView.InitListItem();
+    m_modelView.UpdateListItem();
     DebugPrintf(DLC_UIHOMEPAGE, "%s, %d, %s, %s end", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
     m_txtHint.SetVisible(false);
     if (m_modelView.GetItemNum() == 0)
@@ -628,7 +615,6 @@ HRESULT UIHomePage::UpdateBookList()
             m_txtHint.SetVisible(true);
         }
     }
-
     return S_OK;
 }
 
@@ -667,17 +653,15 @@ void UIHomePage::OnEnter()
         m_pBottomBar->SetFocusedIndex(PAT_BookShelf);
     }
 
+    m_modelView.updateModelByContext(m_model);
     if(m_pageStyle == SEARCHPAGE)
     {
         m_model->search(m_searchKeyword);
     }
     else
     {
-        if(m_model->sortField() != m_sortField || LAST_ACCESS_TIME == m_model->sortField())
-        {
-            m_model->sort();
-            m_modelView.UpdateListItem();
-        }
+        SortOrder order = (LAST_ACCESS_TIME == m_modelView.sortField()) ? DESCENDING : ASCENDING;
+        m_modelView.sort(m_modelView.sortField(), order, NODE_NONE);
     }
     RefreshUI();
     return;
@@ -687,7 +671,7 @@ void UIHomePage::OnLeave()
 {
 	if(m_pageStyle == SEARCHPAGE)
     {
-        m_model->sort();
+        m_modelView.sort(m_modelView.sortField(), NO_ORDER, NODE_NONE);
 	}
     UIPage::OnLeave();
 }
@@ -835,11 +819,14 @@ bool UIHomePage::OnNewCategoryClick()
 
 bool UIHomePage::OnCloudClick()
 {
-    UIPersonalCloudUploadPage* uploadBookPage = new UIPersonalCloudUploadPage(ModelTree::getModelTree(MODEL_LOCAL_FILESYSTEM));
-    if (uploadBookPage)
+    if (UIUtility::CheckAndReloginXiaomi())
     {
-        uploadBookPage->MoveWindow(0, 0, DeviceInfo::GetDisplayScreenWidth(), DeviceInfo::GetDisplayScreenHeight());
-        CPageNavigator::Goto(uploadBookPage);
+        UIPersonalCloudBookShelfPage* cloudPage = new UIPersonalCloudBookShelfPage();
+        if (cloudPage)
+        {
+            cloudPage->MoveWindow(0, 0, DeviceInfo::GetDisplayScreenWidth(), DeviceInfo::GetDisplayScreenHeight());
+            CPageNavigator::Goto(cloudPage);
+        }
     }
     return true;
 }

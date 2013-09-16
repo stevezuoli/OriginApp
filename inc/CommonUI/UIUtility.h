@@ -27,6 +27,7 @@ public:
 	static void ShowAccountLoginDlg();
     static bool CheckAndReConnectWifi(UIContainer* parent = NULL);
     static bool CheckAndReLogin(RELOGIN_TYPE loginType = RELOGIN_WITH_TOKEN_ASYNC);
+    static bool CheckAndReloginXiaomi();
     static bool CheckAndReLoginSync();
     static UIContainer* GetCurDisplay();
     static HRESULT DrawBorder(
@@ -44,6 +45,8 @@ public:
     static bool IsEqual(const DK_RECT& rectLeft, const DK_RECT& rectRight);
     static bool PosInRect(const DK_RECT& rect, const DK_POS& pos);
     static bool IsEmptyBox(DK_BOX box);
+    static double ConvertByteTo(int64_t byteValue, const char* convertType);
+    static bool GetCloudSpaceInfo(double& total_size, double& available, double& ns_used, const char* convertType="GB");
 };
 
 #endif

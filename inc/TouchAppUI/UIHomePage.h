@@ -72,7 +72,7 @@ protected:
 private:
     bool OnFileListChanged(const EventArgs& args);
     std::string GetDirectoryViewTitle(const std::string& path);
-    CString GetSortString();
+    std::string GetSortString();
     void OnDispose(BOOL bIsDisposed);
     void UpdateNavigationButton();
     void UpdateTopBox();

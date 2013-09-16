@@ -23,24 +23,19 @@ using namespace dk::common;
 const char* IDownloader::EventDownloadProgressUpdate = "EventDownloadProgressUpdate";
 //################## Implement the DownloadManager #############################
 
-DownloadUpdateEventArgs::DownloadUpdateEventArgs()
-    : percentage(-1)
-    , state(IDownloadTask::NONE)
-    , type(IDownloadTask::UNKNOWN_TYPE)
-{
-}
-
 // Called by downloading thread
 void IDownloader::FireDownloadProgressUpdateEvent(IDownloadTask::DLType type,
                                                   IDownloadTask::DLState state,
                                                   int percentage,
-                                                  std::string urlID)
+                                                  std::string urlID,
+                                                  bool isUploadTask)
 {
     DownloadUpdateEventArgs args;
     args.taskId = urlID;
     args.percentage = percentage;
     args.state = state;
     args.type  = type;
+    args.isUpload = isUploadTask;
     FireEvent(IDownloader::EventDownloadProgressUpdate, args);
 }
 
@@ -209,7 +204,7 @@ void DownloaderImpl::DoAddTask(IDownloadTask* downloadTask)
         string _url = downloadTask->GetOrigUrl();
         string _urlid = downloadTask->GetOrigUrlID();
         string _filename = downloadTask->GetFileName();
-        unsigned int _filesize = downloadTask->GetFileSize();
+        //unsigned int _filesize = downloadTask->GetFileSize();
         for(std::list<IDownloadTask*>::iterator itr = m_tasks.begin();
             itr != m_tasks.end();
             itr++ )
@@ -220,9 +215,9 @@ void DownloaderImpl::DoAddTask(IDownloadTask* downloadTask)
                 {
                     isInList = true;
                     if ((*itr)->GetState() & (IDownloadTask::CANCELED |
-                                                IDownloadTask::PAUSED |
-                                                IDownloadTask::UPDATED |
-                                                IDownloadTask::FAILED))
+                        IDownloadTask::PAUSED |
+                        IDownloadTask::UPDATED |
+                        IDownloadTask::FAILED))
                     {
                         (*itr)->SetState(IDownloadTask::WAITING);
                     }
@@ -233,29 +228,35 @@ void DownloaderImpl::DoAddTask(IDownloadTask* downloadTask)
 
         if (!isInList)
         {
-            string _nametmp(DOWNLOADPATH);
-            Download::UrlFileInfo info = {0,{0},{0},true,{0},{0},{0}};
-            string useragent = downloadTask->GetUserAgent();
-            useragent.copy(info.szUesrAgent,RANGE_BUF_LENGTH);
-            // Download::DLResult res = (Download::DLResult)downloadTask->GetFileInfoFromServer(_url,&info);
-
-            if(strlen(info.szFileName))
+            if (downloadTask->IsUploadTask())
             {
-                //szFileName is the Extension name.
-                string tmp1 = info.szFileName;
-                int pos = _filename.find_last_of('.');
-                //TODO check if tmp1.length()  == _filename.length() - pos
-                _filename.replace(pos,_filename.length() - pos,tmp1);
             }
-        
-            _nametmp+=ReplaceHiddenCharactersWithSpace(_filename);
-            _nametmp = CheckForSameFilename(_nametmp);
-            int pos = strlen(DOWNLOADPATH);
-            //Update the filename if there are some duplicated files.
-            _filename = _nametmp.substr(pos);
+            else
+            {
+                string _nametmp(DOWNLOADPATH);
+                Download::UrlFileInfo info = {0,{0},{0},true,{0},{0},{0}};
+                string useragent = downloadTask->GetUserAgent();
+                useragent.copy(info.szUesrAgent,RANGE_BUF_LENGTH);
+                // Download::DLResult res = (Download::DLResult)downloadTask->GetFileInfoFromServer(_url,&info);
 
-            downloadTask->SetFileName(_filename);
-            downloadTask->SetUrl(info.szUrl);
+                if(strlen(info.szFileName))
+                {
+                    //szFileName is the Extension name.
+                    string tmp1 = info.szFileName;
+                    int pos = _filename.find_last_of('.');
+                    //TODO check if tmp1.length()  == _filename.length() - pos
+                    _filename.replace(pos,_filename.length() - pos,tmp1);
+                }
+
+                _nametmp+=ReplaceHiddenCharactersWithSpace(_filename);
+                _nametmp = CheckForSameFilename(_nametmp);
+                int pos = strlen(DOWNLOADPATH);
+                //Update the filename if there are some duplicated files.
+                _filename = _nametmp.substr(pos);
+
+                downloadTask->SetFileName(_filename);
+                downloadTask->SetUrl(info.szUrl);
+            }
             downloadTask->SetCanResume(true);
 
             std::list<IDownloadTask*>::iterator itr = m_tasks.begin();
@@ -637,11 +638,14 @@ void DownloaderImpl::DeleteTasks(const int state, const int type)
                     }
                     (*itr)->SetState(IDownloadTask::CANCELED);
 
-                    // remove local file
-                    string _szfilepath(DOWNLOADPATH);
-                    _szfilepath+=(*itr)->GetFileName();
-                    _szfilepath+=".dat";
-                    unlink(_szfilepath.c_str());
+                    if ((*itr)->GetType() != IDownloadTask::MICLOUDFILE)
+                    {
+                        // remove local file
+                        string _szfilepath(DOWNLOADPATH);
+                        _szfilepath+=(*itr)->GetFileName();
+                        _szfilepath+=".dat";
+                        unlink(_szfilepath.c_str());
+                    }
                     delete *itr;
                     *itr = 0;
                     itr = m_tasks.erase(itr);
@@ -683,12 +687,16 @@ void DownloaderImpl::DeleteTask(const char* urlId)
                         (*itr)->SetState(IDownloadTask::CANCELED);                        
                         DebugPrintf(DLC_XU_KAI,"DownloaderImpl::DeleteTask pause Download OK\n");
                     }
-                    string _szfilepath(DOWNLOADPATH);
-                    _szfilepath+=(*itr)->GetFileName();
-                    _szfilepath+=".dat";
-                    DebugPrintf(DLC_XU_KAI,"DownloaderImpl::DeleteTask prepare to remove book _szfilepath.c_str() is %s",_szfilepath.c_str());
-                    unlink(_szfilepath.c_str());
-                    DebugPrintf(DLC_XU_KAI,"DownloaderImpl::DeleteTask remove book ok");
+
+                    if ((*itr)->GetType() != IDownloadTask::MICLOUDFILE)
+                    {
+                        string _szfilepath(DOWNLOADPATH);
+                        _szfilepath+=(*itr)->GetFileName();
+                        _szfilepath+=".dat";
+                        DebugPrintf(DLC_XU_KAI,"DownloaderImpl::DeleteTask prepare to remove book _szfilepath.c_str() is %s",_szfilepath.c_str());
+                        unlink(_szfilepath.c_str());
+                        DebugPrintf(DLC_XU_KAI,"DownloaderImpl::DeleteTask remove book ok");
+                    }
                     delete *itr;
                     *itr = 0;
                     m_tasks.erase(itr);
@@ -720,7 +728,7 @@ DownloadTaskNums DownloaderImpl::UpdateDownloadTaskNums(int type)
     int num_updated  = 0;
     int num_failed   = 0;
     int num_curldone = 0;
-    int num_total    = m_tasks.size();
+    //int num_total    = m_tasks.size();
     {
         for(std::list<IDownloadTask*>::iterator itr = m_tasks.begin(); itr != m_tasks.end(); itr++)
         {
@@ -787,6 +795,7 @@ AllDownloadTaskNums DownloaderImpl::UpdateAllDownloadTaskNums()
     m_downloadTaskNums[IDownloadTask::BOOK] = UpdateDownloadTaskNums(IDownloadTask::BOOK);
     m_downloadTaskNums[IDownloadTask::UPGRADEPACKAGE] = UpdateDownloadTaskNums(IDownloadTask::UPGRADEPACKAGE);
     m_downloadTaskNums[IDownloadTask::SCREENSAVER] = UpdateDownloadTaskNums(IDownloadTask::SCREENSAVER);
+    m_downloadTaskNums[IDownloadTask::MICLOUDFILE] = UpdateDownloadTaskNums(IDownloadTask::MICLOUDFILE);
     return m_downloadTaskNums;
 }
 
@@ -838,10 +847,13 @@ void DownloaderImpl::ClearTask(const int state, const int type)
     for(std::list<IDownloadTask*>::iterator itr = m_tasks.begin(); itr != m_tasks.end(); itr++)
     if ((*itr))
     {
+        DebugPrintf(DLC_DIAGNOSTIC, "task: %s, state: %d, type: %d", (*itr)->GetFileName().c_str(),
+            (*itr)->GetState(), (*itr)->GetType());
         IDownloadTask::DLState task_state = (*itr)->GetState();
         IDownloadTask::DLType  task_type  = (*itr)->GetType();
         if ((task_state & state) && (task_type & type))
         {
+            DebugPrintf(DLC_DIAGNOSTIC, "DeleteTask %s", (*itr)->GetFileName().c_str());
             ifstream file((*itr)->GetFileName().c_str());
             if (!file.is_open())
             {
@@ -856,13 +868,12 @@ void DownloaderImpl::ClearTask(const int state, const int type)
 
 void DownloaderImpl::StartDownload()
 {
-    //int err  = pthread_create(&m_taskThread, 0, DownloaderImpl::TaskQueueThread, this);
-	int err  = ThreadHelper::CreateThread(&m_taskThread,
+    int err  = ThreadHelper::CreateThread(&m_taskThread,
                                           DownloaderImpl::TaskQueueThread,
                                           this,
                                           "DownloaderImpl @ TaskQueueThread",
                                           true,
-                                          51200);
+                                          THREAD_STACK_SIZE_KINDLE_DEFAULT);
     if (!err)
     {
         this->m_threadWorking = true;
@@ -875,7 +886,7 @@ void DownloaderImpl::StopDownload(int stopState)
     {
         ThreadHelper::CancelThread(m_taskThread);
         ThreadHelper::JoinThread(m_taskThread, 0);
-		m_taskThread = 0 ;
+        m_taskThread = 0 ;
 
         m_threadWorking = false;
         PauseAllTasks(stopState);
@@ -920,7 +931,7 @@ void* DownloaderImpl::RunTask()
                     else if ((*itr)->GetState() & IDownloadTask::CURL_DONE)
                     {
                         (*itr)->SetState(IDownloadTask::DONE);
-					    (*itr)->StopEngine();
+                        (*itr)->StopEngine();
                         (*itr)->FinishTask();
                         bHasFinished = true;
                     }
@@ -982,4 +993,40 @@ IDownloader* DownloaderImpl::GetInstance()
 IDownloader* IDownloader::GetInstance()
 {
     return DownloaderImpl::GetInstance();
+}
+
+bool DownloaderImpl::CanTaskResume(std::string _urlID)
+{
+    LockScope scope(m_lock);
+    for(std::list<IDownloadTask*>::const_iterator itr=m_tasks.begin(); itr != m_tasks.end(); itr++ )
+    {
+        if ((*itr))
+        {
+            if((*itr)->GetOrigUrlID() == _urlID)
+            {
+                return (*itr)->CanResume();
+            }
+        }
+    }
+
+    DebugPrintf(DLC_DIAGNOSTIC, "ERROR: no task found for url: %s", _urlID.c_str());
+    return false;
+}
+
+bool DownloaderImpl::IsUploadTask(std::string _urlID)
+{
+    LockScope scope(m_lock);
+    for(std::list<IDownloadTask*>::const_iterator itr=m_tasks.begin(); itr != m_tasks.end(); itr++ )
+    {
+        if ((*itr))
+        {
+            if((*itr)->GetOrigUrlID() == _urlID)
+            {
+                return (*itr)->IsUploadTask();
+            }
+        }
+    }
+
+    DebugPrintf(DLC_DIAGNOSTIC, "ERROR: no task found for url: %s", _urlID.c_str());
+    return false;
 }

@@ -25,7 +25,7 @@ using namespace DkFormat;
 #define PYMBINFOPATH    "res/pymb.ini" //首字母查询配置文件
 CDKFileSorts::CDKFileSorts()
             : m_fileCategory(DFC_Unknown)
-            , m_Sort(UnknowSort)
+            , m_sort(LAST_ACCESS_TIME)
 {
 }
 
@@ -34,9 +34,9 @@ void CDKFileSorts::SetFileListAndNum(const std::vector<PCDKFile>& files)
     m_files = files;
 }
 
-void CDKFileSorts::SetFileSorts(DK_FileSorts Sort)
+void CDKFileSorts::SetFileSorts(Field sort)
 {
-    m_Sort = Sort;
+    m_sort = sort;
 }
 
 void CDKFileSorts::SetFileCategory(DkFormatCategory category)
@@ -47,18 +47,17 @@ void CDKFileSorts::SetFileCategory(DkFormatCategory category)
 
 void CDKFileSorts::SortsFile()
 {
-    switch(m_Sort)
+    switch(m_sort)
     {
-    case RecentlyAdd:
+    case RECENTLY_ADD:
         SortsFileByRecentlyAdd();
         break;
-    case RecentlyReadTime:
+    case LAST_ACCESS_TIME:
         SortsFileByRecentlyReadTime();
         break;
-    case Name:
+    case NAME:
         SortsFileByFileName();
         break;
-    case UnknowSort:
     default:
         break;
     }

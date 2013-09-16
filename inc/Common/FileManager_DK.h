@@ -72,14 +72,14 @@ public:
     int GetFileNum() const;
     int GetBookCurSortNum() const { return m_sortedFiles.size(); }
 
-    DK_FileSorts    GetBookSort() const;
-    void SetBookSortType(DK_FileSorts sort);
+    Field GetBookSort() const;
+    void SetBookSortType(Field sort);
     PCDKFile GetBookbyListIndex(int index) const;
 
     int GetMeidaCurSortNum() const;
-    DK_FileSorts    GetMeidaSort() const;
-    PCDKFile        GetMeidabyListIndex(int index);
-    void SetMediaSortType(DK_FileSorts sort);
+    Field GetMeidaSort() const;
+    PCDKFile GetMeidabyListIndex(int index);
+    void SetMediaSortType(Field sort);
 
     void SearchBook(const char* KeyWord);
 
@@ -147,6 +147,8 @@ public:
     }
     string GetBookID(const char* bookPath);
 
+    const DKFileList& allFiles() const { return m_files; };
+
 protected:
     static bool SortReadbyRecentlyTime(PCDKFile pSource1,PCDKFile pSource2);
 
@@ -177,11 +179,11 @@ private:
     //书籍相关
     DKFileList m_files;
     DKFileList m_sortedFiles;
-    DK_FileSorts m_BookSort;
+    Field m_BookSort;
 
     //媒体相关
     DKFileList m_sortedMediaFiles;
-    DK_FileSorts m_MediaSort;
+    Field m_MediaSort;
 
     //此处管理全局的ReadingOrder，其他使用该值的地方都使用该值调用,AddOrder的值使用ReadingOrder即可
     int m_lReadingOrder;

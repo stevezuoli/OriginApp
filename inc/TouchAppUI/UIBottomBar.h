@@ -8,12 +8,12 @@
 #ifndef __UIBOTTOMBAR_H__
 #define __UIBOTTOMBAR_H__
 
-#include "GUI/UIButtonGroup.h"
+#include "CommonUI/UIButtonGroupWithFocusedLine.h"
 #include "GUI/UITouchComplexButton.h"
 #include "Common/Defs.h"
 #include "singleton.h"
 
-class UIBottomBar : public UIButtonGroup 
+class UIBottomBar : public UIButtonGroupWithFocusedLine 
 {
     SINGLETON_H(UIBottomBar)
 public:
@@ -31,8 +31,6 @@ public:
     virtual void OnCommand(DWORD dwCmdId, UIWindow * pSender, DWORD dwParam);
     //virtual void SetSelectedCmdId(DWORD _dwCmdId);
     //DWORD GetSelectedCmdId() const { return m_dwSelectedCmdId; }
-protected:
-    virtual HRESULT DrawFocusedSymbol(DK_IMAGE& image);
 
 private:
     void InitUI();

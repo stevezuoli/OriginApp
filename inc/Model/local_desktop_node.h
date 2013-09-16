@@ -17,35 +17,38 @@ public:
     virtual ~DesktopNode();
 
 public:
-    virtual NodePtrs& updateChildrenInfo();
+    virtual NodePtrs updateChildrenInfo();
+
+    virtual bool sort(Field by, SortOrder order = ASCENDING);
 
     // cloud operation
-    virtual void upload();
+    virtual void upload(bool exec_now = false);
     virtual void fetchInfo();
+    virtual NodePtrs filterChildren(NodePtrs& source, bool sort_results = true);
+    virtual NodePtrs selectedLeaves(bool recursive = true);
 
-    const NodePtrs& filterPosterity(int status_filter, bool recursive = true);
+    NodePtrs filterPosterity(bool recursive = true);
     Node* getNodeByModelPath(const ModelPath &path);
 
     DKDisplayMode currentDisplayMode() const { return current_display_mode_; }
-    DKDisplayMode& mutableDisplayMode() { return current_display_mode_; }
+    //DKDisplayMode& mutableDisplayMode() { return current_display_mode_; }
+    void setDisplayMode(DKDisplayMode display_mode);
 
     // event handler
     void onInfoReturned(const EventArgs& args);
     void onCreateCloudDirectoryFinished(const EventArgs& args);
 
-protected:
-    virtual bool updateChildren(int status_filter);
+private:
+    virtual bool updateChildren();
+    virtual void scan(const string& dir, NodePtrs &result);
 
 private:
-    virtual void scan(const string& dir, NodePtrs &result, int status_filter = NODE_NONE, bool sort_list = true);
+    void updateChildrenByFolder();
+    void updateChildrenBySort();
+    void updateChildrenByExpandingAll();
 
-private:
-    void updateChildrenByFolder(int status_filter);
-    void updateChildrenBySort(int status_filter);
-    void updateChildrenByExpandingAll(int status_filter);
-
-    NodePtr createBookStoreNode(const string& path, int status_filter);
-    NodePtr createPushedMessageNode(const string& path, int status_filter);
+    NodePtr createBookStoreNode(const string& path);
+    NodePtr createPushedMessageNode(const string& path);
 
     bool checkCloudCacheOrUpdate();
     void uploadChildren();

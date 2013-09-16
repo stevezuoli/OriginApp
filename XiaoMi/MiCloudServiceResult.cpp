@@ -120,6 +120,12 @@ bool MiCloudServiceResultCreateFile::Init(const char* result)
                 m_kssStrInfo = kssObj->GetJsonString();
                 m_kssInfo.reset(KSSUploadInfo::CreateFromJsonObj(m_dataJsonObj.get()));
             }
+            else
+            {
+                string retryAfter;
+                m_dataJsonObj->GetStringValue("retryAfter", &retryAfter);
+                m_retryIntervalTime = atoi(retryAfter.c_str());
+            }
         }
 
         return true;
@@ -227,7 +233,13 @@ bool MiCloudServiceResultRequestDownload::Init(const char* result)
             if (infoObj)
             {
                 m_kssStrInfo = infoObj->GetJsonString();
-
+                return true;
+            }
+            else
+            {
+                string retryAfter;
+                m_dataJsonObj->GetStringValue("retryAfter", &retryAfter);
+                m_retryIntervalTime = atoi(retryAfter.c_str());
                 return true;
             }
         }

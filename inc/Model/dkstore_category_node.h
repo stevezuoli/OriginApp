@@ -21,7 +21,7 @@ public:
     virtual ~BookStoreCategoryNode();
 
 public:
-    virtual NodePtrs& updateChildrenInfo();
+    virtual NodePtrs updateChildrenInfo();
 
     virtual size_t nodePosition(NodePtr node);
     virtual size_t nodePosition(const string &name);

@@ -130,6 +130,8 @@ public:
 
     long GetRetCode() const { return m_retCode; }
     void SetRetCode(long retCode) { m_retCode = retCode; }
+
+    virtual bool PrepareData() {return true;}
 protected:
     std::string GetTmpFilePath()
     {

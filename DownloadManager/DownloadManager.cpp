@@ -7,9 +7,18 @@
 
 namespace dk
 {
+
+int DownloadManager::download_manager_instance_num_ = 0;
+
 DownloadManager::DownloadManager()
 {
-    curl_global_init(CURL_GLOBAL_ALL);
+    // make sure curl_global_init is called once
+    if (download_manager_instance_num_ == 0)
+    {
+        curl_global_init(CURL_GLOBAL_ALL);
+    }
+    download_manager_instance_num_++;
+
     pthread_mutex_init(&m_downloadTaskLock, 0);
     pthread_cond_init(&m_downloadTaskCond, 0);
 }
@@ -18,10 +27,21 @@ DownloadManager::~DownloadManager()
 {
     pthread_cond_destroy(&m_downloadTaskCond);
     pthread_mutex_destroy(&m_downloadTaskLock);
-    curl_global_cleanup();
+
+    download_manager_instance_num_--;
+    if (download_manager_instance_num_ == 0)
+    {
+        curl_global_cleanup();
+    }
 }
 
 DownloadManager* DownloadManager::GetInstance()
+{
+    static DownloadManager s_downloadManager;
+    return &s_downloadManager;
+}
+
+DownloadManager* DownloadManager::GetXiaoMiRequestInstance()
 {
     static DownloadManager s_downloadManager;
     return &s_downloadManager;
@@ -42,6 +62,11 @@ DownloadTaskSPtr DownloadManager::GetTask()
 
 void DownloadManager::RunTask(DownloadTaskSPtr task)
 {
+    if (!task || !task->PrepareData())
+    {
+        return;
+    }
+
     CURL* curl = curl_easy_init();
     if (curl)
     {
@@ -103,9 +128,9 @@ void DownloadManager::RunTask(DownloadTaskSPtr task)
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, task->GetTimeoutInSeconds());
         curl_easy_setopt(curl, CURLOPT_AUTOREFERER, 1);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
-//#ifdef _DEBUG
+#ifdef _DEBUG
         curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
-//#endif
+#endif
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, task.get());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, DownloadTask::WriteData);
 
@@ -158,4 +183,11 @@ bool DownloadManager::Start()
     pthread_attr_destroy(&attr);
     return result;
 }
+
+void DownloadManager::Clear()
+{
+    AutoLock lock(&m_downloadTaskLock);
+    m_downloadTaskContainer.clear();
+}
+
 } // namespace dk

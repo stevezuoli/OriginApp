@@ -49,12 +49,14 @@ static const char* s_migratePromptTimePath = "/mnt/us/system/migrateprompttime";
 static const char* s_accountMappingPath = "/var/local/xiaomi/accountMapping.dk";
 static const char* s_readingHistoryPath = "/mnt/us/system/readingHistory/";
 static const char* s_micloudServiceTokenPath = "/var/local/xiaomi/miCloud.xml";
+static const char* s_kssTempPath = "/mnt/us/DK_System/xKindle/kss";
 
 bool PathManager::Init()
 {
     return MakeDirectoryRecursive(GetTempPath())
         && MakeDirectoryRecursive(GetCoverImagePath())
-        && MakeDirectoryRecursive(GetBookStorePath());
+        && MakeDirectoryRecursive(GetBookStorePath())
+        && MakeDirectoryRecursive(GetKSSTempPath());
 }
 
 static bool IsPath(const char* path, const char* pat)
@@ -245,6 +247,11 @@ std::string PathManager::GetMiCloudServiceTokenPath()
     return s_micloudServiceTokenPath;
 }
 
+std::string PathManager::GetKSSTempPath()
+{
+    return s_kssTempPath;
+}
+
 bool PathManager::MakeDirectoryRecursive(const char* dir)
 {
     if (NULL == dir)
@@ -431,6 +438,47 @@ std::vector<std::string> PathManager::GetFilesInPath(const char* path)
         }
         closedir(dp);
     }
+    return files;
+}
+
+std::vector<std::string> PathManager::GetFilesInPathRecursive(const char* path)
+{
+    DIR* dp = NULL;
+    struct dirent* dirp = NULL;
+    std::string filePath(path);
+    std::vector<std::string> files;
+    if ((dp = opendir(filePath.c_str())) != NULL)
+    {
+        while ((dirp = readdir(dp)) != NULL)
+        {
+            if (DT_REG == dirp->d_type)
+            {
+                files.push_back(dirp->d_name);
+            }
+            else if (DT_DIR == dirp->d_type 
+                    && strcmp(dirp->d_name, ".") != 0
+                    && strcmp(dirp->d_name, "..") != 0)
+            {
+                string childDirName(filePath + string(1, '/') + string(dirp->d_name));
+                vector<string> childFiles = GetFilesInPathRecursive(childDirName.c_str());
+                for (unsigned int i = 0; i < childFiles.size(); ++i)
+                {
+                    files.push_back(childDirName.append(1, '/').append(childFiles[i]));
+                }
+            }
+            else
+            {
+                //DebugPrintf(DLC_DIAGNOSTIC, "type ignore. %s/%s\n", filePath.c_str(), dirp->d_name);
+            }
+        }
+
+        closedir(dp);
+    }
+    else
+    {
+        //DebugPrintf(DLC_DIAGNOSTIC, "opendir error: %s, %s", filePath.c_str(), strerror(errno));
+    }
+
     return files;
 }
 

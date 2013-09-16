@@ -58,6 +58,8 @@ public:
     virtual IDownloadTask::DLState GetTaskStateByUrlId(std::string _urlID);
     virtual const std::string GetTaskFileNameByUrlId(std::string _urlID);
     virtual bool CheckSomeTaskIsExistByUrlId(std::string _urlID);
+    virtual bool CanTaskResume(std::string _urlID);
+    virtual bool IsUploadTask(std::string _urlID);
     virtual void SaveHistroy();
 
     //virtual int GetPercentage(const char* urlId);

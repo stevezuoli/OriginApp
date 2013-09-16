@@ -20,17 +20,16 @@ public:
     virtual ~CloudDesktopNode();
 
 public:
-    virtual NodePtrs& updateChildrenInfo();
+    virtual NodePtrs updateChildrenInfo();
 
-    void search(const string& keyword);
     DKDisplayMode currentDisplayMode() const { return current_display_mode_; }
     DKDisplayMode& mutableDisplayMode() { return current_display_mode_; }
 
     void updateChildren(const MiCloudFileSPtrList& cloud_file_list);
 
     // CRUD
-    virtual bool remove(bool delete_local_files_if_possible);
-    virtual void download();
+    virtual bool remove(bool delete_local_files_if_possible, bool exec_now = false);
+    virtual void download(bool exec_now = false);
     virtual void createFile(const string& file_path);
     virtual void createDirectory(const string& dir_name);
     virtual void deleteFile(const string& file_id);
@@ -42,20 +41,21 @@ public:
     void onFileDeleted(const EventArgs& args);
     void onDirectoryDeleted(const EventArgs& args);
 
+    void fetchRootID();
+
 protected:
-    virtual bool updateChildren(int status_filter);
+    virtual bool updateChildren();
 
 private:
-    virtual void scan(const string& dir, NodePtrs &result, int status_filter = NODE_NONE, bool sort_list = true);
+    virtual void scan(const string& dir, NodePtrs &result);
 
 private:
-    void downloadChildren();
-
     // Events Slots
     bool onCloudRootCreated(const EventArgs& args);
 
 private:
     DKDisplayMode current_display_mode_;
+    time_t last_update_time_;
 };
 
 };  // namespace document_model

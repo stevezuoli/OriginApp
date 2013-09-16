@@ -68,6 +68,7 @@ public:
 	static IDownloadTask* CreateMiCloudFileUploadTask(
             std::string _url,
             std::string _urlID,
+            std::string _displayName,
             std::string _kssInfo,
             std::string _uploadId,
             unsigned int _filesize,

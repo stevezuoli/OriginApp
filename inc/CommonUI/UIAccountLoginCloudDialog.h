@@ -9,10 +9,9 @@
 #define __COMMONUI_UIACCOUNTLOGINCLOUDDIALOG_H__
 
 #include "GUI/UIModalDialog.h"
-#include "GUI/UIImage.h"
+#include "GUI/UIButtonGroup.h"
 #include "Utility/ImageManager.h"
-#include "GUI/UITextBox.h"
-#include "GUI/UITextSingleLine.h"
+#include "GUI/UIText.h"
 #include "Utility/ColorManager.h"
 
 //using namespace DkFormat;
@@ -29,7 +28,10 @@ public:
     virtual ~UIAccountLoginCloudDialog();
 
     virtual bool OnChildClick(UIWindow* child);
+    bool OnHookTouch(MoveEvent* moveEvent);
+
 private:
+    void Init();
     bool OnLoginClick();
     bool OnMigrateClick();
 

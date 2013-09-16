@@ -389,10 +389,7 @@ enum BookListUsage
 {
     BLU_BROWSE = 0x0,
     BLU_SELECT = 0x1,
-    BLU_UPLOAD = 0x2,
-    BLU_DOWNLOAD = 0x4,
-    BLU_CLOUD_UPLOAD = BLU_SELECT | BLU_UPLOAD,
-    BLU_CLOUD_DOWNLOAD = BLU_SELECT | BLU_DOWNLOAD
+    BLU_SELECT_EXPAND = 0x2,
 };
 
 enum PageAncestorType

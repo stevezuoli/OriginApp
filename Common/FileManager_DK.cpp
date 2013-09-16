@@ -58,16 +58,7 @@ CDKFileManager::CDKFileManager()
 
 {
     m_BookSort = SystemSettingInfo::GetInstance()->GetBookSortType();
-    if(UnknowSort == m_BookSort)
-    {
-        SetBookSortType(RecentlyReadTime);
-    }
-
     m_MediaSort = SystemSettingInfo::GetInstance()->GetMediaSortType();
-    if(UnknowSort == m_MediaSort)
-    {
-        SetMediaSortType(RecentlyReadTime);
-    } 
     m_lReadingOrder = SystemSettingInfo::GetInstance()->GetInitReadingOrder();
     m_inSearch = false;
 }
@@ -109,12 +100,12 @@ int CDKFileManager::GetFileNum()const
     return m_files.size();
 }
 
-DK_FileSorts    CDKFileManager::GetBookSort()const
+Field CDKFileManager::GetBookSort()const
 {
     return (m_BookSort);
 }
 
-DK_FileSorts    CDKFileManager::GetMeidaSort()const
+Field CDKFileManager::GetMeidaSort()const
 {
     return (m_MediaSort);
 }
@@ -123,7 +114,7 @@ DK_FileSorts    CDKFileManager::GetMeidaSort()const
 *Make sure that only this method can change the value of m_BookSort!!!! If you want to change its value
 *temporarily, please backup it firstly, and then restore it finally!!!!
 */
-void CDKFileManager::SetBookSortType(DK_FileSorts sort)
+void CDKFileManager::SetBookSortType(Field sort)
 {
     if(m_BookSort != sort)
     {
@@ -136,7 +127,7 @@ void CDKFileManager::SetBookSortType(DK_FileSorts sort)
 *Make sure that only this method can change the value of m_BookSort!!!! If you want to change its value
 *temporarily, please backup it firstly, and then restore it finally!!!!
 */
-void CDKFileManager::SetMediaSortType(DK_FileSorts sort)
+void CDKFileManager::SetMediaSortType(Field sort)
 {
     if(m_MediaSort != sort)
     {
@@ -1096,11 +1087,11 @@ int CDKFileManager::LoadFileToFileManger(const char* strScanPath, bool scanSubFo
     DebugPrintf(DLC_CDKFILEMANAGER, "scanned %s found files %d", strScanPath, scannedFileCount);
     m_iMaxFileId = filecount;
     
-    DK_FileSorts eCurFileSort = GetBookSort();
-    if (eCurFileSort != RecentlyReadTime)
+    Field eCurFileSort = GetBookSort();
+    if (eCurFileSort != LAST_ACCESS_TIME)
     {
         DebugPrintf(DLC_CDKFILEMANAGER, "%s, %d, %s, %s eCurFileSort != RecentlyReadTime", __FILE__,  __LINE__, "CDKFileManager", __FUNCTION__);
-        SetBookSortType(RecentlyReadTime);
+        SetBookSortType(LAST_ACCESS_TIME);
         SortFile(DFC_Book);
         SetBookSortType(eCurFileSort);
     }  
@@ -1681,9 +1672,9 @@ int CDKFileManager::SortFile(DkFormatCategory category)
             FileSort.SortsFile();        
             m_sortedFiles  = FileSort.GetFileSortResult();
             DKXManager* _pclsManager = DKXManager::GetInstance();
-            if ((RecentlyReadTime == m_BookSort || RecentlyAdd == m_BookSort) && !m_sortedFiles.empty() && _pclsManager)
+            if ((LAST_ACCESS_TIME == m_BookSort || RECENTLY_ADD == m_BookSort) && !m_sortedFiles.empty() && _pclsManager)
             {
-                const int maxReadingOrder = (RecentlyReadTime == m_BookSort) ? 
+                const int maxReadingOrder = (LAST_ACCESS_TIME == m_BookSort) ? 
                                              _pclsManager->FetchBookReadingOrder(m_sortedFiles[0]->GetFilePath()) :
                                              _pclsManager->FetchBookAddOrder(m_sortedFiles[0]->GetFilePath());
                 if ((m_lReadingOrder < 0) || (maxReadingOrder > m_lReadingOrder))
@@ -1720,10 +1711,10 @@ void CDKFileManager::ReadingOrderPlus()
         DKXManager* dkxManager = DKXManager::GetInstance(); 
         if(dkxManager)
         {
-            DK_FileSorts savedFileSort = GetBookSort();
-            if (savedFileSort != RecentlyReadTime)
+            Field savedFileSort = GetBookSort();
+            if (savedFileSort != LAST_ACCESS_TIME)
             {
-                SetBookSortType(RecentlyReadTime);
+                SetBookSortType(LAST_ACCESS_TIME);
                 SortFile(DFC_Book);
             }
             long lNewOrder = 1;
@@ -1734,7 +1725,7 @@ void CDKFileManager::ReadingOrderPlus()
                 m_sortedFiles[i]->SetFileReadingOrder(lNewOrder);
             }
             
-            SetBookSortType(RecentlyAdd);
+            SetBookSortType(RECENTLY_ADD);
             SortFile(DFC_Book);
             lNewOrder = 1;
             for (int i = m_sortedFiles.size() - 1; i >= 0; --i, ++lNewOrder)
@@ -1745,7 +1736,7 @@ void CDKFileManager::ReadingOrderPlus()
             }
             
             m_lReadingOrder = m_sortedFiles.size() + 2;
-            if (savedFileSort != RecentlyAdd)
+            if (savedFileSort != RECENTLY_ADD)
             {
                 SetBookSortType(savedFileSort);
                 SortFile(DFC_Book);

@@ -40,8 +40,9 @@ public:
 
     virtual DKDisplayMode displayMode();
     virtual void setDisplayMode(DKDisplayMode display_mode);
-
     virtual void search(const string& keyword);
+
+    virtual NodePtrs getSelectedNodesInfo(int64_t& total_size, int& number, bool& exceed);
 
 protected:
     virtual void initialize();

@@ -2,9 +2,17 @@
 #include "Model/cloud_filesystem_tree.h"
 
 #include "Utility/ImageManager.h"
+#include "Utility/StringUtil.h"
+
 #include "XiaoMi/MiCloudService.h"
 #include "XiaoMi/XiaoMiServiceFactory.h"
 #include "DownloadManager/IDownloadTask.h"
+#include "DownloadManager/IDownloader.h"
+
+#include "CommandID.h"
+#include "I18n/StringManager.h"
+
+using namespace dk::utility;
 
 namespace dk {
 
@@ -12,29 +20,35 @@ namespace document_model {
 
 CloudFileNode::CloudFileNode(Node * parent, MiCloudFileSPtr file_info)
     : Node(parent)
-    , data_state_(MD_TOSCAN)
     , cloud_file_info_(file_info)
     , size_(cloud_file_info_->size)
     , downloading_progress_(-1.0)
     , downloading_state_(IDownloadTask::NONE)
 {
+    status_ = NODE_CLOUD;
     mutableType() = NODE_TYPE_MICLOUD_BOOK;
     update();
-    CloudFileSystemTree::addNodeToGlobalMap(this);
+    //CloudFileSystemTree::addNodeToGlobalMap(this);
 }
 
 CloudFileNode::~CloudFileNode()
 {
-    CloudFileSystemTree::removeNodeFromGlobalMap(id());
+    //CloudFileSystemTree::removeNodeFromGlobalMap(id());
+    CloudFileSystemTree::removeNodeFromCloudLocalMap(id());
 }
 
 void CloudFileNode::update()
 {
     int stat = status();
+    stat |= NODE_CLOUD;
+    stat = updateStatusByDownloadTask(stat);
     mutableId() = cloud_file_info_->id;
     mutableAbsolutePath() = absolutePathFromAncestor();
     mutableName() = cloud_file_info_->name;
     mutableDisplayName() = cloud_file_info_->name;
+    mutableGbkName() = EncodeUtil::UTF8ToGBKString(displayName());
+    mutableCreateTime() = cloud_file_info_->createTime;
+    mutableModifyTime() = cloud_file_info_->modifyTime;
 
     // check whether it is local file
     if (CloudFileSystemTree::isCloudFileInLocalStorage(id(),
@@ -42,12 +56,13 @@ void CloudFileNode::update()
                                                        size_,
                                                        local_file_info_))
     {
-        mutableAbsolutePath() = local_file_info_->GetFilePath();
-        mutableName() = local_file_info_->GetFileName();
-        mutableDisplayName() = local_file_info_->GetFileName(); // TODO.
+        mutableName() = PathManager::GetFileName(local_file_info_->GetFilePath());
+        mutableDisplayName() = local_file_info_->GetFileName();
+        mutableGbkName() = EncodeUtil::UTF8ToGBKString(displayName());
         mutableLastRead() = local_file_info_->GetFileLastReadTime();
         mutableCoverPath() = local_file_info_->GetCoverImagePath();
         stat |= NODE_LOCAL;
+        stat &= ~NODE_IS_DOWNLOADING; // removing downloading status
         if (local_file_info_->IsDuoKanBook())
         {
             if (local_file_info_->GetIsTrialBook())
@@ -64,13 +79,16 @@ void CloudFileNode::update()
             stat |= NODE_SELF_OWN;
         }
     }
+    else
+    {
+        stat &= ~NODE_LOCAL;
+        local_file_info_ = PCDKFile();
+    }
 
     if (local_file_info_ != 0)
     {
         mutableCoverPath() = local_file_info_->GetCoverImagePath();
     }
-
-    data_state_ = MD_SCANNED;
 
     // Do not fire status update event here because it may cause dead loop
     //setStatus(stat);
@@ -132,16 +150,64 @@ DkFileFormat CloudFileNode::fileFormat()
 
 bool CloudFileNode::testStatus(MiCloudFileSPtr book_info, int status_filter)
 {
-    // TODO.
+    if (status_filter == NODE_NONE)
+    {
+        return true;
+    }
+
+    if (status_filter & NODE_NOT_ON_LOCAL)
+    {
+        PCDKFile local_file_info;
+        if (CloudFileSystemTree::isCloudFileInLocalStorage(book_info->id,
+            book_info->name,
+            book_info->size,
+            local_file_info))
+        {
+            return false;
+        }
+    }
+
+    if (!(status_filter & NODE_IS_DOWNLOADING))
+    {
+        IDownloader * downloader = IDownloader::GetInstance();
+        if (downloader)
+        {
+            IDownloadTask* this_task = downloader->GetTaskInfoByUrlId(book_info->id.c_str());
+            if (this_task != 0)
+            {
+                int downloading_state = this_task->GetState();
+                if (downloading_state & (IDownloadTask::PAUSED |
+                                      IDownloadTask::WAITING |
+                                      IDownloadTask::WAITING_QUEUE |
+                                      IDownloadTask::WORKING))
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
+    // TODO. Support More filters
     return true;
 }
 
-void CloudFileNode::download()
+void CloudFileNode::download(bool exec_now)
 {
-    MiCloudService* cloud_service = XiaoMiServiceFactory::GetMiCloudService();
-    if (!cloud_service->RequestDownload(id(), name()))
+    Node::download(exec_now);
+    if (local_file_info_ != 0)
     {
-        // TODO. Handle the downloading failed request
+        // forbid duplicated downloading
+        return;
+    }
+    MiCloudService* cloud_service = XiaoMiServiceFactory::GetMiCloudService();
+    if (!cloud_service->RequestDownload(id(), name(), exec_now))
+    {
+        NodeLoadingFinishedArgs node_loading_finished_args;
+        node_loading_finished_args.type = NodeLoadingFinishedArgs::NODE_LOADING_TYPE_DOWNLOAD;
+        node_loading_finished_args.current_node_path = absolutePath();
+        node_loading_finished_args.succeeded = false;
+        node_loading_finished_args.reason = "Requesting download failed";
+        FireEvent(EventNodeLoadingFinished, node_loading_finished_args);
         return;
     }
     int stat = status();
@@ -149,11 +215,17 @@ void CloudFileNode::download()
     setStatus(stat);
 }
 
-bool CloudFileNode::remove(bool delete_local_files_if_possible)
+bool CloudFileNode::remove(bool delete_local_files_if_possible, bool exec_now)
 {
+    if (status() & NODE_IS_DOWNLOADING)
+    {
+        // cannot delete downloading node
+        return false;
+    }
+
     // NOTE: only delete the selected node
     MiCloudService* cloud_service = XiaoMiServiceFactory::GetMiCloudService();
-    cloud_service->DeleteFile(id());
+    cloud_service->DeleteFile(id(), exec_now);
     if (delete_local_files_if_possible && local_file_info_ != 0)
     {
         // TODO. Move this code to local file node
@@ -209,11 +281,12 @@ void CloudFileNode::onRequestDownloadFinished(const EventArgs& args)
     FireEvent(EventNodeLoadingFinished, node_loading_finished_args);
 }
 
-void CloudFileNode::onDownloadingProgress(int progress, int state)
+void CloudFileNode::onDownloadingProgress(const std::string& task_id, int progress, int state)
 {
     int current_node_status = status();
     downloading_progress_ = progress;
     downloading_state_    = state;
+    downloading_task_id_  = task_id;
 
     NodeLoadingFinishedArgs node_loading_finished_args;
     node_loading_finished_args.type = NodeLoadingFinishedArgs::NODE_LOADING_TYPE_DOWNLOAD;
@@ -238,6 +311,10 @@ void CloudFileNode::onDownloadingProgress(int progress, int state)
         }
         node_loading_finished_args.succeeded = true;
         FireEvent(EventNodeLoadingFinished, node_loading_finished_args);
+    }
+    else if (current_node_status == NODE_CLOUD && (state & IDownloadTask::WORKING))
+    {
+        current_node_status |= NODE_IS_DOWNLOADING;
     }
     setStatus(current_node_status, true);
 }
@@ -264,6 +341,63 @@ bool CloudFileNode::createLocalFileIfExist()
     file_manager->SortFile(DFC_Book);
     file_manager->FireFileListChangedEvent();
     return true;
+}
+
+bool CloudFileNode::satisfy(int status_filter)
+{
+    return CloudFileNode::testStatus(cloud_file_info_, status_filter);
+}
+
+bool CloudFileNode::supportedCommands(std::vector<int>& command_ids, std::vector<int>& str_ids)
+{
+    command_ids.clear();
+    str_ids.clear();
+    if (local_file_info_ != 0)
+    {
+        command_ids.push_back(ID_BTN_READ_BOOK);
+        str_ids.push_back(READ_BOOK);
+    }
+    else
+    {
+        command_ids.push_back(ID_BIN_DOWNLOAD_BOOK);
+        str_ids.push_back(TOUCH_DOWNLOAD);
+    }
+    command_ids.push_back(ID_BTN_DELETE);
+    command_ids.push_back(ID_BTN_SINAWEIBO_SHARE);
+    command_ids.push_back(ID_INVALID);
+
+    str_ids.push_back(DELETE_BOOK);
+    str_ids.push_back(SHARE_BOOK_TO_SINAWEIBO);
+    str_ids.push_back(-1);
+    return true;
+}
+
+int CloudFileNode::updateStatusByDownloadTask(int status)
+{
+    int ret = status;
+    IDownloader * downloader = IDownloader::GetInstance();
+    if (downloader)
+    {
+        IDownloadTask* this_task = downloader->GetTaskInfoByUrlId(id().c_str());
+        if (this_task)
+        {
+            downloading_state_    = this_task->GetState();
+            downloading_progress_ = this_task->GetPercentage();
+            if (downloading_state_ & (IDownloadTask::PAUSED |
+                                  IDownloadTask::WAITING |
+                                  IDownloadTask::WAITING_QUEUE |
+                                  IDownloadTask::WORKING |
+                                  IDownloadTask::CURL_DONE))
+            {
+                ret |= NODE_IS_DOWNLOADING;
+            }
+            else
+            {
+                ret &= ~NODE_IS_DOWNLOADING;
+            }
+        }
+    }
+    return ret;
 }
 
 }

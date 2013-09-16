@@ -1051,46 +1051,57 @@ bool SystemSettingInfo::SetTreatUpDownGestureAsPageSwitch(bool v)
     return SetConfigValueInt(CKI_ReadingUpDownGestureCustoms, v);
 }
 
-DK_FileSorts SystemSettingInfo::GetBookSortType() const
+Field SystemSettingInfo::GetBookSortType() const
 {
     int type = GetConfigValueInt(CKI_BookSortType);
     switch (type)
     {
-        case RecentlyAdd:
-        case RecentlyReadTime:
-        case Name:
-        case DIRECTORY:
+        case RECENTLY_ADD:
+        case LAST_ACCESS_TIME:
+        case NAME:
+        case BY_DIRECTORY:
             break;
         default:
-            type = DIRECTORY;
+            type = BY_DIRECTORY;
             break;
     }
-    return (DK_FileSorts)type;
+    return (Field)type;
 }
 
-bool SystemSettingInfo::SetBookSortType(DK_FileSorts fileSortType)
+bool SystemSettingInfo::SetBookSortType(Field fileSortType)
 {
     return SetConfigValueInt(CKI_BookSortType, fileSortType);
 }
 
-DK_FileSorts SystemSettingInfo::GetMediaSortType() const
+Field SystemSettingInfo::GetCloudBookSort() const
+{
+    int type = GetConfigValueInt(CKI_CloudBookSortType);
+    return (Field)type;
+}
+
+bool SystemSettingInfo::SetCloudBookSortType(Field sort_type)
+{
+    return SetConfigValueInt(CKI_CloudBookSortType, sort_type);
+}
+
+Field SystemSettingInfo::GetMediaSortType() const
 {
     int type = GetConfigValueInt(CKI_MediaSortType);
     switch (type)
     {
-        case RecentlyAdd:
-        case RecentlyReadTime:
-        case Name:
-        case DIRECTORY:
+        case RECENTLY_ADD:
+        case LAST_ACCESS_TIME:
+        case NAME:
+        case BY_DIRECTORY:
             break;
         default:
-            type = DIRECTORY;
+            type = BY_DIRECTORY;
             break;
     }
-    return (DK_FileSorts)type;
+    return (Field)type;
 }
 
-bool SystemSettingInfo::SetMediaSortType(DK_FileSorts fileSortType)
+bool SystemSettingInfo::SetMediaSortType(Field fileSortType)
 {
     return SetConfigValueInt(CKI_MediaSortType, fileSortType);
 }

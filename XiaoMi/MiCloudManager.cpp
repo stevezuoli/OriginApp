@@ -1,8 +1,13 @@
 #include "XiaoMi/MiCloudManager.h"
 #include "XiaoMi/MiCloudService.h"
 #include "XiaoMi/XiaoMiServiceFactory.h"
+#include "Common/CAccountManager.h"
+#include "DownloadManager/DownloadManager.h"
+#include "DownloadManager/DownloaderImpl.h"
 #include "interface.h"
 #include <tr1/functional>
+using dk::account::CAccountManager;
+using dk::account::AccountEventArgs;
 
 namespace xiaomi
 {
@@ -11,11 +16,12 @@ const char* MiCloudManager::BookRootDirFilesScanFinised = "BookRootDirFilesScanF
 SINGLETON_CPP(MiCloudManager)
 MiCloudManager::MiCloudManager()
 {
+    CONNECT(*CAccountManager::GetInstance(), CAccountManager::EventAccount, this, MiCloudManager::OnAccountLogInOut)
 }
 
 bool MiCloudManager::InsertTask(DownloadTask* task, const string& filePath, TaskType type)
 {
-    if (IsTypeValid(type) && m_fileTaskMaps[type].find(task) != m_fileTaskMaps[type].end())
+    if (IsTypeValid(type) && type != TT_CreateFile && m_fileTaskMaps[type].find(task) != m_fileTaskMaps[type].end())
     {
         DebugPrintf(DLC_DIAGNOSTIC, "AddFileTask %x, %s already exists", task, filePath.c_str());
         return false;
@@ -27,17 +33,53 @@ bool MiCloudManager::InsertTask(DownloadTask* task, const string& filePath, Task
 
 bool MiCloudManager::EraseTask(DownloadTask* task, TaskType type)
 {
-    return m_fileTaskMaps[type].erase(task);
+    if (IsTypeValid(type) && type != TT_CreateFile)
+    {
+        return m_fileTaskMaps[type].erase(task);
+    }
+
+    return false;
 }
 
 string MiCloudManager::GetFileInfoForTask(DownloadTask* task, TaskType type) const
 {
-    map<DownloadTask*, string>::const_iterator iter = m_fileTaskMaps[type].find(task);
-    if (iter != m_fileTaskMaps[type].end())
+    if (IsTypeValid(type) && type != TT_CreateFile)
+    {
+        map<DownloadTask*, string>::const_iterator iter = m_fileTaskMaps[type].find(task);
+        if (iter != m_fileTaskMaps[type].end())
+        {
+            return iter->second;
+        }
+    }
+    return "";
+}
+
+bool MiCloudManager::InsertCreateFileTask(DownloadTask* task, const LocalFileInfo& localFileInfo)
+{
+    if (m_createFileTaskMap.find(task) != m_createFileTaskMap.end())
+    {
+        return false;
+    }
+
+    m_createFileTaskMap[task] = localFileInfo;
+
+    return true;
+}
+
+bool MiCloudManager::EraseCreateFileTask(DownloadTask* task)
+{
+    return m_createFileTaskMap.erase(task);
+}
+
+LocalFileInfo MiCloudManager::GetFileInfoForCreateFileTask(DownloadTask* task) const
+{
+    map<DownloadTask*, LocalFileInfo>::const_iterator iter = m_createFileTaskMap.find(task);
+    if (iter != m_createFileTaskMap.end())
     {
         return iter->second;
     }
-    return "";
+
+    return LocalFileInfo();
 }
 
 FetchDataResult MiCloudManager::FetchBookRootDirID()
@@ -119,5 +161,31 @@ bool MiCloudManager::IsFileExistsInCloud(const string& fileName, const int64_t f
 {
     return false;
 }
+
+bool MiCloudManager::OnAccountLogInOut(const EventArgs& args)
+{
+    const AccountEventArgs& accountEventArgs = (const AccountEventArgs&)args;
+    if (accountEventArgs.IsLoggedIn())
+    {
+        DebugPrintf(DLC_DIAGNOSTIC, "Sign in");
+        XiaoMiServiceFactory::GetMiCloudService()->Init();
+    }
+    else
+    {
+        DebugPrintf(DLC_DIAGNOSTIC, "Sign out");
+        m_bookRootDirID.clear();
+        XiaoMiServiceFactory::GetMiCloudService()->Destory();
+        dk::DownloadManager::GetInstance()->Clear();
+        DebugPrintf(DLC_DIAGNOSTIC, "clear downloadmanager");
+        DownloaderImpl::GetInstance()->DeleteTasks(
+            IDownloadTask::WAITING | IDownloadTask::PAUSED
+            | IDownloadTask::CANCELED | IDownloadTask::FAILED
+            | IDownloadTask::WORKING | IDownloadTask::WAITING_QUEUE,
+            IDownloadTask::MICLOUDFILE);
+        DebugPrintf(DLC_DIAGNOSTIC, "clear downloadimpl");
+    }
+    return true;
+}
+
 }
 

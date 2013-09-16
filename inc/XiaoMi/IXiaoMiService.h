@@ -37,9 +37,15 @@ public:
 
         return "";
     }
-protected:
+
     virtual bool Init() = 0;
+    virtual bool Destory() = 0;
+protected:
     virtual bool CheckIfHttpErrorExists(dk::DownloadTask* task);
+    virtual bool IsPassportValid()
+    {
+        return !m_security.empty() && !m_cookies.empty();
+    }
 
 protected:
     std::map<std::string ,std::string> m_cookies;

@@ -12,11 +12,16 @@
 #include <assert.h>
 #include <tr1/functional>
 #include "drivers/DeviceInfo.h"
+
 #include "Model/local_doc_node.h"
 #include "Model/cloud_filesystem_tree.h"
+#include "Model/local_bookstore_category_node.h"
+#include "Model/local_bookstore_node.h"
+
 #include "BookStore/LocalCategoryManager.h"
 #include "Utility/PathManager.h"
 #include "Utility/ImageManager.h"
+#include "I18n/StringManager.h"
 
 using namespace dk::bookstore;
 using namespace dk::utility;
@@ -28,7 +33,6 @@ namespace document_model {
 
 FileNode::FileNode(Node * parent, PCDKFile file_info)
         : Node(parent)
-        , data_state_(MD_TOSCAN)
         , file_info_(file_info)
         , size_(file_info->GetFileSize())
         , uploading_progress_(-1.0)
@@ -36,12 +40,15 @@ FileNode::FileNode(Node * parent, PCDKFile file_info)
 {
     mutableAbsolutePath() = file_info->GetFilePath();
     mutableName() = PathManager::GetFileName(file_info->GetFilePath());
-    mutableDisplayName() = file_info->GetFileName(); // TODO.
+    updateDisplayName();
+
     mutableType() = file_info->IsDuoKanBook() ? NODE_TYPE_FILE_LOCAL_BOOK_STORE_BOOK : NODE_TYPE_FILE_LOCAL_DOCUMENT;
     mutableLastRead() = file_info->GetFileLastReadTime();
     mutableCoverPath() = file_info->GetCoverImagePath();
     mutableId() = file_info->GetBookID();
+    mutableCreateTime() = file_info->GetFileAddOrder();
     status_ = NODE_LOCAL;
+    updateByUploadingTask();
 }
 
 FileNode::~FileNode()
@@ -51,23 +58,34 @@ FileNode::~FileNode()
 /// Update all information.
 void FileNode::update()
 {
+    if (file_info_ != 0)
+    {
+        file_info_->SyncFile();
+    }
     CDKFileManager* file_manager = CDKFileManager::GetFileManager();
     HRESULT ret = file_manager->FileDkpProxy(file_info_, GETFILEINFO);
     if (SUCCEEDED(ret))
     {
         mutableAbsolutePath() = file_info_->GetFilePath();
         mutableName() = PathManager::GetFileName(file_info_->GetFilePath());
-        mutableDisplayName() = file_info_->GetFileName(); // TODO.
+        updateDisplayName();
 
         mutableType() = file_info_->IsDuoKanBook() ?
             NODE_TYPE_FILE_LOCAL_BOOK_STORE_BOOK : NODE_TYPE_FILE_LOCAL_DOCUMENT;
         mutableLastRead() = file_info_->GetFileLastReadTime();
         mutableCoverPath() = file_info_->GetCoverImagePath();
         mutableId() = file_info_->GetBookID();
+        mutableCreateTime() = file_info_->GetFileAddOrder();
 
         size_ = file_info_->GetFileSize();
-        data_state_ = MD_SCANNED;        
+        updateByUploadingTask();
     }
+}
+
+void FileNode::updateDisplayName()
+{
+    mutableDisplayName() = file_info_->GetFileName();
+    mutableGbkName() = file_info_->GetGbkName();
 }
 
 bool FileNode::rename(const string& new_name, string& error_msg)
@@ -76,8 +94,13 @@ bool FileNode::rename(const string& new_name, string& error_msg)
     return false;
 }
 
-bool FileNode::remove(bool delete_local_files_if_possible)
+bool FileNode::remove(bool delete_local_files_if_possible, bool exec_now)
 {
+    if (status() & NODE_IS_UPLOADING)
+    {
+        return false;
+    }
+
     CDKFileManager* file_manager = CDKFileManager::GetFileManager();
     if(0 == file_manager)
     {
@@ -89,10 +112,17 @@ bool FileNode::remove(bool delete_local_files_if_possible)
         return false;
     }
 
+    return removeFromCategory();
+}
+
+bool FileNode::removeFromCategory()
+{
+    CDKFileManager* file_manager = CDKFileManager::GetFileManager();
     if (type() == NODE_TYPE_FILE_LOCAL_BOOK_STORE_BOOK)
     {
+        // delete file by book id
         if (!LocalCategoryManager::RemoveBookFromCategory(parent()->absolutePath().c_str(),
-            PathManager::GetFileNameWithoutExt(name().c_str()).c_str()))// delete file by book id
+                                                          PathManager::GetFileNameWithoutExt(name().c_str()).c_str()))
         {
             return false;
         }
@@ -177,26 +207,24 @@ bool FileNode::isDuokanBook() const
     return file_info_->IsDuoKanBook();
 }
 
-bool FileNode::testStatus(const string& path, int status_filter)
+bool FileNode::satisfy(int status_filter)
 {
     if (status_filter == NODE_NONE)
     {
         return true;
     }
 
-    CDKFileManager* file_manager = CDKFileManager::GetFileManager();
-    PCDKFile file = file_manager->GetFileByPath(path);
     // file must not be null
-    if (file == 0)
+    if (file_info_ == 0)
     {
         return false;
     }
 
-    string name = PathManager::GetFileName(file->GetFilePath());
+    string name = PathManager::GetFileName(file_info_->GetFilePath());
     if (status_filter & NODE_CLOUD)
     {
         // make sure this function is called after cloud filesystem is scanned
-        if (!isOnCloud(name, file->GetFileSize()))
+        if (!isOnCloud(name, file_info_->GetFileSize()))
         {
             return false;
         }
@@ -204,7 +232,7 @@ bool FileNode::testStatus(const string& path, int status_filter)
 
     if (status_filter & NODE_NOT_ON_CLOUD)
     {
-        if (isOnCloud(name, file->GetFileSize()))
+        if (isOnCloud(name, file_info_->GetFileSize()))
         {
             return false;
         }
@@ -212,7 +240,7 @@ bool FileNode::testStatus(const string& path, int status_filter)
 
     if (status_filter & NODE_PURCHASED)
     {
-        if (!file->IsDuoKanBook() || file->GetIsTrialBook())
+        if (!file_info_->IsDuoKanBook() || file_info_->GetIsTrialBook())
         {
             return false;
         }
@@ -220,7 +248,7 @@ bool FileNode::testStatus(const string& path, int status_filter)
 
     if (status_filter & NODE_IS_TRIAL)
     {
-        if (!file->IsDuoKanBook() || !file->GetIsTrialBook())
+        if (!file_info_->IsDuoKanBook() || !file_info_->GetIsTrialBook())
         {
             return false;
         }
@@ -228,16 +256,48 @@ bool FileNode::testStatus(const string& path, int status_filter)
 
     if (status_filter & NODE_SELF_OWN)
     {
-        if (file->IsDuoKanBook())
+        if (file_info_->IsDuoKanBook())
         {
             return false;
+        }
+    }
+
+    if (status_filter & NODE_DUOKAN_BOOK_NOT_CLASSIFIED)
+    {
+        Node* parent_node = mutableParent();
+        LocalBookStoreNode* bookstore_root = dynamic_cast<LocalBookStoreNode*>(parent_node);
+        if (bookstore_root == 0)
+        {
+            return false;
+        }
+    }
+
+    if (!(status_filter & NODE_IS_UPLOADING))
+    {
+        IDownloader * downloader = IDownloader::GetInstance();
+        if (downloader)
+        {
+            IDownloadTask* this_task = downloader->GetTaskInfoByUrlId(absolutePath().c_str());
+            if (this_task != 0)
+            {
+                int uploading_state = this_task->GetState();
+                if (uploading_state & (IDownloadTask::PAUSED |
+                                      IDownloadTask::WAITING |
+                                      IDownloadTask::WAITING_QUEUE |
+                                      IDownloadTask::WORKING))
+                {
+                    return false;
+                }
+            }
         }
     }
     return true;
 }
 
-void FileNode::upload()
+void FileNode::upload(bool exec_now)
 {
+    Node::upload(exec_now);
+
     // Only upload the selected file
     if (cloud_file_info_ != 0)
     {
@@ -253,7 +313,8 @@ void FileNode::upload()
         int stat = status();
         stat |= NODE_IS_UPLOADING;
         setStatus(stat);
-        XiaoMiServiceFactory::GetMiCloudService()->CreateFile(parent_id, absolutePath());
+        XiaoMiServiceFactory::GetMiCloudService()->CreateFile(parent_id, absolutePath(), displayName(), exec_now);
+        return;
     }
 }
 
@@ -389,6 +450,11 @@ void FileNode::onUploadingProgress(int progress, int state)
         current_node_status |= NODE_CLOUD;
         */
     }
+    else if (current_node_status == NODE_LOCAL && (state & IDownloadTask::WORKING))
+    {
+        // the task could be resumed by IDownloader, update the status
+        current_node_status |= NODE_IS_UPLOADING;
+    }
     setStatus(current_node_status, true);
 }
 
@@ -401,6 +467,90 @@ bool FileNode::loadingInfo(int& progress, int& state)
     }
     progress = uploading_progress_;
     state    = uploading_state_;
+    return true;
+}
+
+void FileNode::updateByUploadingTask()
+{
+    IDownloader * downloader = IDownloader::GetInstance();
+    if (downloader)
+    {
+        IDownloadTask* this_task = downloader->GetTaskInfoByUrlId(absolutePath().c_str());
+        if (this_task)
+        {
+            int node_state = status();
+            uploading_state_    = this_task->GetState();
+            uploading_progress_ = this_task->GetPercentage();
+            if (uploading_state_ & (IDownloadTask::PAUSED |
+                                  IDownloadTask::WAITING |
+                                  IDownloadTask::WAITING_QUEUE |
+                                  IDownloadTask::WORKING |
+                                  IDownloadTask::CURL_DONE |
+                                  IDownloadTask::DONE))
+            {
+                node_state |= NODE_IS_UPLOADING;
+            }
+            else
+            {
+                node_state &= ~NODE_IS_UPLOADING; // reset uploading flag
+            }
+            status_ = node_state;
+        }
+    }
+}
+
+void FileNode::stopLoading()
+{
+}
+
+bool FileNode::supportedCommands(std::vector<int>& command_ids,
+                                 std::vector<int>& str_ids)
+{
+    command_ids.clear();
+    str_ids.clear();
+    if (type() == NODE_TYPE_FILE_LOCAL_DOCUMENT)
+    {
+        string name = PathManager::GetFileName(absolutePath());
+        bool is_on_cloud = isOnCloud(name, fileSize());
+        command_ids.push_back(ID_BTN_READ_BOOK);
+        command_ids.push_back(ID_BTN_DELETE);
+        command_ids.push_back(ID_BTN_SINAWEIBO_SHARE);
+        if (!is_on_cloud)
+        {
+            command_ids.push_back(ID_BIN_UPLOAD_BOOK);
+        }
+        command_ids.push_back(ID_INVALID);
+
+        str_ids.push_back(READ_BOOK);
+        str_ids.push_back(DELETE_BOOK);
+        str_ids.push_back(SHARE_BOOK_TO_SINAWEIBO);
+        if (!is_on_cloud)
+        {
+            str_ids.push_back(TOUCH_UPLOAD);
+        }
+        str_ids.push_back(-1);
+    }
+    else
+    {
+        const Node* parent_node = parent();
+        command_ids.push_back(ID_BTN_READ_BOOK);
+        command_ids.push_back(ID_BTN_DELETE);
+        if (parent_node->type() != NODE_TYPE_CATEGORY_LOCAL_BOOK_STORE)
+        {
+            command_ids.push_back(ID_BTN_DELETE_FROM_CATEGORY);
+        }
+        command_ids.push_back(ID_BTN_SINAWEIBO_SHARE);
+        command_ids.push_back(ID_INVALID);
+
+        str_ids.push_back(READ_BOOK);
+        str_ids.push_back(DELETE_BOOK);
+        if (parent_node->type() != NODE_TYPE_CATEGORY_LOCAL_BOOK_STORE)
+        {
+            str_ids.push_back(CATEGORY_DELETE_FILE_FROM_CATEGORY);
+        }
+        str_ids.push_back(SHARE_BOOK_TO_SINAWEIBO);
+        str_ids.push_back(-1);
+    }
     return true;
 }
 

@@ -10,13 +10,16 @@
 #endif
 #include "CommonUI/UIForgetPasswordDlg.h"
 #include "CommonUI/UIAccountLoginDialog.h"
+#include "CommonUI/UIAccountLoginCloudDialog.h"
 #include "Common/WindowsMetrics.h"
 #include "GUI/GUISystem.h"
 #include "Utility.h"
 #include "time.h"
+#include "Model/cloud_filesystem_tree.h"
 
 using namespace dk::account;
 using namespace WindowsMetrics;
+using namespace dk::document_model;
 
 void UIUtility::ShowMessageBox(string text)
 {
@@ -104,6 +107,28 @@ bool UIUtility::CheckAndReLoginSync()
         return true;
     }
     return accountManager->IsLoggedIn();
+}
+
+bool UIUtility::CheckAndReloginXiaomi()
+{
+    if(!UIUtility::CheckAndReConnectWifi())
+    {
+        return false;
+    }
+    CAccountManager* accountManager = CAccountManager::GetInstance();
+    if(NULL == accountManager)
+    {
+        return false;
+    }
+
+    if (accountManager->IsLoggedIn() && !accountManager->IsDuokanAccount())
+    {
+        return true;
+    }
+
+    UIAccountLoginCloudDialog loginDialog(GUISystem::GetInstance()->GetTopFullScreenContainer());
+    loginDialog.DoModal();
+    return accountManager->IsLoggedIn() && !accountManager->IsDuokanAccount();
 }
 
 
@@ -368,3 +393,32 @@ bool UIUtility::IsEmptyBox(DK_BOX box)
     return (box.X0 == box.X1) || (box.Y0 == box.Y1);
 }
 
+double UIUtility::ConvertByteTo(int64_t byteValue, const char* convertType)
+{
+    double result = (double)byteValue;
+    if (strcmp(convertType, "KB") == 0)
+    {
+        result /= 1024.0;
+    }
+    else if (strcmp(convertType, "MB") == 0)
+    {
+        result /= 1048576.0;
+    }
+    else if (strcmp(convertType, "GB") == 0)
+    {
+        result /= 1073741824.0;
+    }
+    return result;
+}
+
+bool UIUtility::GetCloudSpaceInfo(double& total_size, double& available, double& ns_used, const char* convertType)
+{
+    if (CloudFileSystemTree::total_size_ < 0)
+    {
+        return false;
+    }
+    total_size = ConvertByteTo(CloudFileSystemTree::total_size_, convertType);
+    available = ConvertByteTo(CloudFileSystemTree::available_, convertType);
+    ns_used = ConvertByteTo(CloudFileSystemTree::ns_used_, convertType);
+    return true;
+}

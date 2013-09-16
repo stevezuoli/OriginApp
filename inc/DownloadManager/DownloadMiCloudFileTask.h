@@ -26,6 +26,7 @@ public:
     const static std::string TASKMOVETO;
     const static std::string TASKDISPLAYNAME;
     const static std::string TASKUPLOADID;
+    const static std::string TASKKSSINFO;
 public:
     DownloadMiCloudFileTask()
     {
@@ -69,7 +70,7 @@ public:
     void SetFileSize(unsigned int _size) { m_uFileSize = _size; };
 
     bool CanResume() const { return m_bResume; };
-    void SetCanResume(bool _value) { /*m_bResume = _value;*/ };
+    void SetCanResume(bool _value) { m_bResume = _value; };
 
     unsigned int GetLastOffSet() const { return m_uLastOffset;};
     void SetLastOffSet(unsigned int n) { m_uLastOffset = n;};

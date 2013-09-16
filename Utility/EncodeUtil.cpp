@@ -9,6 +9,8 @@
 #include <errno.h>
 #include "interface.h"
 
+using namespace std;
+
 extern int get_rsa_n_1024(unsigned char* buf);
 namespace dk
 {
@@ -321,21 +323,21 @@ std::vector<unsigned char> EncodeUtil::Base64Decode(const void* data, size_t dat
     return result;
 }
 
-std::string EncodeUtil::AESDecode(const char* key, const char* cipher, const unsigned int cipherlen, unsigned char* ivec)
+std::string EncodeUtil::AESDecode(const string& key, const string& cipher, const unsigned int cipherlen, unsigned char* ivec)
 {
     AES_KEY aes_key;
     char* plain = (char*)malloc((cipherlen + 8)*sizeof(char));
     int len = cipherlen;
-    int bits = strlen(key) * 8;
+    int bits = key.size() * 8;
 
-    AES_set_decrypt_key((const unsigned char*)key, bits, &aes_key);
+    AES_set_decrypt_key((const unsigned char*)(key.data()), bits, &aes_key);
     if (ivec)
     {
-        AES_cbc_encrypt((const unsigned char*)cipher, (unsigned char*)plain, len, &aes_key, ivec, 0);
+        AES_cbc_encrypt((const unsigned char*)(cipher.data()), (unsigned char*)plain, len, &aes_key, ivec, 0);
     }
     else
     {
-        AES_ecb_encrypt((const unsigned char*)cipher, (unsigned char*)plain, len, &aes_key, 0);
+        AES_ecb_encrypt((const unsigned char*)(cipher.data()), (unsigned char*)plain, len, &aes_key, 0);
     }
 
 //PKCS5Padding
@@ -349,17 +351,20 @@ std::string EncodeUtil::AESDecode(const char* key, const char* cipher, const uns
     return decodeString;
 }
 
-std::string EncodeUtil::AESEncode(const char* key, const char* plain, unsigned char* ivec)
+std::string EncodeUtil::AESEncode(const string& key, const string& plain, unsigned char* ivec)
 {
     AES_KEY aes_key;
-    char in[1024] = {0};
-    char cipher[1024] = {0};
 
-    int len = strlen(plain);
+    int len = plain.size();
     int rem = 16 - len%16;
-    int bits = strlen(key) * 8;
+    int bits = key.size() * 8;
 
-    memcpy(in, plain, len);
+    char* in = (char*)malloc((len + 16) * sizeof(char));
+    char* cipher = (char*)malloc((len + 16) * sizeof(char));
+
+    memset(in, 0 , len+16);
+    memcpy(in, plain.data(), len);
+
 //PKCS5Padding
     for (int i = 0; i < rem; ++i)
     {
@@ -367,8 +372,8 @@ std::string EncodeUtil::AESEncode(const char* key, const char* plain, unsigned c
     }
     //memset(in + len, ' ', rem);
     len += rem;
-    
-    AES_set_encrypt_key((const unsigned char*)key, bits, &aes_key);
+
+    AES_set_encrypt_key((const unsigned char*)(key.data()), bits, &aes_key);
     if (ivec)
     {
         AES_cbc_encrypt((const unsigned char*)in, (unsigned char*)cipher, len, &aes_key, ivec, 1);
@@ -378,7 +383,10 @@ std::string EncodeUtil::AESEncode(const char* key, const char* plain, unsigned c
         AES_ecb_encrypt((const unsigned char*)in, (unsigned char*)cipher, len, &aes_key, 1);
     }
 
-    return std::string(cipher, cipher + len);
+    std::string result(cipher, cipher + len);
+    free(in);
+    free(cipher);
+    return result;
 }
 
 std::string EncodeUtil::SHA_160(const char* filePath)
@@ -443,14 +451,6 @@ bool EncodeUtil::CalcFileBlockInfos(const char* filePath,
         memcpy(dataBak, data, readSize);
         hash_process(&shaContext, data, readSize);
         MD5Checker::GetInstance()->DK_MD5Update(&md5Context, dataBak, readSize);
-        //DebugPrintf(DLC_DIAGNOSTIC, "(%x, %x, %x, %x) (%x, %x) (%d)"
-                //, md5Context.state[0]
-                //, md5Context.state[1]
-                //, md5Context.state[2]
-                //, md5Context.state[3]
-                //, md5Context.count[0]
-                //, md5Context.count[1]
-                //, readSize);
         readBlockSize += readSize;
         //block finished
         if (readBlockSize >= blockSize)
@@ -460,7 +460,6 @@ bool EncodeUtil::CalcFileBlockInfos(const char* filePath,
 
             MD5Checker::GetInstance()->DK_MD5Final((unsigned char*)md5Digest, &md5Context);
             md5vec->push_back(BinToHex((const unsigned char*)md5Digest, 4 * sizeof(unsigned long)));
-            //md5vec->push_back(LongArrayToString(md5Digest, 4));
 
             sizeVec->push_back(blockSize);
 
@@ -478,13 +477,11 @@ bool EncodeUtil::CalcFileBlockInfos(const char* filePath,
         shavec->push_back(LongArrayToString(shaDigest, HW));
 
         MD5Checker::GetInstance()->DK_MD5Final((unsigned char*)md5Digest, &md5Context);
-        //md5vec->push_back(LongArrayToString(md5Digest, 4));
         md5vec->push_back(BinToHex((const unsigned char*)md5Digest, 4 * sizeof(unsigned long)));
 
         sizeVec->push_back(readBlockSize);
     }
 
-    DebugPrintf(DLC_DIAGNOSTIC, "md5: %s", MD5Checker::GetInstance()->DK_MDFile(filePath));
 
     fclose(fp);
     return true;

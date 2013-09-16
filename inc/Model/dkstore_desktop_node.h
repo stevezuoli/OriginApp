@@ -20,7 +20,7 @@ public:
     virtual ~BookStoreDesktopNode();
 
 public:
-    virtual NodePtrs& updateChildrenInfo();
+    virtual NodePtrs updateChildrenInfo();
 
     void search(const string& keyword, int status_filter, int start, int num);
     DKDisplayMode currentDisplayMode() const { return current_display_mode_; }

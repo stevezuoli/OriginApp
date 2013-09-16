@@ -18,6 +18,7 @@
 
 KSS_INTERFACE KSS_API ILibKss
 {
+    virtual ~ILibKss() {}
     // config KSS master
     virtual void setKssMaster(KSSMaster::IKSSMaster* kssMaster) = 0;
 

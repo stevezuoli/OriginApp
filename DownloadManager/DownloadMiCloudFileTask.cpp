@@ -31,6 +31,7 @@ const std::string DownloadMiCloudFileTask::TASKUSERAGENT = "DkDlTaskUserAgent";
 const std::string DownloadMiCloudFileTask::TASKMOVETO = "DkDlTaskMoveTo";
 const std::string DownloadMiCloudFileTask::TASKDISPLAYNAME = "DkDlTaskDisplayName";
 const std::string DownloadMiCloudFileTask::TASKUPLOADID = "DkDlTaskUploadID";
+const std::string DownloadMiCloudFileTask::TASKKSSINFO = "DkDlTaskKSSInfo";
 
 std::string DownloadMiCloudFileTask::GetFileName() const
 {
@@ -98,6 +99,7 @@ void DownloadMiCloudFileTask::SaveTask(DlSerializationParentsNode& _parentsnode)
     _parentsnode.AddChildNode(TASKPRIORITY,m_uPriority);
     _parentsnode.AddChildNode(TASKMOVETO,m_moveTo);
     _parentsnode.AddChildNode(TASKUPLOADID,m_uploadId);
+    _parentsnode.AddChildNode(TASKKSSINFO,m_kssInfo);
 }
 
 void DownloadMiCloudFileTask::LoadTask(xmlNodePtr pNode)
@@ -218,6 +220,15 @@ void DownloadMiCloudFileTask::LoadTask(xmlNodePtr pNode)
                 xmlFree(pUpload);
             }
         }
+        else if(!xmlStrcmp(pNode->name,BAD_CAST(TASKKSSINFO.c_str())))
+        {
+            xmlChar *pKSSInfo = xmlNodeGetContent(pNode);
+            if(pKSSInfo)
+            {
+                SetKSSInfo((const char *)pKSSInfo);
+                xmlFree(pKSSInfo);
+            }
+        }
         else if(!xmlStrcmp(pNode->name,BAD_CAST(TASKPASSWORD.c_str())))
         {
             xmlChar *pPassword = xmlNodeGetContent(pNode);
@@ -261,7 +272,7 @@ int DownloadMiCloudFileTask::FinishTask()
 
 void DownloadMiCloudFileTask::OnKSSProgressCallback(double cur, double total, double speed)
 {
-    DebugPrintf(DLC_DIAGNOSTIC, "%s ... %f %f %f", IsUploadTask() ? "Uploading" : "Downloading", cur, total, speed);
+    //DebugPrintf(DLC_DIAGNOSTIC, "%s ... %f %f %f", IsUploadTask() ? "Uploading" : "Downloading", cur, total, speed);
     SetFileSize(total);
     OnProgressUpdate(total, cur);
 }

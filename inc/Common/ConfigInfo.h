@@ -56,6 +56,7 @@
             MACRO_NAME(LocalFont_2,          "", "")\
             MACRO_NAME(Volume,               "10", "10")\
             MACRO_NAME(BookSortType,         "0", "0")\
+            MACRO_NAME(CloudBookSortType,    "0", "0")\
             MACRO_NAME(InitReadingOrder,     "0", "0")\
             MACRO_NAME(MediaSortType,        "0", "0")\
             MACRO_NAME(PdfSharpen,           "0", "0")\

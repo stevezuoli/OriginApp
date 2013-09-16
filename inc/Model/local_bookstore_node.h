@@ -16,16 +16,14 @@ namespace document_model {
 class LocalBookStoreNode :  public ContainerNode
 {
 public:
-    LocalBookStoreNode(Node * parent, const string& category_path);
+    LocalBookStoreNode(Node * parent, const string& folder_path);
     virtual ~LocalBookStoreNode();
 
 public:
     virtual SPtr<ITpImage> getInitialImage();
 
-    virtual NodePtrs& updateChildrenInfo();
-    virtual size_t nodePosition(NodePtr node);
-    virtual size_t nodePosition(const string &name);
-    virtual bool search(const StringList& filters, bool recursive, bool & stop);
+    virtual NodePtrs updateChildrenInfo();
+    virtual bool supportedCommands(std::vector<int>& command_ids, std::vector<int>& str_ids);
 
     static bool testStatus(const string& path, int status_filter);
 
@@ -34,10 +32,10 @@ public:
     bool isVirtualFolder() { return virtual_folder_; }
 
 protected:
-    virtual bool updateChildren(int status_filter);
+    virtual bool updateChildren();
 
 protected:
-    void scan(const string& dir, NodePtrs &result, int status_filter = NODE_NONE, bool sort_list = true);
+    void scan(const string& dir, NodePtrs &result);
     void collectDirectories(StringList & result);
 
 protected:

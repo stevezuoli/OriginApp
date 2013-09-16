@@ -92,18 +92,16 @@ void UIBookStoreListBoxPanel::MoveWindow(INT32 iLeft, INT32 iTop, INT32 iWidth, 
     if (!m_windowSizer)
     {
         UISizer* pMainSizer = new UIBoxSizer(dkVERTICAL);
-        m_pBottomSizer = CreateBottomSizer();
-        if (pMainSizer && m_pBottomSizer)
+        if (pMainSizer)
         {
             pMainSizer->Add(&m_listBox, UISizerFlags(1).Expand().Border(dkTOP, m_iTopMargin).ReserveSpaceEvenIfHidden());
-            m_pBottomSizer->SetMinHeight(m_iHeight - m_iTopMargin - (m_perPageNumber * m_listItemHeight));
-            pMainSizer->Add(m_pBottomSizer, UISizerFlags().Expand());
+            UISizer* pBottomSizer = CreateBottomSizer();
+            if (pBottomSizer)
+            {
+                pBottomSizer->SetMinHeight(m_iHeight - m_iTopMargin - (m_perPageNumber * m_listItemHeight));
+                pMainSizer->Add(pBottomSizer, UISizerFlags().Expand());
+            }
             SetSizer(pMainSizer);
-        }
-        else
-        {
-            SafeDeletePointer(pMainSizer);
-            SafeDeletePointer(m_pBottomSizer);
         }
     }
 }

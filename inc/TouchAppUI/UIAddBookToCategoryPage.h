@@ -20,18 +20,20 @@ public:
     virtual UISizer* CreateModelTreeSizer();
     virtual UISizer* CreateBottomSizer();
 
+    virtual bool OnChildClick(UIWindow* child);
+    virtual void UpdateModelView(bool layout);
+
     virtual bool OnChildSelectChanged(const EventArgs& args);
     virtual bool OnNodesUpdated(const EventArgs& args);
     virtual bool OnListTurnPage(const EventArgs&);
 
+    virtual void OnEnter();
+
 private:
-    bool OnChildClick(UIWindow* child);
     bool OnSaveClicked();
-    void UpdateModelView(bool layout);
     void UpdateSelectedBooks(size_t bookCount, bool updateWindow = true);
+
 private:
-    UITouchBackButton m_btnBack;
-    UITextSingleLine m_txtTitle;
     UITextSingleLine m_txtSelected;
     UITouchComplexButton m_btnSave;
     UITextSingleLine m_txtTotalBook;

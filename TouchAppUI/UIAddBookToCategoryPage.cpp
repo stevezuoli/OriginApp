@@ -12,12 +12,19 @@ using namespace WindowsMetrics;
 using namespace dk::bookstore;
 using namespace dk::utility;
 
+static const string DK_BOOKSTORE = "DK_BookStore";
+
 UIAddBookToCategoryPage::UIAddBookToCategoryPage(const char* category, ModelTree* model_tree)
     : UISelectPage(BLU_SELECT, model_tree)
-    , m_btnBack(this)
 {
     m_category = category;
-    AppendChild(&m_titleBar);
+
+    // jump to book store node
+    ContainerNode* bookstore_node = model_tree->cdContainerNodeWithinTopNode(DK_BOOKSTORE);
+    if (bookstore_node != 0)
+    {
+        m_modelView.setStatusFilter(NODE_DUOKAN_BOOK_NOT_CLASSIFIED);
+    }
 }
 
 UISizer* UIAddBookToCategoryPage::CreateTopSizer()
@@ -58,9 +65,10 @@ UISizer* UIAddBookToCategoryPage::CreateModelTreeSizer()
         UISizer* pageNumSizer = new UIBoxSizer(dkHORIZONTAL);
         if (pageNumSizer)
         {
-            m_txtTotalBook.SetForeColor(ColorManager::GetColor(COLOR_MENUITEM_INACTIVE));
-            m_txtTotalBook.SetFont(0, 0, 18);
-            m_txtPageNo.SetFont(0, 0, 18);
+            const int fontSize = GetWindowFontSize(FontSize18Index);
+            m_txtTotalBook.SetFontSize(fontSize);
+            m_txtTotalBook.SetEnglishGothic();
+            m_txtPageNo.SetFontSize(fontSize);
             m_txtPageNo.SetEnglishGothic();
             AppendChild(&m_txtTotalBook);
             AppendChild(&m_txtPageNo);
@@ -175,16 +183,11 @@ void UIAddBookToCategoryPage::UpdateSelectedBooks(size_t bookCount, bool updateW
 
 bool UIAddBookToCategoryPage::OnChildClick(UIWindow* child)
 {
-    if(child == &m_btnBack)
-    {
-        CPageNavigator::BackToPrePage();
-        return true;
-    }
-    else if (child == &m_btnSave)
+    if (child == &m_btnSave)
     {
         return OnSaveClicked();
     }
-    return false;
+    return UISelectPage::OnChildClick(child);
 }
 
 bool UIAddBookToCategoryPage::OnSaveClicked()
@@ -192,11 +195,20 @@ bool UIAddBookToCategoryPage::OnSaveClicked()
     DK_AUTO(ids, m_modelView.GetSelectedBookIds());
     for (DK_AUTO(cur, ids.begin()); cur != ids.end(); ++cur)
     {
-        LocalCategoryManager::AddBookToCategory(
-            m_modelView.currentNodePath().c_str(),
-            cur->c_str());
-        DebugPrintf(DLC_DIAGNOSTIC, "%s\n", cur->c_str());
+        LocalCategoryManager::AddBookToCategory(m_category.c_str(), cur->c_str());
+        m_modelView.InitListItem();
+        //DebugPrintf(DLC_DIAGNOSTIC, "%s\n", cur->c_str());
     }
     CPageNavigator::BackToPrePage();
     return true;
+}
+
+void UIAddBookToCategoryPage::OnEnter()
+{
+    DebugPrintf(DLC_UIHOMEPAGE, "%s, %d, %s, %s", __FILE__,  __LINE__, GetClassName(), __FUNCTION__);
+    UIPage::OnEnter();
+
+    m_modelView.updateModelByContext(m_model);
+    m_modelView.InitListItem();
+    UpdateWindow();
 }

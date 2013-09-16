@@ -27,12 +27,42 @@ public:
     }
 };
 
+class ModelTreeCurrentNodeChangedArgs: public EventArgs
+{
+public:
+    ModelTreeCurrentNodeChangedArgs() : current_node(0) {}
+    virtual ~ModelTreeCurrentNodeChangedArgs() {}
+    virtual EventArgs* Clone() const {
+        return new ModelTreeCurrentNodeChangedArgs(*this);
+    }
+
+public:
+    ContainerNode* current_node;
+};
+
+class CloudQuotaRetrieved : public EventArgs
+{
+public:
+    CloudQuotaRetrieved() : total_size(-1), available(-1), ns_used(-1) {}
+    virtual ~CloudQuotaRetrieved() {}
+    virtual EventArgs* Clone() const {
+        return new CloudQuotaRetrieved(*this);
+    }
+
+public:
+    int64_t total_size;
+    int64_t available;
+    int64_t ns_used;
+};
+
 class ModelTree : public EventSet
                 , public EventListener
 {
 public:
     static const char* EventFileSystemChanged;
     static const char* EventCoverLoaded;
+    static const char* EventCurrentNodeChanged;
+    static const char* EventQuotaRetrieved;
 
 public:
     ModelTree();
@@ -61,7 +91,12 @@ public:
     virtual DKDisplayMode displayMode() = 0;
     virtual void setDisplayMode(DKDisplayMode display_mode) = 0;
 
+    // Leave this function for compatibility of local model tree
+    // Prefer to use children(name_filter)
     virtual void search(const string& keyword) = 0;
+    virtual NodePtr getNodeById(const string& id);
+
+    virtual NodePtrs getSelectedNodesInfo(int64_t& total_size, int& number, bool& exceed) = 0;
 
     static ModelTree* getModelTree(ModelType tree_type);
 

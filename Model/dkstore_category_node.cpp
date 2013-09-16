@@ -27,7 +27,6 @@ BookStoreCategoryNode::BookStoreCategoryNode(Node * parent, CategoryInfo* catego
 
 BookStoreCategoryNode::~BookStoreCategoryNode()
 {
-    DeletePtrContainer(&children_);
 }
 
 int BookStoreCategoryNode::childrenTotalSize()
@@ -40,7 +39,7 @@ bool BookStoreCategoryNode::hasChildrenCategories()
     return !category_info_->mutableChildrenNodeList().empty();
 }
 
-NodePtrs& BookStoreCategoryNode::updateChildrenInfo()
+NodePtrs BookStoreCategoryNode::updateChildrenInfo()
 {
     for(NodePtrsIter iter = children_.begin(); iter != children_.end(); ++iter)
     {
@@ -50,8 +49,7 @@ NodePtrs& BookStoreCategoryNode::updateChildrenInfo()
             dynamic_cast<FileNode *>((*iter).get())->update();
         }
     }
-    sort(children_, by_field_, sort_order_);
-    return children_;
+    return filterChildren(children_);
 }
 
 size_t BookStoreCategoryNode::nodePosition(NodePtr node)
@@ -115,7 +113,7 @@ bool BookStoreCategoryNode::testStatus(CategoryInfo* category, int status_filter
 
 void BookStoreCategoryNode::updateChildren(int status_filter)
 {
-    DeletePtrContainer(&children_);
+    clearChildren();
     scan(absolutePath(), children_, status_filter, true);
 }
 
@@ -128,8 +126,7 @@ void BookStoreCategoryNode::scan(const string& dir, NodePtrs &result, int status
         for (size_t i = 0; i < cat_list.size(); ++i)
         {
             model::CategoryInfo* child = dynamic_cast<model::CategoryInfo*>(cat_list[i].get());
-            if (child != 0 &&
-                BookStoreCategoryNode::testStatus(child, status_filter))
+            if (child != 0) // && BookStoreCategoryNode::testStatus(child, status_filter))
             {
                 // create a category node
                 NodePtr cat_node = new BookStoreCategoryNode(this, child);

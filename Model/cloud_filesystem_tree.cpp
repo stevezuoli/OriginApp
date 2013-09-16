@@ -8,7 +8,10 @@
 #include "XiaoMi/XiaoMiServiceFactory.h"
 #include "DownloadManager/IDownloader.h"
 #include "Common/FileManager_DK.h"
+#include "Common/CAccountManager.h"
+#include "Utility/SystemUtil.h"
 
+using namespace dk::account;
 using namespace xiaomi;
 
 namespace dk {
@@ -16,7 +19,7 @@ namespace dk {
 namespace document_model {
 
 bool CloudFileSystemTree::local_cache_inited_ = false;
-CloudNodes CloudFileSystemTree::all_nodes_;
+//CloudNodes CloudFileSystemTree::all_nodes_;
 CloudLocalMap CloudFileSystemTree::cloud_local_map_;
 int64_t CloudFileSystemTree::total_size_ = -1;
 int64_t CloudFileSystemTree::available_ = -1;
@@ -25,7 +28,17 @@ int64_t CloudFileSystemTree::ns_used_ = -1;
 CloudFileSystemTree::CloudFileSystemTree()
     : root_node_(0)
 {
+    by_ = SystemSettingInfo::GetInstance()->GetCloudBookSort();
     initialize();
+
+    // account login/logout event
+    CAccountManager* account_manager = CAccountManager::GetInstance();
+    SubscribeMessageEvent(CAccountManager::EventAccount, 
+            *(CAccountManager::GetInstance()),
+            std::tr1::bind(
+                std::tr1::mem_fn(&CloudFileSystemTree::onAccountEvent),
+                this,
+                std::tr1::placeholders::_1));
 
     MiCloudService* cloud_service = XiaoMiServiceFactory::GetMiCloudService();
     SubscribeMessageEvent(
@@ -102,7 +115,7 @@ CloudFileSystemTree::CloudFileSystemTree()
             std::tr1::mem_fn(&CloudFileSystemTree::onLocalFileSystemChanged),
             this,
             std::tr1::placeholders::_1));
-    cloud_service->GetQuota();
+    FetchQuota();
 }
 
 CloudFileSystemTree::~CloudFileSystemTree()
@@ -235,11 +248,19 @@ void CloudFileSystemTree::setSortCriteria(Field by, SortOrder order)
 {
     by_ = by;
     order_ = order;
+    SystemSettingInfo::GetInstance()->SetCloudBookSortType(by);
 }
 
 void CloudFileSystemTree::setSortField(Field by)
 {
     by_ = by;
+    SystemSettingInfo::GetInstance()->SetCloudBookSortType(by);
+}
+
+void CloudFileSystemTree::FetchQuota()
+{
+    MiCloudService* cloud_service = XiaoMiServiceFactory::GetMiCloudService();
+    cloud_service->GetQuota();
 }
 
 void CloudFileSystemTree::sort()
@@ -258,15 +279,16 @@ void CloudFileSystemTree::setDisplayMode(DKDisplayMode display_mode)
     root_node_.mutableDisplayMode() = display_mode;
 }
 
-void CloudFileSystemTree::search(const string& keyword)
-{
-    root_node_.search(keyword);
-}
-
 ContainerNode* CloudFileSystemTree::setCurrentNode(ContainerNode *node)
 {
-    current_node_ = node;
-    mapFilePathToModelPath(current_node_, current_path_);
+    if (current_node_ != node)
+    {
+        current_node_ = node;
+        mapFilePathToModelPath(current_node_, current_path_);
+        ModelTreeCurrentNodeChangedArgs node_changed_args;
+        node_changed_args.current_node = current_node_;
+        FireEvent(EventCurrentNodeChanged, node_changed_args);
+    }
     return current_node_;
 }
 
@@ -299,39 +321,57 @@ ContainerNode * CloudFileSystemTree::containerNodeWithinTopNode(NodeType type)
     return node;
 }
 
-bool CloudFileSystemTree::addNodeToGlobalMap(Node* node)
-{
-    if (node->id().empty())
-    {
-        return false;
-    }
-    if (all_nodes_.find(node->id()) != all_nodes_.end())
-    {
-        return false;
-    }
-    all_nodes_[node->id()] = node;
-    return true;
-}
+//bool CloudFileSystemTree::addNodeToGlobalMap(Node* node)
+//{
+//    if (node->id().empty())
+//    {
+//        return false;
+//    }
+//    all_nodes_[node->id()] = node;
+//    return true;
+//}
+//
+//bool CloudFileSystemTree::removeNodeFromGlobalMap(const string& id)
+//{
+//    CloudNodes::iterator itr = all_nodes_.find(id);
+//    if (itr == all_nodes_.end())
+//    {
+//        return false;
+//    }
+//    all_nodes_.erase(itr);
+//    return true;
+//}
 
-bool CloudFileSystemTree::removeNodeFromGlobalMap(const string& id)
+bool CloudFileSystemTree::removeNodeFromCloudLocalMap(const string& id)
 {
-    CloudNodes::iterator itr = all_nodes_.find(id);
-    if (itr == all_nodes_.end())
+    CloudLocalMap::iterator itr = cloud_local_map_.find(id);
+    if (itr == cloud_local_map_.end())
     {
         return false;
     }
-    all_nodes_.erase(itr);
+    cloud_local_map_.erase(itr);
     return true;
 }
 
 Node* CloudFileSystemTree::getNodeFromGlobalMap(const string& id)
 {
-    CloudNodes::iterator itr = all_nodes_.find(id);
-    if (itr == all_nodes_.end())
+    //CloudNodes::iterator itr = all_nodes_.find(id);
+    //if (itr == all_nodes_.end())
+    //{
+    //    return 0;
+    //}
+    //return itr->second;
+    ModelTree* this_model = ModelTree::getModelTree(MODEL_MICLOUD);
+    CloudFileSystemTree* cloud_this_model = dynamic_cast<CloudFileSystemTree*>(this_model);
+    if (cloud_this_model != 0)
     {
-        return 0;
+        NodePtr node = cloud_this_model->getNodeById(id);
+        if (node != 0)
+        {
+            return node.get();
+        }
     }
-    return itr->second;
+    return 0;
 }
 
 bool CloudFileSystemTree::onFileCreated(const EventArgs& args)
@@ -341,14 +381,20 @@ bool CloudFileSystemTree::onFileCreated(const EventArgs& args)
     {
         MiCloudServiceResultCreateFileSPtr create_info = file_create_args.result;
         MiCloudFileSPtr cloud_file_info = create_info->GetFileInfo();
-        if (cloud_file_info == 0)
+        Node* cached_node = CloudFileSystemTree::getNodeFromGlobalMap(cloud_file_info->id);
+        if (cloud_file_info == 0 || cached_node != 0)
         {
             // has not been uploaded yet
             return false;
         }
-        string parent_id = cloud_file_info->parentId;
 
+        string parent_id = cloud_file_info->parentId;
         Node* parent_node = CloudFileSystemTree::getNodeFromGlobalMap(parent_id);
+        if (parent_node == 0)
+        {
+            return false;
+        }
+
         if (parent_node->type() == NODE_TYPE_MICLOUD_DESKTOP)
         {
             CloudDesktopNode* desktop = dynamic_cast<CloudDesktopNode*>(parent_node);
@@ -373,7 +419,13 @@ bool CloudFileSystemTree::onQuotaRetrieved(const EventArgs& args)
         CloudFileSystemTree::total_size_ = quota_retrieved_args.result->GetTotal();
         CloudFileSystemTree::available_  = quota_retrieved_args.result->GetAvailable();
         CloudFileSystemTree::ns_used_    = quota_retrieved_args.result->GetNsUsed();
+        CloudQuotaRetrieved quota_retrieved_args;
+        quota_retrieved_args.total_size = CloudFileSystemTree::total_size_;
+        quota_retrieved_args.available  = CloudFileSystemTree::available_;
+        quota_retrieved_args.ns_used    = CloudFileSystemTree::ns_used_;
+        FireEvent(EventQuotaRetrieved, quota_retrieved_args);
     }
+    return true;
 }
 
 bool CloudFileSystemTree::onChildrenRetrieved(const EventArgs& args)
@@ -384,6 +436,18 @@ bool CloudFileSystemTree::onChildrenRetrieved(const EventArgs& args)
         MiCloudServiceResultGetChildrenSPtr children_info = children_args.result;
         string parent_id = children_args.parent_dir_id;
         Node* parent_node = CloudFileSystemTree::getNodeFromGlobalMap(parent_id);
+        if (parent_node == 0)
+        {
+            if (parent_id == root_node_.id())
+            {
+                parent_node = &root_node_;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         if (parent_node->type() == NODE_TYPE_MICLOUD_DESKTOP)
         {
             CloudFileSystemTree::local_cache_inited_ = true;
@@ -465,7 +529,7 @@ bool CloudFileSystemTree::onDownloadProgress(const EventArgs& args)
     {
         // find the parent of deleted node
         CloudFileNode* downloading_file_node = dynamic_cast<CloudFileNode*>(downloading_node);
-        downloading_file_node->onDownloadingProgress(current_progress, state);
+        downloading_file_node->onDownloadingProgress(file_id, current_progress, state);
     }
     return true;
 }
@@ -566,6 +630,8 @@ bool CloudFileSystemTree::isLocalFileInCloud(const string& file_name,
     }
 
     CloudLocalMap::const_iterator it = cloud_local_map_.begin();
+    ModelTree* this_model = ModelTree::getModelTree(MODEL_MICLOUD);
+    CloudFileSystemTree* cloud_this_tree = dynamic_cast<CloudFileSystemTree*>(this_model);
     for (; it != cloud_local_map_.end(); it++)
     {
         PCDKFile local_file = it->second;
@@ -574,9 +640,13 @@ bool CloudFileSystemTree::isLocalFileInCloud(const string& file_name,
             local_file->GetFileSize() == size) // compare file size
         {
             string cloud_file_id = it->first;
-            Node* node = all_nodes_[cloud_file_id];
-            CloudFileNode* file_node = dynamic_cast<CloudFileNode*>(node);
-            cloud_file = file_node->fileInfo();
+            //NodePtr node = all_nodes_[cloud_file_id];
+            NodePtr node = cloud_this_tree->getNodeById(cloud_file_id);
+            if (node != 0)
+            {
+                CloudFileNode* file_node = dynamic_cast<CloudFileNode*>(node.get());
+                cloud_file = file_node->fileInfo();
+            }
             return true;
         }
     }
@@ -587,10 +657,87 @@ bool CloudFileSystemTree::isLocalFileInCloud(const string& file_name,
 bool CloudFileSystemTree::onLocalFileSystemChanged(const EventArgs& args)
 {
     // clear mapping between local and cloud
-    //CloudFileSystemTree::cloud_local_map_.clear();
+    CloudFileSystemTree::cloud_local_map_.clear();
 
     // update all posterities
     root_node_.updateChildrenInfo();
+    return true;
+}
+
+NodePtr CloudFileSystemTree::getNodeById(const string& id)
+{
+    return root()->getNodeById(id);
+}
+
+NodePtrs CloudFileSystemTree::getSelectedNodesInfo(int64_t& total_size, int& number, bool& exceed)
+{
+    static const char* HOME_FOLDER = "/mnt/us/";
+    total_size = 0;
+    number = 0;
+    exceed = false;
+    NodePtrs selected_nodes = root()->selectedLeaves();
+    if (!selected_nodes.empty())
+    {
+        for (size_t i = 0; i < selected_nodes.size(); i++)
+        {
+            CloudFileNode* file_node = dynamic_cast<CloudFileNode*>(selected_nodes[i].get());
+            if (file_node != 0)
+            {
+                total_size += file_node->fileSize();
+                number++;
+            }
+        }
+    }
+
+    int local_available = SystemUtil::FreeSpace(HOME_FOLDER);
+    if (local_available >= 0 && total_size > local_available)
+    {
+        exceed = true;
+    }
+    return selected_nodes;
+}
+
+void CloudFileSystemTree::search(const string& keyword)
+{
+    // Use children(name_filter) to search
+    RetrieveChildrenResult ret = RETRIEVE_FAILED;
+    root()->children(ret, true, root()->statusFilter(), keyword);
+}
+
+bool CloudFileSystemTree::onAccountEvent(const EventArgs& args)
+{
+    const AccountEventArgs& account_args = dynamic_cast<const AccountEventArgs&>(args);
+    CAccountManager* account_manager = CAccountManager::GetInstance();
+	if(account_manager)
+	{
+		CAccountManager::LoginStatus login_status = account_manager->GetLoginStatus();
+		switch(login_status)
+		{
+			case CAccountManager::LoggedIn_XiaoMi:
+			case CAccountManager::LoggedIn_DuoKan:
+				{
+                    // no need to fetch root id on receiving login event, because MiCloud service
+                    // may not get all tokens ready. Just leave it to children().
+                    //root_node_.fetchRootID();
+				}
+				break;
+            case CAccountManager::NotLoggedIn:
+                {
+                    //if (account_args.logStatus == AccountEventArgs::LS_LOGOUT)
+                    {
+                        // clear all caches
+                        root_node_.clearChildren();
+                        root_node_.mutableId().clear();
+                        CloudFileSystemTree::clearCloudLocalMap();
+                        CloudFileSystemTree::setCacheInitialized(false);
+                        //CloudFileSystemTree::clearCloudNodesCache();
+                    }
+                }
+                break;
+            default:
+                break;
+		}
+	}
     return true;
 }
 

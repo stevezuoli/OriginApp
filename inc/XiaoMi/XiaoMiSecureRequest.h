@@ -22,6 +22,9 @@ public:
 
     //Decrypt value of Get params or Post datas
     static string DecryptValue(const string& value, const string& security);
+
+    static map<string, string> EncryptParams(DownloadTask::HTTP_METHOD method, const string& url,
+            map<string, string> params, const string& security);
 private:
     static map<string, string> EncryptParams(const string& method, const string& url,
             map<string, string> params, const string& security);

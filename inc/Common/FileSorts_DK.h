@@ -22,13 +22,32 @@
 
 
 //搜索文件方式
-enum DK_FileSorts
+//enum DK_FileSorts
+//{
+//    UnknowSort =0,          //获取某一类型文件 比如书（图）、音、视频
+//    RecentlyAdd,            //最近加入
+//    RecentlyReadTime,      //最近阅读
+//    Name,                   //书名关键字
+//    DIRECTORY               //目录
+//};
+
+enum Field
 {
-    UnknowSort =0,          //获取某一类型文件 比如书（图）、音、视频
-    RecentlyAdd,            //最近加入
-    RecentlyReadTime,      //最近阅读
-    Name,                   //书名关键字
-    DIRECTORY               //目录
+    FIELD_NONE = 0,                ///< Do not sort.
+    LAST_ACCESS_TIME,
+    BY_DIRECTORY,
+    RECENTLY_ADD,
+    NAME,
+    TITLE,
+    DESCRIPTION,
+    SIZE,
+    RATING,
+    READ_COUNT,
+    CREATE_TIME,
+    NODE_TYPE,
+    NODE_STATUS,
+    NOT_ON_LOCAL,
+    EXPAND
 };
 
 class CDKFileSorts
@@ -43,7 +62,7 @@ public:
 
 public:
     void SetFileListAndNum(const DKFileList& files);
-    void SetFileSorts(DK_FileSorts Sort);
+    void SetFileSorts(Field Sort);
     void SetFileCategory(DkFormatCategory category);
     const DKFileList& GetFileSortResult() const
     {
@@ -63,7 +82,7 @@ private:
 
 private:
     DkFormatCategory  m_fileCategory;
-    DK_FileSorts m_Sort;
+    Field m_sort;
     DKFileList m_files;
     DKFileList m_sortedFiles;
 };

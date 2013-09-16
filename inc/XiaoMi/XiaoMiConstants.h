@@ -10,6 +10,12 @@ class MiCloudManager;
 class MiCloudDownloadTaskBuilder;
 class XiaoMiConstants
 {
+public:
+    static int GetBlockSize()
+    {
+        return s_micloudBlockSize;
+    }
+private:
     //http://wiki.n.miliao.com/xmg/MiCLOUD_%E5%BA%94%E7%94%A8%E6%95%B0%E6%8D%AE%E5%A4%87%E4%BB%BD_API%E6%96%87%E6%A1%A3
     static std::string s_micloudServiceBaseUrl;
     static std::string s_micloudNameSpace;
@@ -25,6 +31,7 @@ class XiaoMiConstants
     static std::string s_micloudBookRootDir;
     static std::string s_micloudFileLocalDir;
     static int s_micloudBlockSize;
+
     friend class MiCloudManager;
     friend class MiCloudService;
     friend class MiCloudDownloadTaskBuilder;

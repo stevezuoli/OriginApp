@@ -6,7 +6,7 @@
 #include "XiaoMi/XiaoMiServiceFactory.h"
 
 #include "Utility/ImageManager.h"
-
+#include "Utility/SystemUtil.h"
 using namespace xiaomi;
 
 namespace dk {
@@ -16,25 +16,27 @@ namespace document_model {
 CloudCategoryNode::CloudCategoryNode(Node * parent, MiCloudFileSPtr category_info)
     : ContainerNode(parent)
     , category_info_(category_info)
+    , last_update_time_(0)
 {
     status_ = NODE_CLOUD;
     mutableType() = NODE_TYPE_MICLOUD_CATEGORY;
     mutableName() = category_info_->name;
     mutableDisplayName() = category_info_->name;
+    mutableGbkName() = EncodeUtil::UTF8ToGBKString(displayName());
     mutableDescription() = category_info_->name;
     mutableId() = category_info_->id;
     mutableAbsolutePath() = absolutePathFromAncestor();
     mutableCoverPath() = ImageManager::GetImagePath(IMAGE_ICON_COVER_DIR);
-    CloudFileSystemTree::addNodeToGlobalMap(this);
+    //CloudFileSystemTree::addNodeToGlobalMap(this);
 }
 
 CloudCategoryNode::~CloudCategoryNode()
 {
-    CloudFileSystemTree::removeNodeFromGlobalMap(id());
-    DeletePtrContainer(&children_);
+    //CloudFileSystemTree::removeNodeFromGlobalMap(id());
+    CloudFileSystemTree::removeNodeFromCloudLocalMap(id());
 }
 
-NodePtrs& CloudCategoryNode::updateChildrenInfo()
+NodePtrs CloudCategoryNode::updateChildrenInfo()
 {
     for(NodePtrsIter iter = children_.begin(); iter != children_.end(); ++iter)
     {
@@ -48,53 +50,7 @@ NodePtrs& CloudCategoryNode::updateChildrenInfo()
             dynamic_cast<CloudCategoryNode*>((*iter).get())->updateChildrenInfo();
         }
     }
-    sort(children_, by_field_, sort_order_);
-    return children_;
-}
-
-size_t CloudCategoryNode::nodePosition(NodePtr node)
-{
-    // check
-    if (node == 0)
-    {
-        return INVALID_ORDER;
-    }
-
-    RetrieveChildrenResult ret = RETRIEVE_FAILED;
-    const NodePtrs& nodes  = children(ret, false, statusFilter());
-    if (ret == RETRIEVE_DONE)
-    {
-        NodePtrs::const_iterator it = find(nodes.begin(), nodes.end(), node);
-        if (it == nodes.end())
-        {
-            return INVALID_ORDER;
-        }
-        return it - nodes.begin();
-    }
-    return INVALID_ORDER;
-}
-
-size_t CloudCategoryNode::nodePosition(const string &name)
-{
-    RetrieveChildrenResult ret = RETRIEVE_FAILED;
-    const NodePtrs& all = children(ret, false, statusFilter());
-    if (ret == RETRIEVE_DONE)
-    {
-        for(NodePtrs::const_iterator it = all.begin(); it != all.end(); ++it)
-        {
-            if ((*it)->name() == name)
-            {
-                return it - all.begin();
-            }
-        }
-    }
-    return INVALID_ORDER;
-}
-
-bool CloudCategoryNode::search(const StringList& filters, bool recursive, bool & stop)
-{
-    // Not support now
-    return false;
+    return filterChildren(children_);
 }
 
 bool CloudCategoryNode::testStatus(MiCloudFileSPtr category, int status_filter)
@@ -103,15 +59,34 @@ bool CloudCategoryNode::testStatus(MiCloudFileSPtr category, int status_filter)
     return true;
 }
 
-bool CloudCategoryNode::updateChildren(int status_filter)
+bool CloudCategoryNode::updateChildren()
 {
-    // id must be available
-    scan(id(), children_, status_filter, true);
+    setDirty(false);
+    scan(id(), children_);
     return true;
 }
 
-void CloudCategoryNode::scan(const string& dir, NodePtrs &result, int status_filter, bool sort_list)
+void CloudCategoryNode::scan(const string& dir, NodePtrs &result)
 {
+    static const int UPDATE_OVERDUE = 15000;
+
+    // fetch the category tree from mi cloud service.
+    // the caller should wait until results returns and Nodes are ready
+    time_t current_time = SystemUtil::GetUpdateTimeInMs();
+    if (!children_.empty() && last_update_time_ != 0)
+    {
+        if (current_time - last_update_time_ < UPDATE_OVERDUE) // too short to fetch the children
+        {
+            NodeChildenReadyArgs children_ready_args;
+            children_ready_args.succeeded = true;
+            setDirty(false);
+            children_ready_args.current_node_path = absolutePath();
+            children_ready_args.children = filterChildren(children_);
+            FireEvent(EventChildrenIsReady, children_ready_args);
+            return;
+        }
+    }
+    last_update_time_ = current_time;
     MiCloudService* cloud_service = XiaoMiServiceFactory::GetMiCloudService();
     cloud_service->GetChildren(dir);
 }
@@ -121,31 +96,32 @@ void CloudCategoryNode::collectDirectories(const string &dir, StringList & resul
     // TODO.
 }
 
-void CloudCategoryNode::download()
-{
-    downloadChildren();
-}
-
-void CloudCategoryNode::downloadChildren()
+void CloudCategoryNode::download(bool exec_now)
 {
     RetrieveChildrenResult ret = RETRIEVE_FAILED;
-    NodePtrs waiting_children = children(ret, false, NODE_CLOUD | NODE_NOT_ON_LOCAL);
-    for (size_t i = 0; i < waiting_children.size(); i++)
+    NodePtrs waiting_children = children(ret, false, statusFilter());
+    if (ret == RETRIEVE_DONE)
     {
-        NodePtr child = waiting_children[i];
-        NodeType child_type = child->type();
-        if (child_type != NODE_TYPE_MICLOUD_BOOK)
+        for (size_t i = 0; i < waiting_children.size(); i++)
         {
-            child->download();
-        }
-        else
-        {
-            if (child->selected())
+            NodePtr child = waiting_children[i];
+            NodeType child_type = child->type();
+            if (child_type != NODE_TYPE_MICLOUD_BOOK)
             {
-                child->download();
+                child->download(exec_now);
+            }
+            else
+            {
+                if (child->selected())
+                {
+                    child->download(exec_now);
+                }
             }
         }
     }
+
+    // reset selected status
+    Node::download(exec_now);
 }
 
 /// Not used now
@@ -174,11 +150,11 @@ void CloudCategoryNode::deleteDirectory(const string& dir_id)
     cloud_service->DeleteDirectory(dir_id);
 }
 
-bool CloudCategoryNode::remove(bool delete_local_files_if_possible)
+bool CloudCategoryNode::remove(bool delete_local_files_if_possible, bool exec_now)
 {
     RetrieveChildrenResult result = RETRIEVE_FAILED;
-    NodePtrs waiting_children = children(result, false);
-    if (result = RETRIEVE_DONE)
+    NodePtrs waiting_children = children(result, false, statusFilter());
+    if (result == RETRIEVE_DONE)
     {
         for (size_t i = 0; i < waiting_children.size(); i++)
         {
@@ -186,13 +162,13 @@ bool CloudCategoryNode::remove(bool delete_local_files_if_possible)
             NodeType child_type = child->type();
             if (child_type != NODE_TYPE_MICLOUD_BOOK)
             {
-                child->remove(delete_local_files_if_possible);
+                child->remove(delete_local_files_if_possible, exec_now);
             }
             else
             {
                 if (child->selected()) // remove thie file only if it's selected in multi-selection mode
                 {
-                    child->remove(delete_local_files_if_possible);
+                    child->remove(delete_local_files_if_possible, exec_now);
                 }
             }
         }
@@ -204,13 +180,13 @@ bool CloudCategoryNode::remove(bool delete_local_files_if_possible)
 
 void CloudCategoryNode::updateChildren(const MiCloudFileSPtrList& cloud_file_list)
 {
-    DeletePtrContainer(&children_);
+    clearChildren();
     for (size_t i = 0; i < cloud_file_list.size(); ++i)
     {
         MiCloudFileSPtr cloud_file = cloud_file_list[i];
         if (cloud_file->type == MiCloudFile::FT_Dir)
         {
-            if (CloudCategoryNode::testStatus(cloud_file, statusFilter()))
+            //if (CloudCategoryNode::testStatus(cloud_file, statusFilter()))
             {
                 NodePtr dir_node(new CloudCategoryNode(this, cloud_file));
                 children_.push_back(dir_node);
@@ -218,7 +194,7 @@ void CloudCategoryNode::updateChildren(const MiCloudFileSPtrList& cloud_file_lis
         }
         else if (cloud_file->type == MiCloudFile::FT_File)
         {
-            if (CloudFileNode::testStatus(cloud_file, statusFilter()))
+            //if (CloudFileNode::testStatus(cloud_file, statusFilter()))
             {
                 NodePtr file_node(new CloudFileNode(this, cloud_file));
                 children_.push_back(file_node);
@@ -227,7 +203,7 @@ void CloudCategoryNode::updateChildren(const MiCloudFileSPtrList& cloud_file_lis
     }
 
     // Sort.
-    sort(children_, by_field_, sort_order_);
+    //sort(children_, by_field_, sort_order_);
 }
 
 void CloudCategoryNode::onChildrenReturned(const EventArgs& args)
@@ -245,9 +221,9 @@ void CloudCategoryNode::onChildrenReturned(const EventArgs& args)
         children_ready_args.reason = children_args.result->GetErrorReason();
     }
 
-    dirty_ = !children_ready_args.succeeded;
+    setDirty(!children_ready_args.succeeded);
     children_ready_args.current_node_path = absolutePath();
-    children_ready_args.children = children_;
+    children_ready_args.children = filterChildren(children_);
     mutableRoot()->FireEvent(EventChildrenIsReady, children_ready_args);
 }
 
@@ -259,13 +235,17 @@ void CloudCategoryNode::onFileCreated(const EventArgs& args)
     {
         MiCloudServiceResultCreateFileSPtr create_info = file_create_args.result;
         MiCloudFileSPtr cloud_file_info = create_info->GetFileInfo();
-        if (CloudFileNode::testStatus(cloud_file_info, statusFilter()))
+        NodePtr existing_node = node(cloud_file_info->name);
+        if (existing_node != 0)
         {
-            children_ready_args.succeeded = true;
-            NodePtr file_node(new CloudFileNode(this, cloud_file_info));
-            children_.push_back(file_node);
-            sort(children_, by_field_, sort_order_);
+            // do not create duplicate node
+            return;
         }
+
+        children_ready_args.succeeded = true;
+        NodePtr file_node(new CloudFileNode(this, cloud_file_info));
+        children_.push_back(file_node);
+        filtered_children_dirty_ = true;
     }
     else
     {
@@ -274,7 +254,7 @@ void CloudCategoryNode::onFileCreated(const EventArgs& args)
     }
 
     children_ready_args.current_node_path = absolutePath();
-    children_ready_args.children = children_;
+    children_ready_args.children = filterChildren(children_);
     mutableRoot()->FireEvent(EventChildrenIsReady, children_ready_args);
 }
 
@@ -286,7 +266,7 @@ void CloudCategoryNode::onDirectoryCreated(const EventArgs& args)
     {
         MiCloudServiceResultCreateDirSPtr create_info = dir_create_args.result;
         MiCloudFileSPtr cloud_dir_info = create_info->GetDirInfo();
-        if (CloudCategoryNode::testStatus(cloud_dir_info, statusFilter()))
+        //if (CloudCategoryNode::testStatus(cloud_dir_info, statusFilter()))
         {
             children_ready_args.succeeded = true;
             NodePtr dir_node(new CloudCategoryNode(this, cloud_dir_info));
@@ -301,7 +281,10 @@ void CloudCategoryNode::onDirectoryCreated(const EventArgs& args)
     }
 
     children_ready_args.current_node_path = absolutePath();
-    children_ready_args.children = children_;
+
+    RetrieveChildrenResult ret = RETRIEVE_FAILED;
+    children_ready_args.children = children(ret, false, statusFilter(), nameFilter());
+
     mutableRoot()->FireEvent(EventChildrenIsReady, children_ready_args);
 }
 
@@ -312,32 +295,32 @@ void CloudCategoryNode::onFileDeleted(const EventArgs& args)
     if (file_delete_args.succeeded)
     {
         string delete_file_id = file_delete_args.file_id;
-        RetrieveChildrenResult ret = RETRIEVE_FAILED;
-        NodePtrs& all = mutableChildren(ret, false, statusFilter());
-        if (ret == RETRIEVE_DONE)
+        NodePtrs& all = children_; //mutableChildren(ret, false, statusFilter());
+        for (NodePtrs::iterator it = all.begin(); it != all.end(); ++it)
         {
-            for (NodePtrs::iterator it = all.begin(); it != all.end(); ++it)
+            if ((*it)->id() == delete_file_id)
             {
-                if ((*it)->id() == delete_file_id)
-                {
-                    // delete the node in cache
-                    all.erase(it);
-                    children_ready_args.succeeded = true;
-                    break;
-                }
+                // delete the node in cache
+                all.erase(it);
+                children_ready_args.succeeded = true;
+                filtered_children_dirty_ = true; // re-filter children
+                break;
             }
+        }
 
-            // NOTE. the directory can only be deleted when all children are removed
-            if (all.empty() && selected())
-            {
-                // delete myself
-                deleteDirectory(id());
-            }
+        // NOTE. the directory can only be deleted when all children are removed
+        if (all.empty() && selected())
+        {
+            // delete myself
+            deleteDirectory(id());
         }
     }
 
     children_ready_args.current_node_path = absolutePath();
-    children_ready_args.children = children_;
+
+    RetrieveChildrenResult ret = RETRIEVE_FAILED;
+    children_ready_args.children = children(ret, false, statusFilter(), nameFilter());
+
     mutableRoot()->FireEvent(EventChildrenIsReady, children_ready_args);
 }
 
@@ -348,31 +331,38 @@ void CloudCategoryNode::onDirectoryDeleted(const EventArgs& args)
     if (dir_delete_args.succeeded)
     {
         string delete_dir_id = dir_delete_args.directory_id;
-        RetrieveChildrenResult ret = RETRIEVE_FAILED;
-        NodePtrs& all = mutableChildren(ret, false, statusFilter());
-        if (ret == RETRIEVE_DONE)
+        NodePtrs& all = children_; //mutableChildren(ret, false, statusFilter());
+        for(NodePtrs::iterator it = all.begin(); it != all.end(); ++it)
         {
-            for(NodePtrs::iterator it = all.begin(); it != all.end(); ++it)
+            if ((*it)->id() == delete_dir_id)
             {
-                if ((*it)->id() == delete_dir_id)
-                {
-                    // delete the node in cache
-                    all.erase(it);
-                    children_ready_args.succeeded = true;
-                    break;
-                }
+                // delete the node in cache
+                all.erase(it);
+                children_ready_args.succeeded = true;
+                filtered_children_dirty_ = true;
+                break;
             }
         }
     }
 
     children_ready_args.current_node_path = absolutePath();
-    children_ready_args.children = children_;
+    if (!isDirty())
+    {
+        RetrieveChildrenResult ret = RETRIEVE_FAILED;
+        children_ready_args.children = children(ret, false, statusFilter(), nameFilter());
+    }
     mutableRoot()->FireEvent(EventChildrenIsReady, children_ready_args);
 }
 
 SPtr<ITpImage> CloudCategoryNode::getInitialImage()
 {
     return ImageManager::GetImage(IMAGE_TOUCH_ICON_TYPE_FOLDER);
+}
+
+bool CloudCategoryNode::supportedCommands(std::vector<int>& command_ids, std::vector<int>& str_ids)
+{
+    // TODO. Implement Me
+    return false;
 }
 
 }

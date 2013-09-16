@@ -22,6 +22,7 @@ const char* BookDownloadController::EventDRMUpdated = "EventDRMUpdated";
 BookDownloadController::BookDownloadController()
     : current_book_for_queue_downloading_(BookInfoSPtr())
     , downloading_progress_(-1)
+    , is_upload_task(false)
 {
     SubscribeMessageEvent(BookStoreInfoManager::EventDrmCertUpdate,
         *BookStoreInfoManager::GetInstance(),
@@ -267,31 +268,33 @@ bool BookDownloadController::StopAll()
     return true;
 }
 
+void BookDownloadController::UpdateDownloadTasksOverview()
+{
+    IDownloader * downloader = IDownloader::GetInstance();
+    if (downloader)
+    {
+        download_tasks_overview_ = downloader->UpdateAllDownloadTaskNums();
+    }
+}
+
 bool BookDownloadController::OnDownloadStatusUpdated(const EventArgs& args)
 {
     const DownloadUpdateEventArgs& download_args = (const DownloadUpdateEventArgs&)args;
-    if (download_args.type != IDownloadTask::BOOK)
+    //update for updatepackage and micloudfile
+    if (download_args.type == IDownloadTask::BOOK 
+        || download_args.type == IDownloadTask::MICLOUDFILE 
+        || download_args.type == IDownloadTask::UPGRADEPACKAGE)
     {
-        // only handle the downloading of books
-        return false;
+        UpdateDownloadTasksOverview();
     }
 
     string url_id = download_args.taskId;
     int current_progress = download_args.percentage;
     int state = download_args.state;
-    if (!AllowDownload())
-    {
-        UIUtility::SetScreenTips(StringManager::GetStringById(DOWNLOAD_NOT_ENOUGH_SPACE));
-        StopAll();
-        return true;
-    }
-
-    IDownloader * downloader = IDownloader::GetInstance();
-    download_tasks_overview_ = downloader->UpdateAllDownloadTaskNums();
-
     if (current_progress >= 0 && (state & IDownloadTask::WORKING))
     {
         downloading_progress_ = current_progress;
+        is_upload_task = download_args.isUpload;
         current_downloading_id_ = url_id;
     }
     if (current_downloading_id_ == url_id &&
@@ -301,6 +304,19 @@ bool BookDownloadController::OnDownloadStatusUpdated(const EventArgs& args)
                   IDownloadTask::WAITING_QUEUE)))
     {
         downloading_progress_ = -1;
+    }
+
+    if (download_args.type != IDownloadTask::BOOK)
+    {
+        // only handle the downloading of books
+        return false;
+    }
+
+    if (!AllowDownload())
+    {
+        UIUtility::SetScreenTips(StringManager::GetStringById(DOWNLOAD_NOT_ENOUGH_SPACE));
+        StopAll();
+        return true;
     }
 
     BookInfoSPtr empty;
@@ -427,6 +443,7 @@ int BookDownloadController::GetBookDownloadStatus(BookInfoSPtr book)
 int BookDownloadController::GetAllActiveDownloads()
 {
     return GetActiveDownloadsNumByType(IDownloadTask::BOOK) +
+           GetActiveDownloadsNumByType(IDownloadTask::MICLOUDFILE) +
            GetActiveDownloadsNumByType(IDownloadTask::UPGRADEPACKAGE);
 }
 

@@ -37,6 +37,7 @@ void MiCloudFileDownloadEngine::Stop()
     if (m_taskworking)
     {
         this->SetTaskWorking(false);
+        ThreadHelper::CancelThread(m_taskthread);
         ThreadHelper::JoinThread(m_taskthread,NULL);
     }
 }
@@ -60,7 +61,7 @@ void* MiCloudFileDownloadEngine::TaskThread(void* pV)
                     fastdelegate::MakeDelegate(ptask, &DownloadMiCloudFileTask::OnKSSProgressCallback),
                     fileMeta,
                     commitMetas);
-            DebugPrintf(DLC_DIAGNOSTIC, "MiCloudFileDownloadEngine kss upload %s", fileMeta.c_str());
+            //DebugPrintf(DLC_DIAGNOSTIC, "MiCloudFileDownloadEngine kss upload %d %s", res, fileMeta.c_str());
             if (res == KSS_OK)
             {
                 xiaomi::XiaoMiServiceFactory::GetMiCloudService()->CommitFile(ptask->GetMoveTo(), 
@@ -69,11 +70,13 @@ void* MiCloudFileDownloadEngine::TaskThread(void* pV)
             }
             else if (res == KSS_FAIL)
             {
+                DebugPrintf(DLC_DIAGNOSTIC, "MiCloudFileDownloadEngine kss upload failed");
                 ptask->SetState(IDownloadTask::FAILED);
                 ptask->FireDownloadProgressUpdateEvent();
             }
             else
             {
+                DebugPrintf(DLC_DIAGNOSTIC, "MiCloudFileDownloadEngine kss upload error!");
                 ptask->SetState(IDownloadTask::CANCELED);
                 ptask->FireDownloadProgressUpdateEvent();
             }

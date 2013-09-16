@@ -12,6 +12,8 @@
 #include "I18n/StringManager.h"
 #include "XiaoMi/XiaoMiServiceFactory.h"
 #include "XiaoMi/MiCloudService.h"
+#include "I18n/StringManager.h"
+#include "CommandID.h"
 
 using namespace dk::utility;
 using namespace xiaomi;
@@ -20,15 +22,16 @@ namespace dk {
 
 namespace document_model {
 
-LocalFolderNode::LocalFolderNode(Node * p, const string & category_path)
+LocalFolderNode::LocalFolderNode(Node * p, const string & folder_path)
     : ContainerNode(p)
     , virtual_folder_(false)
 {
     status_ = NODE_LOCAL | NODE_SELF_OWN; // update status for cloud later
-    mutableAbsolutePath() = category_path;
+    mutableAbsolutePath() = folder_path;
     mutableType() = NODE_TYPE_CATEGORY_LOCAL_FOLDER;
-    mutableName() = nodeName(category_path);
-    mutableDisplayName() = nodeDisplayName(category_path);
+    mutableName() = nodeName(folder_path);
+    mutableDisplayName() = nodeDisplayName(folder_path);
+    mutableGbkName() = EncodeUtil::UTF8ToGBKString(displayName());
     mutableCoverPath() = ImageManager::GetImagePath(type() == NODE_TYPE_CATEGORY_LOCAL_PUSHED 
                             ? IMAGE_ICON_COVER_DUOKAN_DIR
                             : IMAGE_ICON_COVER_DIR);
@@ -36,7 +39,6 @@ LocalFolderNode::LocalFolderNode(Node * p, const string & category_path)
 
 LocalFolderNode::~LocalFolderNode()
 {
-    DeletePtrContainer(&children_);
 }
 
 SPtr<ITpImage> LocalFolderNode::getInitialImage()
@@ -44,7 +46,7 @@ SPtr<ITpImage> LocalFolderNode::getInitialImage()
     return ImageManager::GetImage(IMAGE_TOUCH_ICON_TYPE_FOLDER);
 }
 
-NodePtrs& LocalFolderNode::updateChildrenInfo()
+NodePtrs LocalFolderNode::updateChildrenInfo()
 {
     for(NodePtrsIter iter = children_.begin(); iter != children_.end(); ++iter)
     {
@@ -54,29 +56,24 @@ NodePtrs& LocalFolderNode::updateChildrenInfo()
             dynamic_cast<FileNode *>((*iter).get())->update();
         }
     }
-    sort(children_, by_field_, sort_order_);
-    return children_;
+    return filterChildren(children_);
 }
 
-bool LocalFolderNode::updateChildren(int status_filter)
+bool LocalFolderNode::updateChildren()
 {
-    DeletePtrContainer(&children_);
-    name_filters_.clear();
-    scan(absolutePath(), children_, status_filter, true);
-    dirty_ = false;
+    clearChildren();
+    scan(absolutePath(), children_);
+    setDirty(false);
     
     NodeChildenReadyArgs children_ready_args;
     children_ready_args.current_node_path = absolutePath();
     children_ready_args.succeeded = true;
-    children_ready_args.children = children_;
+    children_ready_args.children = filterChildren(children_);
     mutableRoot()->FireEvent(EventChildrenIsReady, children_ready_args);
     return true;
 }
 
-void LocalFolderNode::scan(const string& dir,
-                           NodePtrs &result,
-                           int status_filter,
-                           bool sort_list)
+void LocalFolderNode::scan(const string& dir, NodePtrs &result)
 {
     StringList current_dirs = PathManager::GetDirsInPath(dir.c_str());
     StringList current_books = PathManager::GetFilesInPath(dir.c_str());
@@ -84,7 +81,7 @@ void LocalFolderNode::scan(const string& dir,
     for (size_t i = 0; i < current_dirs.size(); i++)
     {
         string folder_path = PathManager::ConcatPath(dir.c_str(), current_dirs[i].c_str());
-        if (LocalFolderNode::testStatus(folder_path, status_filter))
+        //if (LocalFolderNode::testStatus(folder_path, status_filter))
         {
             NodePtr folder_node(new LocalFolderNode(this, folder_path));
             result.push_back(folder_node);
@@ -95,7 +92,7 @@ void LocalFolderNode::scan(const string& dir,
     for (size_t i = 0; i < current_books.size(); i++)
     {
         string book_path = PathManager::ConcatPath(dir.c_str(), current_books[i].c_str());
-        if (FileNode::testStatus(book_path, status_filter))
+        //if (FileNode::testStatus(book_path, status_filter))
         {
             PCDKFile file = file_manager->GetFileByPath(book_path);
             if (file != 0)
@@ -105,46 +102,6 @@ void LocalFolderNode::scan(const string& dir,
             }
         }
     }
-
-    // Sort.
-    if (sort_list)
-    {
-        sort(result, by_field_, sort_order_);
-    }
-}
-
-
-size_t LocalFolderNode::nodePosition(NodePtr node)
-{
-    // check
-    if (node == 0)
-    {
-        return INVALID_ORDER;
-    }
-
-    RetrieveChildrenResult ret = RETRIEVE_FAILED;
-    const NodePtrs& nodes  = children(ret, false, statusFilter());
-    NodePtrs::const_iterator it = find(nodes.begin(), nodes.end(), node);
-    if (it == nodes.end())
-    {
-        return INVALID_ORDER;
-    }
-    return it - nodes.begin();
-}
-
-/// Exactly match.
-size_t LocalFolderNode::nodePosition(const string &name)
-{
-    RetrieveChildrenResult ret = RETRIEVE_FAILED;
-    const NodePtrs& all = children(ret, false, statusFilter());
-    for(NodePtrs::const_iterator it = all.begin(); it != all.end(); ++it)
-    {
-        if ((*it)->name() == name)
-        {
-            return it - all.begin();
-        }
-    }
-    return INVALID_ORDER;
 }
 
 void LocalFolderNode::collectDirectories(const string &path, StringList & result)
@@ -161,63 +118,6 @@ void LocalFolderNode::collectDirectories(const string &path, StringList & result
 bool LocalFolderNode::testStatus(const string& path, int status_filter)
 {
     // TODO. Filter folder in the future. Currently no filtering is needed
-    return true;
-}
-
-/// Search from current directory by using the specified name filters.
-/// Recursively search if needed.
-bool LocalFolderNode::search(const StringList &name_filters,
-                             bool recursive,
-                             bool & stop)
-{
-    //name_filters_ = name_filters;
-    //DeletePtrContainer(&children_);
-
-    //// Search from current directory.
-    //if (!recursive)
-    //{
-    //    scan(absolutePath(), name_filters_, children_, true);
-    //    return true;
-    //}
-
-    //scan(absolutePath(), name_filters_, children_, false);
-
-    //// Collect all directories.
-    //StringList targets;
-    //collectDirectories(absolutePath(), targets);
-
-    //while (!targets.empty())
-    //{
-    //    StringList sub;
-    //    for(int i = 0; i < targets.size(); ++i)
-    //    {
-    //        // Search the directory.
-    //        NodePtrs tmp;
-    //        //QDir dir(t);
-    //        string dir = targets[i];
-    //        scan(dir, name_filters_, tmp, false);
-    //        children_.insert(children_.end(), tmp.begin(), tmp.end());
-    //        collectDirectories(dir, sub);
-
-    //        // Check if caller wants to stop.
-    //        if (stop)
-    //        {
-    //            sub.clear();
-    //            targets.clear();
-    //            break;
-    //        }
-    //    }
-    //    targets = sub;
-    //}
-
-    //if (stop)
-    //{
-    //    return false;
-    //}
-
-    //// Sort.
-    //sort(children_, by_field_, sort_order_);
-    //dirty_ = false;
     return true;
 }
 
@@ -246,7 +146,7 @@ void LocalFolderNode::onCreateCloudDirectoryFinished(const EventArgs& args)
     // TODO. Error handling?
     if (upload_ctx_.isActive())
     {
-        uploadChildren();
+        upload();
     }
 }
 
@@ -273,7 +173,7 @@ void LocalFolderNode::onInfoReturned(const EventArgs& args)
     // TODO. Error handling
 }
 
-void LocalFolderNode::upload()
+void LocalFolderNode::upload(bool exec_now)
 {
     // take all of the children into upload waiting queue because we don't know
     // whether the posterities are selected
@@ -291,31 +191,32 @@ void LocalFolderNode::upload()
     //        return;
     //    }
     //}
-    uploadChildren();
-}
 
-void LocalFolderNode::uploadChildren()
-{
-    //NodePtrs waiting_children = filterChildren(NODE_LOCAL | NODE_NOT_ON_CLOUD, true);
     RetrieveChildrenResult ret = RETRIEVE_FAILED;
     NodePtrs waiting_children = children(ret, false, statusFilter());
-    for (size_t i = 0; i < waiting_children.size(); i++)
+    if (ret == RETRIEVE_DONE)
     {
-        NodePtr child = waiting_children[i];
-        NodeType child_type = child->type();
-        if (child_type != NODE_TYPE_FILE_LOCAL_DOCUMENT &&
-            child_type != NODE_TYPE_FILE_LOCAL_BOOK_STORE_BOOK)
+        for (size_t i = 0; i < waiting_children.size(); i++)
         {
-            child->upload();
-        }
-        else
-        {
-            if (child->selected())
+            NodePtr child = waiting_children[i];
+            NodeType child_type = child->type();
+            if (child_type != NODE_TYPE_FILE_LOCAL_DOCUMENT &&
+                child_type != NODE_TYPE_FILE_LOCAL_BOOK_STORE_BOOK)
             {
-                child->upload();
+                child->upload(exec_now);
+            }
+            else
+            {
+                if (child->selected())
+                {
+                    child->upload(exec_now);
+                }
             }
         }
     }
+
+    // reset selected status for this folder
+    Node::upload(exec_now);
 }
 
 bool LocalFolderNode::isOnCloud()
@@ -346,8 +247,7 @@ bool LocalFolderNode::rename(const string& new_name, string& error_msg)
     string parent_path = parent->absolutePath();
     string new_path = PathManager::ConcatPath(parent_path, new_name);
 
-    RetrieveChildrenResult result = RETRIEVE_FAILED;
-    NodePtrs& children = mutableChildren(result, false);
+    NodePtrs& children = children_; //mutableChildren(result, false);
     for(size_t i = 0; i < children.size(); i++)
     {
         if (new_path == children[i]->absolutePath())
@@ -366,7 +266,7 @@ bool LocalFolderNode::rename(const string& new_name, string& error_msg)
     return true;
 }
 
-bool LocalFolderNode::remove(bool delete_local_files_if_possible)
+bool LocalFolderNode::remove(bool delete_local_files_if_possible, bool exec_now)
 {
     CDKFileManager* file_manager = CDKFileManager::GetFileManager();
     if(0 == file_manager)
@@ -380,6 +280,23 @@ bool LocalFolderNode::remove(bool delete_local_files_if_possible)
 
     // rescan
     file_manager->FireFileListChangedEvent();
+    return true;
+}
+
+bool LocalFolderNode::supportedCommands(std::vector<int>& command_ids,
+                                                   std::vector<int>& str_ids)
+{
+    command_ids.clear();
+    command_ids.push_back(ID_BTN_OPEN_FOLDER);
+    command_ids.push_back(ID_BTN_RENAME_FOLDER);
+    command_ids.push_back(ID_BTN_DELETE_FOLDER);
+    command_ids.push_back(ID_INVALID);
+
+    str_ids.clear();
+    str_ids.push_back(TOUCH_OPEN_FOLDER);
+    str_ids.push_back(CATEGORY_RENAME_BUTTON);
+    str_ids.push_back(TOUCH_DELETE_FOLDER);
+    str_ids.push_back(-1);
     return true;
 }
 

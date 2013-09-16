@@ -171,7 +171,7 @@ INT32 UICompoundListBox::GetMaxDisplayNum()
 
 BOOL UICompoundListBox::SetItemHeight(INT32 _iItemHeight)
 {
-    if (_iItemHeight < 0)
+    if (_iItemHeight < 0 || _iItemHeight == m_iItemHeight)
         return false;
     m_iItemHeight = _iItemHeight;
     return true;
@@ -179,7 +179,7 @@ BOOL UICompoundListBox::SetItemHeight(INT32 _iItemHeight)
 
 BOOL UICompoundListBox::SetItemWidth(INT32 _iItemWidth)
 {
-    if (_iItemWidth < 0)
+    if (_iItemWidth < 0 || _iItemWidth == m_iItemWidth)
         return false;
     m_iItemWidth = _iItemWidth;
     return true;

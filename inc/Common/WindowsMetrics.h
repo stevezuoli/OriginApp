@@ -41,6 +41,7 @@
     MACRO_NAME(UIPixelValue60, 60, 77) \
     MACRO_NAME(UIPixelValue61, 61, 78) \
     MACRO_NAME(UIPixelValue80, 80, 102) \
+    MACRO_NAME(UIPixelValue90, 90, 115)\
     MACRO_NAME(UIPixelValue95, 95, 121)\
     MACRO_NAME(UIPixelValue97, 97, 124)\
     MACRO_NAME(UIPixelValue100, 100, 128)\
@@ -56,6 +57,8 @@
     MACRO_NAME(UIPixelValue180, 180, 230)\
     MACRO_NAME(UIPixelValue190, 190, 243)\
     MACRO_NAME(UIPixelValue200, 200, 256)\
+    MACRO_NAME(UIPixelValue270, 270, 346) \
+    MACRO_NAME(UIPixelValue290, 290, 371) \
     MACRO_NAME(UIPixelValue400, 400, 512)\
     MACRO_NAME(UIHorizonMargin, 30, 38)\
     MACRO_NAME(UIElementSpacing, 3, 5)\
@@ -409,7 +412,6 @@
 	MACRO_NAME(UIPersonalExperienceElementSpacing, 6, 8) \
 	MACRO_NAME(UIPersonalExperienceLineMinHeight, 1, 1) \
     MACRO_NAME(UIPersonalExperienceDistributionHieght, 250, 320) \
-	MACRO_NAME(UIPersonalPageUserInfoHeight, 320, 410) \
 	MACRO_NAME(UIPersonalPageButtonHeight, 55, 70) \
 	MACRO_NAME(UIPersonalPageButtonWidth, 250, 320) \
 	MACRO_NAME(UIPersonalPageUserInfoMargin, 29, 29) \

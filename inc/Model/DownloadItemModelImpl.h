@@ -41,6 +41,8 @@ public:
     {
         return m_TaskUrl;
     }
+    virtual bool CanResume();
+    virtual bool IsUploadTask();
 
 private:
     std::string m_TaskUrl;

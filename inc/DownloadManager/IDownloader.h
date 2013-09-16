@@ -23,7 +23,13 @@ int GetDownloadTaskNums(DownloadTaskNums& tasks, int state);
 class DownloadUpdateEventArgs: public EventArgs
 {
 public:
-    DownloadUpdateEventArgs();
+    DownloadUpdateEventArgs()
+        : percentage(-1)
+        , state(IDownloadTask::NONE)
+        , type(IDownloadTask::UNKNOWN_TYPE)
+        , isUpload(false)
+    {}
+
     virtual ~DownloadUpdateEventArgs() {}
     virtual EventArgs* Clone() const
     {
@@ -35,6 +41,7 @@ public:
     int percentage;
     IDownloadTask::DLState state;
     IDownloadTask::DLType  type;
+    bool isUpload;
 };
 
 typedef std::vector<DownloadUpdateEventArgs> DownloadUpdateEventArgsList;
@@ -96,11 +103,13 @@ public:
     void FireDownloadProgressUpdateEvent(IDownloadTask::DLType type,
                                          IDownloadTask::DLState state,
                                          int percentage,
-                                         std::string urlID = std::string());
+                                         std::string urlID = std::string(),
+                                         bool isUploadTask = false);
 
     virtual AllDownloadTaskNums UpdateAllDownloadTaskNums() = 0;
     virtual DownloadTaskNums UpdateDownloadTaskNums(int type) = 0;
-
+    virtual bool CanTaskResume(std::string _urlID)= 0;
+    virtual bool IsUploadTask(std::string _urlID)= 0;
 protected:
     dk::common::LockObject m_lock;
 };

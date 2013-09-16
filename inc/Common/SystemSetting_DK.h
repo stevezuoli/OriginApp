@@ -270,16 +270,26 @@ public:
     bool IsInstantTurnPageModel() const;
     int GetInitReadingOrder() const;
     bool SetInitReadingOrder(int order);
+    
     // 左侧点击上翻页或下翻页,0上翻，1下翻
     int GetTurnPageFlag() const;
     bool SetTurnPageFlag(int flag);
+    
     // 上下手势翻章或翻页, 0翻章，1翻页
     bool ShouldTreatUpDownGestureAsPageSwitch() const;
     bool SetTreatUpDownGestureAsPageSwitch(bool v);
-    DK_FileSorts GetBookSortType() const;
-    bool SetBookSortType(DK_FileSorts fileSortType);
-    DK_FileSorts GetMediaSortType() const;
-    bool SetMediaSortType(DK_FileSorts fileSortType);
+
+    // Sort type of local book
+    Field GetBookSortType() const;
+    bool SetBookSortType(Field fileSortType);
+
+    Field GetCloudBookSort() const;
+    bool SetCloudBookSortType(Field sort_type);
+    
+    // Sort type of local media
+    Field GetMediaSortType() const;
+    bool SetMediaSortType(Field fileSortType);
+    
     bool IsScreenSaverUnlock() const;
     const char* GetScreenSaverPassword() const;
     bool SetScreenSaverPassword(const char* password);

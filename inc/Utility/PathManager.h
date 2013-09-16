@@ -42,6 +42,7 @@ public:
 	static std::string GetReadingHistoryPath();
 	static std::string GetMiCloudServiceTokenPath();
     static std::string GetDownloadFolderPath();
+    static std::string GetKSSTempPath();
 
     static bool IsRootPath(const char* path);
     static bool IsRootPath(const std::string& path)
@@ -88,6 +89,7 @@ public:
         return GetFileName(src.c_str());
     }
     static std::vector<std::string> GetFilesInPath(const char* path);
+    static std::vector<std::string> GetFilesInPathRecursive(const char* path);
     static std::vector<std::string> GetDirsInPath(const char* path);
 
     static std::string GetBaseUrl(const char* url);

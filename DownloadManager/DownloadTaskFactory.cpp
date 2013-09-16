@@ -130,6 +130,7 @@ IDownloadTask* DownloadTaskFactory::CreateMiCloudFileDownloadTask(
 IDownloadTask* DownloadTaskFactory::CreateMiCloudFileUploadTask(
             std::string _url,
             std::string _urlID,
+            std::string _displayName,
             std::string _kssInfo,
             std::string _uploadId,
             unsigned int _filesize,
@@ -139,8 +140,7 @@ IDownloadTask* DownloadTaskFactory::CreateMiCloudFileUploadTask(
     DownloadMiCloudFileTask *pMiCloudFileTask = new DownloadMiCloudFileTask();
     if (pMiCloudFileTask)
     {
-        std::string fileName = dk::utility::PathManager::GetFileName(_urlID);
-		pMiCloudFileTask->SetFileName(dk::utility::PathManager::GetFileNameWithoutExt(fileName.c_str()));
+		pMiCloudFileTask->SetFileName(_displayName);
 		pMiCloudFileTask->SetUrl("");
 		pMiCloudFileTask->SetOrigUrl(_url);
 		pMiCloudFileTask->SetOrigUrlID(_urlID);

@@ -67,6 +67,7 @@
 #include "Utility/WebBrowserUtil.h"
 #include "Thirdparties/EvernoteManager.h"
 #include "Thirdparties/MiMigrationManager.h"
+#include "BookStore/BookDownloadController.h"
 
 using namespace std;
 using namespace DkFormat;
@@ -996,6 +997,7 @@ CMessageHandler::EHandlerReturnType CMessageHandler::DispatchMessage(SNativeMess
             if( lpUsb && lpUsb->IsUsbConnected() != 1 && GUIHelper::GetScreenSaverStatus()==0)
             {
                 CPageNavigator::GetCurrentPage()->UpdateSectionUI(true);
+                dk::bookstore::BookDownloadController::GetInstance()->UpdateDownloadTasksOverview();
             }
         }
         break;

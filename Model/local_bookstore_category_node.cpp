@@ -7,6 +7,8 @@
 #include "Utility/PathManager.h"
 #include "Utility/FileSystem.h"
 #include "BookStore/LocalCategoryManager.h"
+#include "I18n/StringManager.h"
+#include "CommandID.h"
 
 using namespace dk::utility;
 using namespace dk::bookstore;
@@ -23,14 +25,14 @@ LocalBookStoreCategoryNode::LocalBookStoreCategoryNode(Node * p, const string & 
     mutableType() = NODE_TYPE_CATEGORY_VIRTUAL_BOOK_STORE;
     mutableName() = category_name;  // Utf8 name
     mutableDisplayName() = category_name;
+    mutableGbkName() = EncodeUtil::UTF8ToGBKString(displayName());
 }
 
 LocalBookStoreCategoryNode::~LocalBookStoreCategoryNode()
 {
-    DeletePtrContainer(&children_);
 }
 
-NodePtrs& LocalBookStoreCategoryNode::updateChildrenInfo()
+NodePtrs LocalBookStoreCategoryNode::updateChildrenInfo()
 {
     for (NodePtrsIter iter = children_.begin(); iter != children_.end(); ++iter)
     {
@@ -40,21 +42,19 @@ NodePtrs& LocalBookStoreCategoryNode::updateChildrenInfo()
             dynamic_cast<FileNode *>((*iter).get())->update();
         }
     }
-    sort(children_, by_field_, sort_order_);
-    return children_;
+    return filterChildren(children_);
 }
 
-bool LocalBookStoreCategoryNode::updateChildren(int status_filter)
+bool LocalBookStoreCategoryNode::updateChildren()
 {
-    DeletePtrContainer(&children_);
-    name_filters_.clear();
-    scan(absolutePath(), children_, status_filter, true);
-    dirty_ = false;
+    clearChildren();
+    scan(absolutePath(), children_);
+    setDirty(false);
 
     NodeChildenReadyArgs children_ready_args;
     children_ready_args.current_node_path = absolutePath();
     children_ready_args.succeeded = true;
-    children_ready_args.children = children_;
+    children_ready_args.children = filterChildren(children_);
     mutableRoot()->FireEvent(EventChildrenIsReady, children_ready_args);
     return true;
 }
@@ -76,10 +76,7 @@ bool LocalBookStoreCategoryNode::testStatus(const string& path, int status_filte
     return true;
 }
 
-void LocalBookStoreCategoryNode::scan(const string &cat_name,
-                                      NodePtrs &result,
-                                      int status_filter,
-                                      bool sort_list)
+void LocalBookStoreCategoryNode::scan(const string &cat_name, NodePtrs &result)
 {
     StringList current_books = LocalCategoryManager::GetBookIdsByCategory(cat_name);
 
@@ -89,8 +86,11 @@ void LocalBookStoreCategoryNode::scan(const string &cat_name,
     for (DK_AUTO(cur, current_books.begin()); cur != current_books.end(); ++cur)
     {
         string file_name = *cur + ".epub";
-        string full_path = PathManager::ConcatPath(absolutePath(), file_name);
-        if (FileNode::testStatus(full_path, status_filter))
+
+        // NODE. LocalBookStoreCategoryNode is just a virtual node so abosolute path is just a name
+        // use parent(Book Store Root Node) path as the real path
+        string full_path = PathManager::ConcatPath(parent()->absolutePath(), file_name);
+        //if (FileNode::testStatus(full_path, status_filter))
         {
             PCDKFile file = file_manager->GetFileByPath(full_path);
             if (file != 0)
@@ -100,105 +100,6 @@ void LocalBookStoreCategoryNode::scan(const string &cat_name,
             }
         }
     }
-
-    // Sort.
-    if (sort_list)
-    {
-        sort(result, by_field_, sort_order_);
-    }
-}
-
-size_t LocalBookStoreCategoryNode::nodePosition(NodePtr node)
-{
-    // check
-    if (node == 0)
-    {
-        return INVALID_ORDER;
-    }
-
-    RetrieveChildrenResult ret = RETRIEVE_FAILED;
-    const NodePtrs& nodes  = children(ret, false, statusFilter());
-    NodePtrs::const_iterator it = find(nodes.begin(), nodes.end(), node);
-    if (it == nodes.end())
-    {
-        return INVALID_ORDER;
-    }
-    else
-    {
-        return it - nodes.begin();
-    }
-}
-
-/// Exactly match.
-size_t LocalBookStoreCategoryNode::nodePosition(const string &name)
-{
-    RetrieveChildrenResult ret = RETRIEVE_FAILED;
-    const NodePtrs& all = children(ret, false, statusFilter());
-    for(NodePtrs::const_iterator it = all.begin(); it != all.end(); ++it)
-    {
-        if ((*it)->name() == name)
-        {
-            return it - all.begin();
-        }
-    }
-    return INVALID_ORDER;
-}
-
-/// Search from current directory by using the specified name filters.
-/// Recursively search if needed.
-bool LocalBookStoreCategoryNode::search(const StringList &name_filters,
-                             bool recursive,
-                             bool & stop)
-{
-    //name_filters_ = name_filters;
-    //DeletePtrContainer(&children_);
-
-    //// Search from current directory.
-    //if (!recursive)
-    //{
-    //    scan(absolutePath(), name_filters_, children_, true);
-    //    return true;
-    //}
-
-    //scan(absolutePath(), name_filters_, children_, false);
-
-    //// Collect all directories.
-    //StringList targets;
-    //collectDirectories(absolutePath(), targets);
-
-    //while (!targets.empty())
-    //{
-    //    StringList sub;
-    //    for(int i = 0; i < targets.size(); ++i)
-    //    {
-    //        // Search the directory.
-    //        NodePtrs tmp;
-    //        //QDir dir(t);
-    //        string dir = targets[i];
-    //        scan(dir, name_filters_, tmp, false);
-    //        children_.insert(children_.end(), tmp.begin(), tmp.end());
-    //        collectDirectories(dir, sub);
-
-    //        // Check if caller wants to stop.
-    //        if (stop)
-    //        {
-    //            sub.clear();
-    //            targets.clear();
-    //            break;
-    //        }
-    //    }
-    //    targets = sub;
-    //}
-
-    //if (stop)
-    //{
-    //    return false;
-    //}
-
-    //// Sort.
-    //sort(children_, by_field_, sort_order_);
-    //dirty_ = false;
-    return false;
 }
 
 bool LocalBookStoreCategoryNode::rename(const string& new_name, string& error_msg)
@@ -212,7 +113,7 @@ bool LocalBookStoreCategoryNode::rename(const string& new_name, string& error_ms
     return true;
 }
 
-bool LocalBookStoreCategoryNode::remove(bool delete_local_files_if_possible)
+bool LocalBookStoreCategoryNode::remove(bool delete_local_files_if_possible, bool exec_now)
 {
     CDKFileManager* fileManager = CDKFileManager::GetFileManager();
     if (delete_local_files_if_possible)
@@ -227,6 +128,33 @@ bool LocalBookStoreCategoryNode::remove(bool delete_local_files_if_possible)
     LocalCategoryManager::RemoveCategory(name().c_str());
     fileManager->FireFileListChangedEvent();
     return true;
+}
+
+bool LocalBookStoreCategoryNode::supportedCommands(std::vector<int>& command_ids,
+                                                   std::vector<int>& str_ids)
+{
+    command_ids.clear();
+    command_ids.push_back(ID_BTN_ADD_FILES_TO_CATEGORY);
+    command_ids.push_back(ID_BTN_RENAME_CATEGORY);
+    command_ids.push_back(ID_BTN_DELETE_CATEGORY);
+    command_ids.push_back(ID_INVALID);
+
+    str_ids.clear();
+    str_ids.push_back(CATEGORY_ADD_FILE);
+    str_ids.push_back(CATEGORY_RENAME_BUTTON);
+    str_ids.push_back(BOOK_DELETE);
+    str_ids.push_back(-1);
+    return true;
+}
+
+bool LocalBookStoreCategoryNode::satisfy(int status_filter)
+{
+    if (status_filter & NODE_DUOKAN_BOOK_NOT_CLASSIFIED)
+    {
+        // Do NOT display category on select mode.
+        return false;
+    }
+    return Node::satisfy(status_filter);
 }
 
 }  // namespace document_model
