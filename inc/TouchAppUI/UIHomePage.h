@@ -124,7 +124,7 @@ private:
     UISizerItem* m_titleRightSizer;
     UISizer* m_titleSizer;
     UITextBox m_searchBox;
-    std::string m_searchKeyword;
+    //std::string m_searchKeyword;
 };
 
 #endif

@@ -65,6 +65,7 @@ public:
     Field sort_field_;
     SortOrder sort_order_;
     BookListUsage book_usage_;
+    string keyword_;
 };
 
 class UIModelView : public UICompoundListBox
@@ -89,20 +90,23 @@ public:
     virtual BOOL HandleLongTap(INT32 selectedItem);
 
     void updateModelByContext(ModelTree* model_tree);
-
-    bool BackToUpperFolder();
     bool UpdateListItem();
     virtual void InitListItem();
     void initNodeViews(bool rescan);
+    
+    bool BackToUpperFolder();
     bool cdPath(const string& path);
     bool cdRoot();
+
     DKDisplayMode rootNodeDisplayMode();
     void setRootNodeDisplayMode(DKDisplayMode mode);
     void setStatusFilter(int status_filter);
 
     Field sortField();
     void sort(Field by, SortOrder order, int status_filter);
-    
+    const string& searchKeyword() const { return view_ctx_.keyword_; }
+    void setSearchKeyword(const string& keyword);
+
     void setBookUsage(BookListUsage usage);
 
     int GetTotalPageCount() const { return page_count_; }

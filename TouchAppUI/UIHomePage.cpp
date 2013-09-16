@@ -171,9 +171,9 @@ void UIHomePage::MoveWindow(INT32 _iLeft, INT32 _iTop, INT32 _iWidth, INT32 _iHe
         m_searchBox.SetMinHeight(GetWindowMetrics(UIHomePageSearchDlgHeightIndex));
         m_searchBox.SetId(ID_EDIT_SEARCH_BOOK);
         m_searchBox.SetImage(IMAGE_ICON_SEARCH_DISABLE, IMAGE_ICON_SEARCH);
-        if (!m_searchKeyword.empty())
+        if (!m_modelView.searchKeyword().empty())
         {
-            m_searchBox.SetTextUTF8(m_searchKeyword.c_str());
+            m_searchBox.SetTextUTF8(m_modelView.searchKeyword().c_str());
         }
         m_topUpLevelSizer->Add(&m_searchBox, UISizerFlags(1).Align(dkALIGN_CENTER_VERTICAL));
         m_topUpLevelSizer->AddSpacer(horizonMargin);
@@ -387,8 +387,6 @@ bool UIHomePage::OnSortClick()
             }
             SQM::GetInstance()->IncCounter(sqmCounters[newSelected]);
 
-            m_model->setSortField(sort_field);
-            m_model->sort();
             if (sort_field == BY_DIRECTORY)
             {
                 m_modelView.setRootNodeDisplayMode(BY_FOLDER);
@@ -398,8 +396,9 @@ bool UIHomePage::OnSortClick()
                 m_modelView.setRootNodeDisplayMode(BY_SORT);
             }
             SortOrder order = (LAST_ACCESS_TIME == sort_field) ? DESCENDING : ASCENDING;
+            //m_model->sort();
             m_modelView.sort(sort_field, order, NODE_NONE);
-            RefreshUI();
+            //RefreshUI();
         }
         if(m_pageStyle == SEARCHPAGE)
         {
@@ -441,7 +440,7 @@ bool UIHomePage::OnSearchClick()
         std::string keyword = keywordDialog.GetTextUTF8();
         if (!keyword.empty())
         {
-            m_model->search(keyword); 
+            //m_model->search(keyword); 
             if (SEARCHPAGE != m_pageStyle)
             {
                 UIHomePage* page = new UIHomePage(SEARCHPAGE);
@@ -508,8 +507,7 @@ void UIHomePage::UpdateTopBox()
     Field sort_field = m_modelView.sortField();
     bool showNewCategory = false;
     bool showAddBook = false;
-    if (m_pageStyle != SEARCHPAGE && 
-            (BY_DIRECTORY == sort_field))
+    if (m_pageStyle != SEARCHPAGE && (BY_DIRECTORY == sort_field))
     {
         showNewCategory = (nodeType == NODE_TYPE_CATEGORY_LOCAL_BOOK_STORE);
         showAddBook = (nodeType == NODE_TYPE_CATEGORY_VIRTUAL_BOOK_STORE);
@@ -622,12 +620,8 @@ void UIHomePage::OnLoad()
 {
     SetVisible(TRUE);
     UIPage::OnLoad();
-    if(m_pageStyle == SEARCHPAGE)
-    {
-        m_model->search(m_searchKeyword);
-    }
-
-    Layout();
+    m_modelView.updateModelByContext(m_model);
+    RefreshUI();
     return;
 }
 
@@ -640,8 +634,7 @@ void UIHomePage::OnUnLoad()
 
 void UIHomePage::SetSearchKeyword(const std::string& keyword)
 {
-    m_searchKeyword = keyword;
-
+    m_modelView.setSearchKeyword(keyword);
 }
 
 void UIHomePage::OnEnter()
@@ -654,25 +647,16 @@ void UIHomePage::OnEnter()
     }
 
     m_modelView.updateModelByContext(m_model);
-    if(m_pageStyle == SEARCHPAGE)
-    {
-        m_model->search(m_searchKeyword);
-    }
-    else
-    {
-        SortOrder order = (LAST_ACCESS_TIME == m_modelView.sortField()) ? DESCENDING : ASCENDING;
-        m_modelView.sort(m_modelView.sortField(), order, NODE_NONE);
-    }
     RefreshUI();
     return;
 }
 
 void UIHomePage::OnLeave()
 {
-	if(m_pageStyle == SEARCHPAGE)
-    {
-        m_modelView.sort(m_modelView.sortField(), NO_ORDER, NODE_NONE);
-	}
+	//if(m_pageStyle == SEARCHPAGE)
+ //   {
+ //       m_modelView.sort(m_modelView.sortField(), NO_ORDER, NODE_NONE);
+	//}
     UIPage::OnLeave();
 }
 

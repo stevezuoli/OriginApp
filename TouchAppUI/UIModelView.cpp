@@ -553,7 +553,6 @@ void UIModelView::updateModelByContext(ModelTree* model_tree)
 {
     model_tree->setDisplayMode(view_ctx_.display_mode_);
     model_tree->setSortCriteria(view_ctx_.sort_field_, view_ctx_.sort_order_);
-
     // TODO. add more restore options
 }
 
@@ -778,7 +777,7 @@ NodePtrs UIModelView::childrenNodes(bool scan, bool update, RetrieveChildrenResu
         result = RETRIEVE_DONE;
         return model_tree_->currentNode()->updateChildrenInfo();
     }
-    return model_tree_->currentNode()->children(result, scan, view_ctx_.status_filter_);
+    return model_tree_->currentNode()->children(result, scan, view_ctx_.status_filter_, view_ctx_.keyword_);
 }
 
 bool UIModelView::cdPath(const string& path)
@@ -819,7 +818,7 @@ void UIModelView::sort(Field by, SortOrder order, int status_filter)
     view_ctx_.sort_field_ = by;
     view_ctx_.sort_order_ = order;
     model_tree_->setSortCriteria(by, order);
-    model_tree_->sort();
+    //model_tree_->sort();
 
     // get children without rescanning.
     RetrieveChildrenResult result = RETRIEVE_FAILED;
@@ -843,6 +842,11 @@ void UIModelView::sort(Field by, SortOrder order, int status_filter)
         UpdateListItem();
         Layout();
     }
+}
+
+void UIModelView::setSearchKeyword(const string& keyword)
+{
+    view_ctx_.keyword_ = keyword;
 }
 
 bool UIModelView::gotoNode(NodePtr node)
